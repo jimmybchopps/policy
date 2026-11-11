@@ -1,0 +1,76 @@
+suite: ValidatingAdmissionPolicy (restrict-image-registries)
+templates:
+  - templates/validating.yaml
+release:
+  name: policy
+values:
+  - ../../../../examples/minimal.yaml
+tests:
+  - it: renders the policy as admissionregistration.k8s.io/v1, failing closed
+    documentSelector: { path: kind, value: ValidatingAdmissionPolicy }
+    asserts:
+      - isAPIVersion: { of: admissionregistration.k8s.io/v1 }
+      - equal: { path: metadata.name, value: restrict-image-registries }
+      - equal: { path: spec.failurePolicy, value: Fail }
+
+  - it: reads exceptions from PolicyExceptions
+    documentSelector: { path: kind, value: ValidatingAdmissionPolicy }
+    asserts:
+      - equal: { path: spec.paramKind, value: { apiVersion: policy.posture.dev/v1alpha1, kind: PolicyExceptions } }
+
+  - it: carries the chart labels and the policy annotations (no pss when the definition has none)
+    documentSelector: { path: kind, value: ValidatingAdmissionPolicy }
+    asserts:
+      - equal: { path: "metadata.labels['app.kubernetes.io/name']", value: policy }
+      - equal: { path: "metadata.labels['app.kubernetes.io/instance']", value: policy }
+      - equal:
+          path: metadata.annotations
+          value:
+            policy.posture.dev/tier: baked-in
+            policy.posture.dev/description: Every container image comes from one of the site's registries.
+            policy.posture.dev/nist: CM-7, SR-3
+
+  - it: matches Pods (with ephemeral containers) and the six controllers
+    documentSelector: { path: kind, value: ValidatingAdmissionPolicy }
+    asserts:
+      - equal:
+          path: spec.matchConstraints.resourceRules
+          value:
+            - { apiGroups: [""], apiVersions: [v1], operations: [CREATE, UPDATE], resources: [pods, pods/ephemeralcontainers] }
+            - { apiGroups: [apps], apiVersions: [v1], operations: [CREATE, UPDATE], resources: [deployments, statefulsets, daemonsets, replicasets] }
+            - { apiGroups: [batch], apiVersions: [v1], operations: [CREATE, UPDATE], resources: [jobs, cronjobs] }
+
+  - it: skips Pod UPDATEs that leave the spec unchanged
+    documentSelector: { path: kind, value: ValidatingAdmissionPolicy }
+    asserts:
+      - equal:
+          path: spec.matchConditions
+          value:
+            - name: pod-spec-changed
+              expression: "!(request.operation == 'UPDATE' && object.kind == 'Pod' && request.subResource != 'ephemeralcontainers' && object.spec == oldObject.spec)"
+
+  - it: variables are the shared ones, the settings, then exempt
+    documentSelector: { path: kind, value: ValidatingAdmissionPolicy }
+    asserts:
+      - lengthEqual: { path: spec.variables, count: 6 }
+      - equal: { path: "spec.variables[0].name", value: podSpec }
+      - equal: { path: "spec.variables[1].name", value: podMeta }
+      - equal: { path: "spec.variables[2].name", value: workloadLabels }
+      - equal: { path: "spec.variables[3].name", value: allContainers }
+      - equal: { path: "spec.variables[4]", value: { name: setting_registries, expression: '["registry.example.mil/","127.0.0.1:31999/"]' } }
+      - equal: { path: "spec.variables[5].name", value: exempt }
+
+  - it: exempt matches this policy's own exceptions by label
+    documentSelector: { path: kind, value: ValidatingAdmissionPolicy }
+    asserts:
+      - equal:
+          path: "spec.variables[5].expression"
+          value: "has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'restrict-image-registries' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))"
+
+  - it: every validation is rewritten as exempt || (E), keeping its message
+    documentSelector: { path: kind, value: ValidatingAdmissionPolicy }
+    asserts:
+      - lengthEqual: { path: spec.validations, count: 1 }
+      - matchRegex: { path: "spec.validations[0].expression", pattern: "^variables\\.exempt \\|\\| \\(variables\\.allContainers\\.all\\(c,(.|\\n)*\\)\\)$" }
+      - matchRegex: { path: "spec.validations[0].message", pattern: "^containers\\[\\*\\]\\.image must start with one of the registries" }
+      - matchRegex: { path: "spec.validations[0].message", pattern: "add a posture exception for restrict-image-registries\\.$" }

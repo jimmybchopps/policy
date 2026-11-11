@@ -18,7 +18,7 @@ tests:
       - failedTemplate:
           errorPattern: "registries is required"
 
-  - it: succeeds with the minimal example, rendering nothing
+  - it: succeeds with the minimal example (validate.yaml itself renders nothing)
     values: [../../../examples/minimal.yaml]
     asserts:
       - hasDocuments: { count: 0 }

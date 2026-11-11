@@ -226,6 +226,9 @@ dump_state() {
   local ns
   printf '\n--- admission policies\n'
   "$KUBECTL" get validatingadmissionpolicies,validatingadmissionpolicybindings 2>&1 || true
+  printf '\n--- type checking (the API server compiling each policy CEL)\n'
+  "$KUBECTL" get validatingadmissionpolicies \
+    -o jsonpath='{range .items[*]}{.metadata.name}: {.status.typeChecking}{"\n"}{end}' 2>&1 || true
   for ns in "${NAMESPACES[@]}"; do
     printf '\n--- namespace %s\n' "$ns"
     "$KUBECTL" -n "$ns" get policyexceptions 2>&1 || true

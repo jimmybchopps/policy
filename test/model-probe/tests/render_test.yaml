@@ -1,0 +1,89 @@
+suite: renderer (test definitions)
+templates:
+  - templates/rendered.yaml
+values:
+  - ../values/definitions.yaml
+tests:
+  # values/definitions.yaml has one services and one rbac policy, which render from phase 2;
+  # most tests here use workload-only definitions.
+  - it: fails on resources that are rendered from phase 2
+    asserts:
+      - failedTemplate:
+          errorPattern: "policy: definitions/validating/opt-audit.yaml: resources services is rendered from phase 2"
+
+  - it: an audit policy audits Pods and warns on controllers
+    set:
+      definitions:
+        - { name: audited, source: definitions/validating/audited.yaml, tier: optional, default: { enabled: true, action: audit }, description: x, resources: workloads, validations: [{ expression: "true", message: x }] }
+    asserts:
+      - equal: { path: spec.validationActions, value: [Audit] }
+        documentIndex: 1
+      - equal: { path: spec.validationActions, value: [Warn] }
+        documentIndex: 2
+
+  - it: enforcement audit applies to an inherit policy
+    set:
+      input: { enforcement: audit }
+      definitions:
+        - { name: inherits, source: definitions/validating/inherits.yaml, tier: optional, default: { enabled: true, action: inherit }, description: x, resources: workloads, validations: [{ expression: "true", message: x }] }
+    documentIndex: 1
+    asserts:
+      - equal: { path: metadata.name, value: inherits }
+      - equal: { path: spec.validationActions, value: [Audit] }
+
+  - it: a disabled policy renders nothing
+    set:
+      definitions:
+        - { name: turned-off, source: definitions/validating/turned-off.yaml, tier: optional, default: { enabled: false, action: enforce }, description: x, resources: workloads, validations: [{ expression: "true", message: x }] }
+        - { name: always-on, source: definitions/validating/always-on.yaml, tier: baked-in, description: x, resources: workloads, validations: [{ expression: "true", message: x }] }
+    asserts:
+      - hasDocuments: { count: 3 }
+      - equal: { path: metadata.name, value: always-on }
+        documentIndex: 0
+      - equal: { path: metadata.name, value: always-on-controllers }
+        documentIndex: 2
+
+  - it: a custom policy renders with tier custom
+    set:
+      definitions: []
+      input:
+        custom:
+          require-team-label:
+            description: Every workload carries a team label.
+            validations: [{ expression: "'team' in variables.workloadLabels", message: "Add a 'team' label." }]
+    documentSelector: { path: kind, value: ValidatingAdmissionPolicy }
+    asserts:
+      - equal: { path: metadata.name, value: require-team-label }
+      - equal: { path: metadata.annotations, value: { policy.posture.dev/tier: custom, policy.posture.dev/description: Every workload carries a team label. } }
+      - equal: { path: "spec.validations[0].expression", value: "variables.exempt || ('team' in variables.workloadLabels)" }
+      - matchRegex: { path: "spec.variables[4].expression", pattern: "e.policy.name == 'require-team-label'" }
+
+  - it: pss and nist annotations appear when set
+    set:
+      definitions:
+        - { name: tagged, source: definitions/validating/tagged.yaml, tier: baked-in, description: x, controls: { pss: restricted, nist: [AC-6, CM-7] }, resources: workloads, validations: [{ expression: "true", message: x }] }
+    documentSelector: { path: kind, value: ValidatingAdmissionPolicy }
+    asserts:
+      - equal: { path: "metadata.annotations['policy.posture.dev/pss']", value: restricted }
+      - equal: { path: "metadata.annotations['policy.posture.dev/nist']", value: "AC-6, CM-7" }
+
+  - it: keeps messageExpression and reason, and rewrites every validation
+    set:
+      definitions:
+        - name: two
+          source: definitions/validating/two.yaml
+          tier: baked-in
+          description: x
+          resources: workloads
+          operations: [CREATE]
+          validations:
+            - { expression: "a", message: "first" }
+            - { expression: "b", messageExpression: "'second: ' + object.metadata.name", reason: Forbidden }
+    documentSelector: { path: kind, value: ValidatingAdmissionPolicy }
+    asserts:
+      - equal:
+          path: spec.validations
+          value:
+            - { expression: "variables.exempt || (a)", message: first }
+            - { expression: "variables.exempt || (b)", messageExpression: "'second: ' + object.metadata.name", reason: Forbidden }
+      - equal: { path: "spec.matchConstraints.resourceRules[0].operations", value: [CREATE] }

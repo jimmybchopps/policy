@@ -1,0 +1,162 @@
+minimal:
+  1: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicy
+    metadata:
+      annotations:
+        policy.posture.dev/description: Every container image comes from one of the site's registries.
+        policy.posture.dev/nist: CM-7, SR-3
+        policy.posture.dev/tier: baked-in
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: restrict-image-registries
+    spec:
+      failurePolicy: Fail
+      matchConditions:
+        - expression: '!(request.operation == ''UPDATE'' && object.kind == ''Pod'' && request.subResource != ''ephemeralcontainers'' && object.spec == oldObject.spec)'
+          name: pod-spec-changed
+      matchConstraints:
+        resourceRules:
+          - apiGroups:
+              - ""
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - pods
+              - pods/ephemeralcontainers
+          - apiGroups:
+              - apps
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - deployments
+              - statefulsets
+              - daemonsets
+              - replicasets
+          - apiGroups:
+              - batch
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - jobs
+              - cronjobs
+      paramKind:
+        apiVersion: policy.posture.dev/v1alpha1
+        kind: PolicyExceptions
+      validations:
+        - expression: |-
+            variables.exempt || (variables.allContainers.all(c,
+              variables.setting_registries.exists(r, c.image.startsWith(r))))
+          message: containers[*].image must start with one of the registries in policies.restrict-image-registries.registries. If this workload needs another registry, add a posture exception for restrict-image-registries.
+      variables:
+        - expression: 'object.kind == ''Pod'' ? object.spec : (object.kind == ''CronJob'' ? object.spec.jobTemplate.spec.template.spec : object.spec.template.spec)'
+          name: podSpec
+        - expression: 'object.kind == ''Pod'' ? dyn(object.metadata) : (object.kind == ''CronJob'' ? (has(object.spec.jobTemplate.spec.template.metadata) ? dyn(object.spec.jobTemplate.spec.template.metadata) : dyn({})) : (has(object.spec.template.metadata) ? dyn(object.spec.template.metadata) : dyn({})))'
+          name: podMeta
+        - expression: 'has(variables.podMeta.labels) ? variables.podMeta.labels : {}'
+          name: workloadLabels
+        - expression: 'variables.podSpec.containers + (has(variables.podSpec.initContainers) ? variables.podSpec.initContainers : []) + dyn(has(variables.podSpec.ephemeralContainers) ? variables.podSpec.ephemeralContainers : [])'
+          name: allContainers
+        - expression: '["registry.example.mil/","127.0.0.1:31999/"]'
+          name: setting_registries
+        - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'restrict-image-registries' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
+          name: exempt
+  2: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicyBinding
+    metadata:
+      annotations:
+        policy.posture.dev/tier: baked-in
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: restrict-image-registries
+    spec:
+      matchResources:
+        namespaceSelector:
+          matchExpressions:
+            - key: kubernetes.io/metadata.name
+              operator: NotIn
+              values:
+                - kube-system
+        resourceRules:
+          - apiGroups:
+              - ""
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - pods
+              - pods/ephemeralcontainers
+      paramRef:
+        name: posture-exceptions
+        parameterNotFoundAction: Deny
+      policyName: restrict-image-registries
+      validationActions:
+        - Deny
+        - Audit
+  3: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicyBinding
+    metadata:
+      annotations:
+        policy.posture.dev/tier: baked-in
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: restrict-image-registries-controllers
+    spec:
+      matchResources:
+        namespaceSelector:
+          matchExpressions:
+            - key: kubernetes.io/metadata.name
+              operator: NotIn
+              values:
+                - kube-system
+        resourceRules:
+          - apiGroups:
+              - apps
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - deployments
+              - statefulsets
+              - daemonsets
+              - replicasets
+          - apiGroups:
+              - batch
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - jobs
+              - cronjobs
+      paramRef:
+        name: posture-exceptions
+        parameterNotFoundAction: Deny
+      policyName: restrict-image-registries
+      validationActions:
+        - Warn

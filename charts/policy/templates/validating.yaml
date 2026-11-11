@@ -1,0 +1,1 @@
+{{- include "policy.renderValidating" (dict "model" (include "policy.modelFor" . | fromJson) "root" .) -}}

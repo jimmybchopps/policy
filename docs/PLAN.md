@@ -138,20 +138,27 @@ cluster, on five baked-in policies.
 
 ### 1c. Renderer
 
-- [ ] One `ValidatingAdmissionPolicy` per enabled policy: `failurePolicy: Fail`, match
+- [x] One `ValidatingAdmissionPolicy` per enabled policy: `failurePolicy: Fail`, match
       constraints covering Pods and controllers, shared variables, the definition's variables,
       `exempt`, then validations rewritten as `variables.exempt || (E)`.
-- [ ] Two `ValidatingAdmissionPolicyBinding`s per workload policy, each with
+- [x] Two `ValidatingAdmissionPolicyBinding`s per workload policy, each with
       `matchResources` narrowing to its half and a `namespaceSelector` excluding the chart's
       list by `kubernetes.io/metadata.name`:
       - `<name>`: Pods, actions from the table in CLAUDE.md;
       - `<name>-controllers`: controllers, `[Warn]`.
-- [ ] Both bindings: `paramRef` with `name: posture-exceptions`,
+- [x] Both bindings: `paramRef` with `name: posture-exceptions`,
       `parameterNotFoundAction: Deny`.
-- [ ] Annotations from CLAUDE.md on every policy.
-- [ ] `restrict-image-registries` (added in 1b) renders here too.
-- [ ] e2e: every installed policy has no `status.typeChecking.expressionWarnings`; the API
-      server is the only real check of the shared variables' CEL.
+- [x] Annotations from CLAUDE.md on every policy.
+- [x] `restrict-image-registries` (added in 1b) renders here too.
+- [x] Pod UPDATEs that leave the spec unchanged are skipped (matchCondition `pod-spec-changed`,
+      as Pod Security Admission does), so finalizer removal and GC patches on a non-compliant
+      pod are never denied.
+- [x] Renderer is `policy.renderValidating` in `_render.tpl`, so the probe chart renders test
+      definitions too. `services`, `rbac` and custom `matchConstraints` fail until phase 2.
+- [ ] e2e smoke (no CRD yet): a Pod in a namespace without `posture-exceptions` is denied, a
+      controller there is admitted with a warning, and `kube-system` is not evaluated.
+      Written but not yet run. If the controller is admitted with no warning, switch that
+      check to `admit` and record the behaviour in CLAUDE.md's "Exceptions".
 
 ### 1d. The PolicyExceptions CRD
 
@@ -167,6 +174,10 @@ This chart owns the CRD (see CLAUDE.md). Nothing here waits on `posture`.
       unknown `kind`, or empty `matchLabels` are rejected.
 - [ ] Publish the CRD file with each release so `posture` can pin to it.
 - [ ] `templates/crd.yaml` renders it with `helm.sh/resource-policy: keep`.
+- [ ] e2e (moved from 1c, needs the CRD): every installed policy has no
+      `status.typeChecking.expressionWarnings` (the API server is the only real check of the
+      shared variables' CEL), and a compliant Pod in a namespace with an empty
+      `posture-exceptions` is admitted.
 
 ### 1e. First policies, fixtures, e2e
 

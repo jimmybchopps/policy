@@ -1,0 +1,12 @@
+# Snapshots of every example's rendered output. After an intended change, review the diff and
+# update with: make unittest-update
+suite: examples
+templates:
+  - templates/validating.yaml
+release:
+  name: policy
+tests:
+  - it: minimal
+    values: [../../../examples/minimal.yaml]
+    asserts:
+      - matchSnapshot: {}

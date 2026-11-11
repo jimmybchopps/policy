@@ -175,6 +175,13 @@ labels on a controller and the pod's own labels on a Pod, an exception covers a 
 warning and its Pods' admission alike. Mutating policies use the same check with
 `MutatingAdmissionPolicy` as the kind.
 
+An entry with empty `matchLabels` never matches (it would otherwise exempt every workload in
+the namespace). Every workload policy also gets one match condition, `pod-spec-changed`: a Pod
+UPDATE that leaves the spec unchanged (labels, annotations, finalizers, ownerReferences) isn't
+evaluated, as in Pod Security Admission, so a pod that predates a policy or an expired
+exception can still be cleaned up. `kubectl debug` (`pods/ephemeralcontainers`) is always
+evaluated.
+
 Policies on **cluster-scoped** resources (RBAC) have no namespace to read exceptions from, so
 they get no `paramKind`; their allowlists come from their own settings
 (`policies.restrict-wildcard-rbac.allowedRoles` and so on) instead.
@@ -224,6 +231,7 @@ charts/policy/
     _lib.tpl                       shared variables, policy settings as CEL literals, actions, exclusions
     _model.tpl                     definitions + values + custom -> one normalized list
     validate.yaml                  builds the model on every render, so bad values always fail
+    _render.tpl                    the model -> policies and bindings (validating.yaml calls it)
     crd.yaml
     validating.yaml                policies and their two bindings
     mutating.yaml
@@ -259,6 +267,6 @@ exempt workload admitted with no warning, non-exempt denied, namespace without
 
 | Phase | Area | Status |
 |---|---|---|
-| 1 | Foundations: format, renderer, CRD, exceptions, first policies | in progress (1a, 1b done) |
+| 1 | Foundations: format, renderer, CRD, exceptions, first policies | in progress (1a–1c done) |
 | 2 | Full catalog, custom policies, enforcement controls | not started |
 | 3 | Mutations, reporting, docs, release | not started |

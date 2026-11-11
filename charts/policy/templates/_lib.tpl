@@ -89,3 +89,25 @@ Usage: include "policy.actions" "enforce" | fromJson
 {{- fail (printf "policy: internal: unknown action %q" .) -}}
 {{- end -}}
 {{- end -}}
+
+{{/*
+Match conditions every workload policy gets. A Pod UPDATE that leaves the spec unchanged
+(labels, annotations, finalizers, ownerReferences) isn't evaluated, the same as Pod Security
+Admission: otherwise finalizer removal and garbage-collector patches on a pod that predates a
+policy (or an expired exception) would be denied, leaving it stuck. kubectl debug
+(pods/ephemeralcontainers) and controller updates are always evaluated.
+*/}}
+{{- define "policy.workloadMatchConditions" -}}
+{{- list (dict "name" "pod-spec-changed" "expression" "!(request.operation == 'UPDATE' && object.kind == 'Pod' && request.subResource != 'ephemeralcontainers' && object.spec == oldObject.spec)") | toJson -}}
+{{- end -}}
+
+{{/*
+The exempt variable: true when the namespace's posture-exceptions object (the binding's
+params) lists this policy for a workload whose matchLabels all match the pod template's (or
+the Pod's) labels. Guarded for an empty object. An entry with empty matchLabels never matches:
+it would otherwise exempt every workload in the namespace.
+Usage: include "policy.exemptExpression" (dict "kind" "ValidatingAdmissionPolicy" "name" "x")
+*/}}
+{{- define "policy.exemptExpression" -}}
+{{- printf "has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == '%s' && e.policy.name == '%s' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))" .kind .name -}}
+{{- end -}}
