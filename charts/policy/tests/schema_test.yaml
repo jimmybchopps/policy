@@ -1,20 +1,37 @@
+# The values schema (values.schema.json, generated from the definitions by make values-schema).
+# NOTES.txt renders nothing that depends on these values, so a failure here is the schema's.
 suite: values schema
 templates:
   - templates/NOTES.txt
+values:
+  - ../../../examples/minimal.yaml
 tests:
   - it: accepts the minimal example
-    values: [../../../examples/minimal.yaml]
     asserts:
       - notFailedTemplate: {}
 
-
   - it: rejects a top-level key that isn't built yet
     set:
+      mutations: { enabled: true }
+    asserts:
+      - failedTemplate:
+          errorPattern: "mutations"
+
+  # ---- enforcement
+  - it: accepts enforcement audit
+    set:
       enforcement: audit
+    asserts:
+      - notFailedTemplate: {}
+
+  - it: rejects an unknown enforcement
+    set:
+      enforcement: warn
     asserts:
       - failedTemplate:
           errorPattern: "enforcement"
 
+  # ---- policies
   - it: rejects an unknown policy
     set:
       policies:
@@ -31,6 +48,15 @@ tests:
     asserts:
       - failedTemplate:
           errorPattern: "enabled"
+
+  - it: rejects action on a baked-in policy without settings
+    set:
+      policies:
+        disallow-host-path:
+          action: audit
+    asserts:
+      - failedTemplate:
+          errorPattern: "action"
 
   - it: rejects a registry that isn't a string
     set:
@@ -49,3 +75,82 @@ tests:
     asserts:
       - failedTemplate:
           errorPattern: "registries"
+
+  - it: accepts enabled, action, and settings on an optional policy
+    set:
+      policies:
+        disallow-pod-exec: { enabled: true, action: audit, namespaces: [debug] }
+        restrict-wildcard-rbac: { allowedRoles: [my-operator] }
+    asserts:
+      - notFailedTemplate: {}
+
+  - it: rejects an unknown action on an optional policy
+    set:
+      policies:
+        require-read-only-root-filesystem: { action: warn }
+    asserts:
+      - failedTemplate:
+          errorPattern: "action"
+
+  - it: rejects a setting an optional policy doesn't declare
+    set:
+      policies:
+        require-read-only-root-filesystem: { namespaces: [x] }
+    asserts:
+      - failedTemplate:
+          errorPattern: "namespaces"
+
+  # ---- custom
+  - it: accepts a custom policy in the definition format
+    set:
+      custom:
+        require-team-label:
+          description: Every workload carries a team label.
+          action: enforce
+          validations:
+            - expression: "'team' in variables.workloadLabels"
+              message: "Add a 'team' label to the pod template."
+    asserts:
+      - notFailedTemplate: {}
+
+  - it: rejects a custom policy without validations
+    set:
+      custom:
+        empty: { description: x }
+    asserts:
+      - failedTemplate:
+          errorPattern: "validations"
+
+  - it: rejects tier on a custom policy
+    set:
+      custom:
+        tiered: { description: x, tier: baked-in, validations: [{ expression: "true", message: x }] }
+    asserts:
+      - failedTemplate:
+          errorPattern: "tier"
+
+  - it: rejects a namespaceSelector in a custom matchConstraints block
+    set:
+      custom:
+        scoped:
+          description: x
+          resources:
+            namespaceSelector: { matchLabels: { team: a } }
+            resourceRules: [{ apiGroups: [""], apiVersions: [v1], resources: [configmaps] }]
+          validations: [{ expression: "true", message: x }]
+    asserts:
+      - failedTemplate:
+          errorPattern: "namespaceSelector"
+
+  - it: rejects a custom policy name that isn't a DNS label
+    set:
+      custom:
+        Not_A_Name: { description: x, validations: [{ expression: "true", message: x }] }
+    asserts:
+      - failedTemplate:
+          errorPattern: "Not_A_Name"
+
+  - it: accepts the e2e settings scenario's values (enforcement audit and a custom policy)
+    values: [../../../examples/minimal.yaml, ../../../test/e2e/values/settings.yaml]
+    asserts:
+      - notFailedTemplate: {}

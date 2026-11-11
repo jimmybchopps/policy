@@ -1,0 +1,11 @@
+# externalIPs set, but empty: admitted.
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-empty-external-ips
+  labels: { app.kubernetes.io/name: service-empty-external-ips, e2e.test/fixture: "true" }
+spec:
+  selector: { app.kubernetes.io/name: app }
+  externalIPs: []
+  ports:
+    - { name: http, port: 80, targetPort: 8080 }

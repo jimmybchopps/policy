@@ -1,6 +1,6 @@
 # The rendered ValidatingAdmissionPolicies. Documents are selected so the suite keeps working as
-# the catalog grows: every policy (kind), or one policy by its description annotation (a policy
-# shares its name with its Pod binding).
+# the catalog grows: every policy (kind), every workload policy (its first rule is for pods),
+# or one policy by its description annotation (a policy shares its name with its first binding).
 suite: ValidatingAdmissionPolicies
 templates:
   - templates/validating.yaml
@@ -16,8 +16,8 @@ tests:
       - isAPIVersion: { of: admissionregistration.k8s.io/v1 }
       - equal: { path: spec.failurePolicy, value: Fail }
 
-  - it: every policy reads exceptions from PolicyExceptions
-    documentSelector: { path: kind, value: ValidatingAdmissionPolicy, matchMany: true }
+  - it: every workload policy reads exceptions from PolicyExceptions
+    documentSelector: { path: "spec.matchConstraints.resourceRules[0].resources[0]", value: pods, matchMany: true }
     asserts:
       - equal: { path: spec.paramKind, value: { apiVersion: policy.posture.dev/v1alpha1, kind: PolicyExceptions } }
 
@@ -26,10 +26,9 @@ tests:
     asserts:
       - equal: { path: "metadata.labels['app.kubernetes.io/name']", value: policy }
       - equal: { path: "metadata.labels['app.kubernetes.io/instance']", value: policy }
-      - equal: { path: "metadata.annotations['policy.posture.dev/tier']", value: baked-in }
 
-  - it: every policy matches Pods (with ephemeral containers) and the six controllers
-    documentSelector: { path: kind, value: ValidatingAdmissionPolicy, matchMany: true }
+  - it: every workload policy matches Pods (with ephemeral containers) and the six controllers
+    documentSelector: { path: "spec.matchConstraints.resourceRules[0].resources[0]", value: pods, matchMany: true }
     asserts:
       - equal:
           path: spec.matchConstraints.resourceRules
@@ -38,8 +37,8 @@ tests:
             - { apiGroups: [apps], apiVersions: [v1], operations: [CREATE, UPDATE], resources: [deployments, statefulsets, daemonsets, replicasets] }
             - { apiGroups: [batch], apiVersions: [v1], operations: [CREATE, UPDATE], resources: [jobs, cronjobs] }
 
-  - it: every policy skips Pod UPDATEs that leave the spec unchanged
-    documentSelector: { path: kind, value: ValidatingAdmissionPolicy, matchMany: true }
+  - it: every workload policy skips Pod UPDATEs that leave the spec unchanged
+    documentSelector: { path: "spec.matchConstraints.resourceRules[0].resources[0]", value: pods, matchMany: true }
     asserts:
       - equal:
           path: spec.matchConditions
@@ -47,16 +46,16 @@ tests:
             - name: pod-spec-changed
               expression: "!(request.operation == 'UPDATE' && object.kind == 'Pod' && !(has(request.subResource) && request.subResource == 'ephemeralcontainers') && object.spec == oldObject.spec)"
 
-  - it: every policy starts with the shared variables
-    documentSelector: { path: kind, value: ValidatingAdmissionPolicy, matchMany: true }
+  - it: every workload policy starts with the shared variables
+    documentSelector: { path: "spec.matchConstraints.resourceRules[0].resources[0]", value: pods, matchMany: true }
     asserts:
       - equal: { path: "spec.variables[0].name", value: podSpec }
       - equal: { path: "spec.variables[1].name", value: podMeta }
       - equal: { path: "spec.variables[2].name", value: workloadLabels }
       - equal: { path: "spec.variables[3].name", value: allContainers }
 
-  - it: every policy's first validation is rewritten as exempt || (E)
-    documentSelector: { path: kind, value: ValidatingAdmissionPolicy, matchMany: true }
+  - it: every workload policy's first validation is rewritten as exempt || (E)
+    documentSelector: { path: "spec.matchConstraints.resourceRules[0].resources[0]", value: pods, matchMany: true }
     asserts:
       - matchRegex: { path: "spec.validations[0].expression", pattern: "^variables\\.exempt \\|\\| \\((.|\\n)*\\)$" }
 
@@ -93,3 +92,52 @@ tests:
       - matchRegex: { path: "spec.validations[0].expression", pattern: "^variables\\.exempt \\|\\| \\(variables\\.allContainers\\.all\\(c,(.|\\n)*\\)\\)$" }
       - matchRegex: { path: "spec.validations[0].message", pattern: "^containers\\[\\*\\]\\.image must start with one of the registries" }
       - matchRegex: { path: "spec.validations[0].message", pattern: "add a posture exception for restrict-image-registries\\.$" }
+
+  # ---- Other shapes
+  - it: restrict-external-ips (services) reads exceptions and matches Services only
+    documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Services may not set externalIPs." }
+    asserts:
+      - equal: { path: spec.paramKind, value: { apiVersion: policy.posture.dev/v1alpha1, kind: PolicyExceptions } }
+      - equal:
+          path: spec.matchConstraints.resourceRules
+          value:
+            - { apiGroups: [""], apiVersions: [v1], operations: [CREATE, UPDATE], resources: [services] }
+      - notExists: { path: spec.matchConditions }
+      - equal: { path: "spec.variables[0]", value: { name: workloadLabels, expression: "has(object.metadata.labels) ? object.metadata.labels : {}" } }
+      - equal: { path: "spec.variables[1].name", value: exempt }
+      - matchRegex: { path: "spec.validations[0].expression", pattern: "^variables\\.exempt \\|\\| \\(" }
+
+  - it: restrict-wildcard-rbac (rbac) has no params, no exempt, and skips system names
+    documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Roles and ClusterRoles don't grant \"*\" verbs, resources, or API groups." }
+    asserts:
+      - notExists: { path: spec.paramKind }
+      - equal: { path: spec.matchConditions, value: [{ name: not-system, expression: "!object.metadata.name.startsWith('system:')" }] }
+      - equal:
+          path: spec.matchConstraints.resourceRules
+          value:
+            - { apiGroups: [rbac.authorization.k8s.io], apiVersions: [v1], operations: [CREATE, UPDATE], resources: [roles, clusterroles, rolebindings, clusterrolebindings] }
+      - equal: { path: "spec.variables[0]", value: { name: setting_allowedRoles, expression: "[]" } }
+      - equal: { path: "spec.validations[0].expression", value: "variables.allowed || variables.rules.all(r, !('*' in r.verbs))" }
+
+  - it: restrict-wildcard-rbac renders allowedRoles as a CEL list
+    set:
+      policies:
+        restrict-wildcard-rbac: { allowedRoles: [my-operator] }
+    documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Roles and ClusterRoles don't grant \"*\" verbs, resources, or API groups." }
+    asserts:
+      - equal: { path: "spec.variables[0]", value: { name: setting_allowedRoles, expression: '["my-operator"]' } }
+
+  - it: disallow-pod-exec (custom matchConstraints) matches CONNECT on exec and attach, without params
+    set:
+      policies:
+        disallow-pod-exec: { enabled: true, namespaces: [debug] }
+    documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "No interactive kubectl exec or attach, except in the namespaces listed." }
+    asserts:
+      - equal:
+          path: spec.matchConstraints.resourceRules
+          value:
+            - { apiGroups: [""], apiVersions: [v1], operations: [CONNECT], resources: [pods/exec, pods/attach] }
+      - notExists: { path: spec.paramKind }
+      - notExists: { path: spec.matchConditions }
+      - equal: { path: spec.variables, value: [{ name: setting_namespaces, expression: '["debug"]' }] }
+      - equal: { path: "spec.validations[0].expression", value: "request.namespace in variables.setting_namespaces" }

@@ -1,0 +1,9 @@
+# "*" in resources, in a namespaced Role: denied.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: e2e-role-resources
+rules:
+  - apiGroups: [""]
+    resources: ["*"]
+    verbs: [get]

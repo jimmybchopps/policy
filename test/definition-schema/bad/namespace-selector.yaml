@@ -1,0 +1,12 @@
+# A matchConstraints block may not choose namespaces: exclusions are the chart's decision.
+name: namespace-selector
+tier: baked-in
+description: x
+resources:
+  namespaceSelector: { matchLabels: { team: a } }
+  resourceRules:
+    - { apiGroups: [""], apiVersions: [v1], resources: [configmaps] }
+operations: [CREATE, UPDATE]
+validations:
+  - expression: "true"
+    message: "x. If this workload needs it, add a posture exception for namespace-selector."

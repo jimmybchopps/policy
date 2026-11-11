@@ -1,0 +1,13 @@
+name: restrict-external-ips
+tier: baked-in
+description: Services may not set externalIPs.
+controls:
+  nist: [SC-7]
+resources: services
+operations: [CREATE, UPDATE]
+validations:
+  - expression: "!has(object.spec.externalIPs) || size(object.spec.externalIPs) == 0"
+    message: >-
+      spec.externalIPs must be empty or unset: it lets a Service take traffic for any address
+      (CVE-2020-8554). If this Service needs it, add a posture exception for
+      restrict-external-ips.

@@ -4,7 +4,14 @@
   "description": "One file under charts/policy/definitions/<validating|mutating>/; format in CLAUDE.md.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["name", "tier", "description", "resources", "operations", "validations"],
+  "required": [
+    "name",
+    "tier",
+    "description",
+    "resources",
+    "operations",
+    "validations"
+  ],
   "properties": {
     "name": {
       "description": "The policy's name, a contract with posture exceptions; matches the file name.",
@@ -14,16 +21,31 @@
     },
     "tier": {
       "type": "string",
-      "enum": ["baked-in", "optional"]
+      "enum": [
+        "baked-in",
+        "optional"
+      ]
     },
     "default": {
       "description": "Optional tier only: whether the policy is on and how it acts when values don't say.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["enabled", "action"],
+      "required": [
+        "enabled",
+        "action"
+      ],
       "properties": {
-        "enabled": { "type": "boolean" },
-        "action": { "type": "string", "enum": ["inherit", "enforce", "audit"] }
+        "enabled": {
+          "type": "boolean"
+        },
+        "action": {
+          "type": "string",
+          "enum": [
+            "inherit",
+            "enforce",
+            "audit"
+          ]
+        }
       }
     },
     "description": {
@@ -34,43 +56,238 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "pss": { "type": "string", "enum": ["baseline", "restricted"] },
+        "pss": {
+          "type": "string",
+          "enum": [
+            "baseline",
+            "restricted"
+          ]
+        },
         "nist": {
           "type": "array",
-          "items": { "type": "string", "pattern": "^[A-Z]{2}-[0-9]+" }
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Z]{2}-[0-9]+"
+          }
         }
       }
     },
     "resources": {
-      "description": "workloads | services | rbac, or a full matchConstraints block.",
+      "description": "workloads | services | rbac, or a matchConstraints block (resourceRules, excludeResourceRules, matchPolicy). namespaceSelector and objectSelector aren't accepted: exclusions are the chart's decision.",
       "oneOf": [
-        { "type": "string", "enum": ["workloads", "services", "rbac"] },
-        { "type": "object", "minProperties": 1 }
+        {
+          "type": "string",
+          "enum": [
+            "workloads",
+            "services",
+            "rbac"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "resourceRules"
+          ],
+          "properties": {
+            "resourceRules": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "apiGroups",
+                  "apiVersions",
+                  "resources"
+                ],
+                "properties": {
+                  "apiGroups": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "apiVersions": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "resources": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "resourceNames": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "operations": {
+                    "description": "Defaults to the policy's operations.",
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "CREATE",
+                        "UPDATE",
+                        "DELETE",
+                        "CONNECT",
+                        "*"
+                      ]
+                    }
+                  },
+                  "scope": {
+                    "type": "string",
+                    "enum": [
+                      "Cluster",
+                      "Namespaced",
+                      "*"
+                    ]
+                  }
+                }
+              }
+            },
+            "excludeResourceRules": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "apiGroups",
+                  "apiVersions",
+                  "resources"
+                ],
+                "properties": {
+                  "apiGroups": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "apiVersions": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "resources": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "resourceNames": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "operations": {
+                    "description": "Defaults to the policy's operations.",
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "CREATE",
+                        "UPDATE",
+                        "DELETE",
+                        "CONNECT",
+                        "*"
+                      ]
+                    }
+                  },
+                  "scope": {
+                    "type": "string",
+                    "enum": [
+                      "Cluster",
+                      "Namespaced",
+                      "*"
+                    ]
+                  }
+                }
+              }
+            },
+            "matchPolicy": {
+              "type": "string",
+              "enum": [
+                "Exact",
+                "Equivalent"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "exceptions": {
+      "description": "labels (default): posture exceptions select objects by their labels (the pod template's, for workloads). none: no exceptions (rbac always; anything whose object has no labels, like pods/exec); allowlists come from the policy's settings instead.",
+      "type": "string",
+      "enum": [
+        "labels",
+        "none"
       ]
     },
     "operations": {
       "type": "array",
       "minItems": 1,
       "uniqueItems": true,
-      "items": { "type": "string", "enum": ["CREATE", "UPDATE", "DELETE", "CONNECT"] }
+      "items": {
+        "type": "string",
+        "enum": [
+          "CREATE",
+          "UPDATE",
+          "DELETE",
+          "CONNECT"
+        ]
+      }
     },
     "settings": {
       "description": "Settings the policy accepts under policies.<name>; read as variables.setting_<name>.",
       "type": "object",
-      "propertyNames": { "pattern": "^[a-zA-Z][a-zA-Z0-9]*$" },
+      "propertyNames": {
+        "pattern": "^[a-zA-Z][a-zA-Z0-9]*$"
+      },
       "additionalProperties": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["type"],
+        "required": [
+          "type"
+        ],
         "properties": {
-          "type": { "type": "string", "enum": ["list", "string", "bool"] },
-          "required": { "type": "boolean" },
+          "type": {
+            "type": "string",
+            "enum": [
+              "list",
+              "string",
+              "bool"
+            ]
+          },
+          "required": {
+            "type": "boolean"
+          },
           "description": {
             "description": "What to set; shown when a required setting is missing.",
             "type": "string",
             "minLength": 1
           },
-          "default": {}
+          "default": {},
+          "items": {
+            "description": "For list settings: a JSON schema for each item, used in the values schema (default: a non-empty string).",
+            "type": "object"
+          }
         }
       }
     },
@@ -79,10 +296,19 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["name", "expression"],
+        "required": [
+          "name",
+          "expression"
+        ],
         "properties": {
-          "name": { "type": "string", "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$" },
-          "expression": { "type": "string", "minLength": 1 }
+          "name": {
+            "type": "string",
+            "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$"
+          },
+          "expression": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       }
     },
@@ -92,28 +318,67 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["expression"],
+        "required": [
+          "expression"
+        ],
         "anyOf": [
-          { "required": ["message"] },
-          { "required": ["messageExpression"] }
+          {
+            "required": [
+              "message"
+            ]
+          },
+          {
+            "required": [
+              "messageExpression"
+            ]
+          }
         ],
         "properties": {
-          "expression": { "type": "string", "minLength": 1 },
-          "message": { "type": "string", "minLength": 1 },
-          "messageExpression": { "type": "string", "minLength": 1 },
-          "reason": { "type": "string", "enum": ["Unauthorized", "Forbidden", "Invalid", "RequestEntityTooLarge"] }
+          "expression": {
+            "type": "string",
+            "minLength": 1
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1
+          },
+          "messageExpression": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "Unauthorized",
+              "Forbidden",
+              "Invalid",
+              "RequestEntityTooLarge"
+            ]
+          }
         }
       }
     }
   },
   "if": {
-    "properties": { "tier": { "const": "optional" } },
-    "required": ["tier"]
+    "properties": {
+      "tier": {
+        "const": "optional"
+      }
+    },
+    "required": [
+      "tier"
+    ]
   },
   "then": {
-    "required": ["default"]
+    "required": [
+      "default"
+    ]
   },
   "else": {
-    "not": { "required": ["default"] }
+    "not": {
+      "required": [
+        "default"
+      ]
+    }
   }
 }

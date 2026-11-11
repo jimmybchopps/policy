@@ -1,0 +1,11 @@
+# A ClusterRole that lists its verbs, resources, and API groups: admitted.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: e2e-clusterrole
+rules:
+  - apiGroups: [""]
+    resources: [configmaps]
+    verbs: [get, list, watch]
+  - nonResourceURLs: [/healthz]
+    verbs: [get]

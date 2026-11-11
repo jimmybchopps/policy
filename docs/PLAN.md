@@ -58,7 +58,7 @@ authoritative mapping; confirm them with your ISSM before citing them.
 | `require-read-only-root-filesystem` | enforce | workloads | `readOnlyRootFilesystem: true` on every container | CM-7, SI-7 |
 | `require-resource-limits` | enforce | workloads | memory limit, plus CPU and memory requests, on every container | SC-5 |
 | `require-standard-labels` | enforce | workloads | pod template has `app.kubernetes.io/name` (what `posture` selects on) | CM-8 |
-| `disallow-default-namespace` | enforce | workloads, services | nothing runs in `default` | CM-7 |
+| `disallow-default-namespace` | enforce | workloads | nothing runs in `default` (Services there are already refused: `default` has no `posture-exceptions`, so every Services policy fails closed) | CM-7 |
 | `disallow-mesh-opt-out` | enforce | workloads | none of the policy's `markers` present | SC-7, SC-8 |
 | `disallow-nodeport-services` | enforce | services | no `type: NodePort` | SC-7 |
 | `restrict-loadbalancer-services` | enforce | services | `type: LoadBalancer` only in the policy's `namespaces` | SC-7 |
@@ -221,24 +221,67 @@ listed.
 
 ## Phase 2: full catalog and custom policies
 
-- [ ] Remaining baked-in definitions (11) and all 20 optional ones, each with allow and deny
-      fixtures.
-- [ ] `resources: services` and `resources: rbac` match rules, with a single binding each.
-- [ ] RBAC policies: cluster-scoped objects have no namespace to read exceptions from, so they
-      render without `paramKind`/`paramRef`, use their own allowlist settings, and always skip
-      names starting with `system:`.
-- [ ] `disallow-pod-exec`: matches `CONNECT` on `pods/exec` and `pods/attach`.
-- [ ] `enforcement` and `policies.<name>.enabled` / `.action` for optional policies, defaults
-      from the table; unit tests for every combination.
-- [ ] `custom.<name>` in the definition format, validated by the values schema and rendered the
-      same way (exceptions, the two bindings, and enforcement apply automatically). Custom
-      policies may set `resources` to a full `matchConstraints` block for kinds the shortcuts
-      don't cover.
-- [ ] One e2e custom policy (`require-team-label`).
-- [ ] Upgrade safety: a policy added in a release ships as `audit` for one minor version before
-      `enforce`, so an upgrade can't suddenly deny workloads already running. Baked-in
-      additions follow the same rule: they appear in the release notes one version before they
-      become part of the baseline.
+Split like Phase 1; each subphase ends with a green `make e2e`.
+
+### 2a. Every shape, optional and custom policies, the values schema
+
+- [x] `resources: services` and `resources: rbac` match rules, with a single binding each
+      (`policy.posture.dev/binding: services | rbac`), and custom `matchConstraints` blocks
+      (`custom`): `resourceRules`, `excludeResourceRules`, `matchPolicy`, never a
+      `namespaceSelector` or `objectSelector`. Single bindings act `[Deny, Audit]` (enforce) or
+      `[Audit, Warn]` (audit).
+- [x] `exceptions: labels | none` in the definition format. RBAC policies (cluster-scoped
+      objects, no namespace to read exceptions from) and `disallow-pod-exec` (the request has
+      no pod labels) are `none`: no `paramKind`/`paramRef`, no exempt rewrite; they use their
+      own allowlist settings, and RBAC policies always skip names starting with `system:`.
+      Services take exceptions by the Service's own labels.
+- [x] `enforcement` and `policies.<name>.enabled` / `.action` for optional policies, defaults
+      from each definition; unit tests for every combination (`test/model-probe/tests/`).
+- [x] `custom.<name>` in the definition format, with its own `enabled` and `action`, rendered
+      the same way (exceptions, bindings, and enforcement apply automatically).
+- [x] `values.schema.json` generated from the definitions (`make values-schema`,
+      `test/values-schema/`); `make check-values-schema` (in `make test` and CI) fails if it's
+      stale.
+- [x] Definitions: `restrict-external-ips` (baked-in, services),
+      `require-read-only-root-filesystem` (optional, workloads), `restrict-wildcard-rbac`
+      (optional, rbac; `cluster-admin` always allowed), `disallow-pod-exec` (optional, off;
+      CONNECT on `pods/exec` and `pods/attach`; `namespaces` setting), with fixtures.
+      `make check-fixtures` requires the kinds each `resources` covers.
+- [ ] e2e: catalog with every optional policy on at enforce (Services and RBAC fixtures, the
+      allowlists, kubectl exec), and the `settings` scenario (`enforcement: audit`, custom
+      `require-team-label`). Written, not yet run.
+
+### 2b. Remaining baked-in workload policies
+
+- [ ] `disallow-host-ports`, `disallow-privilege-escalation`, `require-drop-all-capabilities`,
+      `restrict-seccomp`, `restrict-apparmor`, `restrict-selinux`, `restrict-proc-mount`,
+      `restrict-sysctls`, `restrict-volume-types`, each with allow and deny fixtures.
+
+### 2c. Optional workload policies
+
+- [ ] `require-image-digest`, `disallow-latest-tag`, `require-resource-limits`,
+      `require-standard-labels`, `disallow-default-namespace`, `disallow-mesh-opt-out`,
+      `disallow-automount-service-account-token`, `disallow-default-service-account`,
+      `disallow-secrets-in-env`, `disallow-shared-process-namespace`, `require-probes`,
+      `disallow-ephemeral-containers`, each with allow and deny fixtures.
+- [ ] The fixture base gains a non-default ServiceAccount (created in every e2e namespace)
+      and probes; the kubectl debug checks move to a namespace that excepts
+      `disallow-ephemeral-containers`.
+
+### 2d. Optional Services and RBAC policies
+
+- [ ] `disallow-nodeport-services`, `restrict-loadbalancer-services`,
+      `restrict-externalname-services`, `restrict-cluster-admin-binding`,
+      `disallow-rbac-escalation-verbs`, each with allow and deny fixtures.
+
+### 2e. Upgrade safety
+
+- [ ] Definitions may carry `since: "0.N"`, the chart minor version that introduced them
+      (absent: the original catalog). While the chart's minor equals `since`, an optional
+      policy's default action is `audit` unless the user sets `action`, so an upgrade can't
+      suddenly deny workloads already running. Baked-in policies can't be audit: `make
+      check-release` fails if one with `since` set to the next minor isn't named in
+      `CHANGELOG.md` for the version before. Unit tests for both.
 
 **Done when** every policy in the catalog passes its fixtures in k3d.
 

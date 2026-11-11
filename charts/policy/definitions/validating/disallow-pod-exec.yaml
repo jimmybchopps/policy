@@ -1,0 +1,22 @@
+name: disallow-pod-exec
+tier: optional
+default: { enabled: false, action: inherit }
+description: No interactive kubectl exec or attach, except in the namespaces listed.
+controls:
+  nist: [AC-6]
+# The request's object is the exec options, not the Pod, so the pod's labels can't be matched
+# and posture exceptions can't apply; the namespaces setting is the allowlist instead.
+resources:
+  resourceRules:
+    - { apiGroups: [""], apiVersions: [v1], resources: [pods/exec, pods/attach] }
+operations: [CONNECT]
+exceptions: none
+settings:
+  namespaces:
+    type: list
+    description: namespaces where kubectl exec and attach are allowed
+validations:
+  - expression: "request.namespace in variables.setting_namespaces"
+    message: >-
+      kubectl exec and attach are disabled in this namespace. To allow them here, add the
+      namespace to policies.disallow-pod-exec.namespaces.

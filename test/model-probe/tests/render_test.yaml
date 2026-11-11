@@ -4,12 +4,113 @@ templates:
 values:
   - ../values/definitions.yaml
 tests:
-  # values/definitions.yaml has one services and one rbac policy, which render from phase 2;
-  # most tests here use workload-only definitions.
-  - it: fails on resources that are rendered from phase 2
+  # ---- One binding for every shape but workloads (values/definitions.yaml: opt-audit is a
+  #      services policy at audit; opt-off an rbac policy, off by default).
+  # Documents in order: baked (policy, pods, controllers) 0-2, opt-audit (policy, binding) 3-4,
+  # then opt-off if enabled (5-6), then opt-on.
+  - it: a services policy renders one binding, with exceptions, auditing and warning under audit
     asserts:
-      - failedTemplate:
-          errorPattern: "policy: definitions/validating/opt-audit.yaml: resources services is rendered from phase 2"
+      - equal: { path: spec.paramKind, value: { apiVersion: policy.posture.dev/v1alpha1, kind: PolicyExceptions } }
+        documentIndex: 3
+      - equal: { path: "spec.validations[0].expression", value: "variables.exempt || (true)" }
+        documentIndex: 3
+      - equal: { path: kind, value: ValidatingAdmissionPolicyBinding }
+        documentIndex: 4
+      - equal: { path: spec.validationActions, value: [Audit, Warn] }
+        documentIndex: 4
+      - equal: { path: "metadata.annotations['policy.posture.dev/binding']", value: services }
+        documentIndex: 4
+      - equal: { path: spec.paramRef, value: { name: posture-exceptions, parameterNotFoundAction: Deny } }
+        documentIndex: 4
+
+  - it: a services policy has no controllers binding
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: opt-audit-controllers, any: true }
+        not: true
+
+  - it: an rbac policy renders without params or exempt, skipping system names
+    set:
+      input:
+        policies: { opt-off: { enabled: true, allowedRoles: [ok] } }
+    asserts:
+      - notExists: { path: spec.paramKind }
+        documentIndex: 5
+      - equal: { path: spec.variables, value: [{ name: setting_allowedRoles, expression: '["ok"]' }] }
+        documentIndex: 5
+      - equal: { path: spec.validations, value: [{ expression: "true", message: opt-off message }] }
+        documentIndex: 5
+      - equal: { path: spec.matchConditions, value: [{ name: not-system, expression: "!object.metadata.name.startsWith('system:')" }] }
+        documentIndex: 5
+      - equal: { path: "spec.matchConstraints.resourceRules[0].resources", value: [roles, clusterroles, rolebindings, clusterrolebindings] }
+        documentIndex: 5
+      - notExists: { path: spec.paramRef }
+        documentIndex: 6
+      - equal: { path: "metadata.annotations['policy.posture.dev/binding']", value: rbac }
+        documentIndex: 6
+      - equal: { path: spec.validationActions, value: [Deny, Audit] }
+        documentIndex: 6
+
+  - it: a custom matchConstraints block keeps its rules, filling in the policy's operations
+    set:
+      definitions: []
+      input:
+        custom:
+          configmaps:
+            description: x
+            operations: [CREATE]
+            resources:
+              matchPolicy: Equivalent
+              resourceRules:
+                - { apiGroups: [""], apiVersions: [v1], resources: [configmaps] }
+                - { apiGroups: [""], apiVersions: [v1], resources: [secrets], operations: [DELETE] }
+              excludeResourceRules:
+                - { apiGroups: [""], apiVersions: [v1], resources: [configmaps], resourceNames: [kube-root-ca.crt] }
+            validations: [{ expression: "'team' in variables.workloadLabels", message: x }]
+    asserts:
+      - hasDocuments: { count: 2 }
+      - equal:
+          path: spec.matchConstraints
+          value:
+            matchPolicy: Equivalent
+            resourceRules:
+              - { apiGroups: [""], apiVersions: [v1], resources: [configmaps], operations: [CREATE] }
+              - { apiGroups: [""], apiVersions: [v1], resources: [secrets], operations: [DELETE] }
+            excludeResourceRules:
+              - { apiGroups: [""], apiVersions: [v1], resources: [configmaps], resourceNames: [kube-root-ca.crt], operations: [CREATE] }
+        documentIndex: 0
+      - equal: { path: "spec.variables[0].name", value: workloadLabels }
+        documentIndex: 0
+      - equal: { path: spec.paramKind.kind, value: PolicyExceptions }
+        documentIndex: 0
+      - equal: { path: "metadata.annotations['policy.posture.dev/binding']", value: custom }
+        documentIndex: 1
+      - equal: { path: spec.matchResources.matchPolicy, value: Equivalent }
+        documentIndex: 1
+      - equal: { path: "spec.matchResources.namespaceSelector.matchExpressions[0].values", value: [kube-system] }
+        documentIndex: 1
+      - equal: { path: spec.paramRef.name, value: posture-exceptions }
+        documentIndex: 1
+
+  - it: exceptions none renders without params and without the exempt rewrite
+    set:
+      definitions: []
+      input:
+        custom:
+          no-exec:
+            description: x
+            exceptions: none
+            operations: [CONNECT]
+            resources: { resourceRules: [{ apiGroups: [""], apiVersions: [v1], resources: [pods/exec] }] }
+            validations: [{ expression: "request.namespace == 'debug'", message: x }]
+    asserts:
+      - notExists: { path: spec.paramKind }
+        documentIndex: 0
+      - equal: { path: spec.variables, value: [] }
+        documentIndex: 0
+      - equal: { path: spec.validations, value: [{ expression: "request.namespace == 'debug'", message: x }] }
+        documentIndex: 0
+      - notExists: { path: spec.paramRef }
+        documentIndex: 1
 
   - it: an audit policy audits Pods and warns on controllers
     set:

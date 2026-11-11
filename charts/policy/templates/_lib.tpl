@@ -62,6 +62,55 @@ Usage: include "policy.controllerRules" (list "CREATE" "UPDATE") | fromJsonArray
 {{- end -}}
 
 {{/*
+Resource rules for resources: services.
+Usage: include "policy.serviceRules" (list "CREATE" "UPDATE") | fromJsonArray
+*/}}
+{{- define "policy.serviceRules" -}}
+{{- list (dict "apiGroups" (list "") "apiVersions" (list "v1") "resources" (list "services") "operations" .) | toJson -}}
+{{- end -}}
+
+{{/*
+Resource rules for resources: rbac. Roles and bindings, namespaced and cluster-scoped.
+Usage: include "policy.rbacRules" (list "CREATE" "UPDATE") | fromJsonArray
+*/}}
+{{- define "policy.rbacRules" -}}
+{{- list (dict "apiGroups" (list "rbac.authorization.k8s.io") "apiVersions" (list "v1") "resources" (list "roles" "clusterroles" "rolebindings" "clusterrolebindings") "operations" .) | toJson -}}
+{{- end -}}
+
+{{/*
+Resource rules for a custom matchConstraints block: its resourceRules (and
+excludeResourceRules), each rule without operations given the policy's.
+Usage: include "policy.customRules" (dict "rules" $rules "operations" $ops) | fromJsonArray
+*/}}
+{{- define "policy.customRules" -}}
+{{- $out := list -}}
+{{- range $r := .rules | default list -}}
+  {{- $rule := deepCopy $r -}}
+  {{- if not (hasKey $rule "operations") -}}{{- $_ := set $rule "operations" $.operations -}}{{- end -}}
+  {{- $out = append $out $rule -}}
+{{- end -}}
+{{- toJson $out -}}
+{{- end -}}
+
+{{/*
+The one shared variable for policies that aren't workloads but take exceptions (services,
+custom matchConstraints): workloadLabels, the object's own labels, so posture exceptions
+select a Service (or any object) by its labels the way they select a workload by its pod
+template's.
+*/}}
+{{- define "policy.objectVariables" -}}
+{{- list (dict "name" "workloadLabels" "expression" "has(object.metadata.labels) ? object.metadata.labels : {}") | toJson -}}
+{{- end -}}
+
+{{/*
+The match condition every rbac policy gets: names starting with system: belong to Kubernetes
+(and the distribution) and are reconciled by the API server, so they're never evaluated.
+*/}}
+{{- define "policy.rbacMatchConditions" -}}
+{{- list (dict "name" "not-system" "expression" "!object.metadata.name.startsWith('system:')") | toJson -}}
+{{- end -}}
+
+{{/*
 A policy's resolved settings as variables, sorted by name: setting_<name> = the value as a CEL
 literal. JSON is valid CEL for strings, lists, maps, and bools, including the
 \u003c-style escapes toJson produces for <, > and &.
@@ -76,17 +125,29 @@ Usage: include "policy.settingVariables" $settings | fromJsonArray
 {{- end -}}
 
 {{/*
-The action table (CLAUDE.md, "Actions"). Audit records come from Pods only and warnings from
-controllers only, so neither is duplicated.
-Usage: include "policy.actions" "enforce" | fromJson
+The action table (CLAUDE.md, "Actions"). Workload policies have two bindings: audit records
+come from Pods only and warnings from controllers only, so neither is duplicated. Every other
+policy (services, rbac, custom matchConstraints) has a single binding; under audit it also
+warns, so whoever applies the object still sees the problem (the API server doesn't allow Deny
+and Warn together).
+Usage: include "policy.actions" (dict "action" "enforce" "workloads" true) | fromJson
 */}}
 {{- define "policy.actions" -}}
-{{- if eq . "enforce" -}}
+{{- if not (has .action (list "enforce" "audit")) -}}
+{{- fail (printf "policy: internal: unknown action %q" .action) -}}
+{{- end -}}
+{{- if .workloads -}}
+{{- if eq .action "enforce" -}}
 {{- dict "pods" (list "Deny" "Audit") "controllers" (list "Warn") | toJson -}}
-{{- else if eq . "audit" -}}
-{{- dict "pods" (list "Audit") "controllers" (list "Warn") | toJson -}}
 {{- else -}}
-{{- fail (printf "policy: internal: unknown action %q" .) -}}
+{{- dict "pods" (list "Audit") "controllers" (list "Warn") | toJson -}}
+{{- end -}}
+{{- else -}}
+{{- if eq .action "enforce" -}}
+{{- dict "single" (list "Deny" "Audit") | toJson -}}
+{{- else -}}
+{{- dict "single" (list "Audit" "Warn") | toJson -}}
+{{- end -}}
 {{- end -}}
 {{- end -}}
 

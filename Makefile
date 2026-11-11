@@ -38,6 +38,10 @@ SCHEMAS     := $(CURDIR)/.bin/schemas
 CRD_SCHEMA  := $(SCHEMAS)/policy.posture.dev/policyexceptions_v1alpha1.json
 LOCAL_SCHEMAS := -schema-location '$(SCHEMAS)/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
 
+# charts/policy/values.schema.json is generated from the definitions (test/values-schema) by
+# `make values-schema`; check-values-schema fails if the committed file is stale.
+VALUES_SCHEMA := $(CHART)/values.schema.json
+
 OS   := $(shell uname -s | tr '[:upper:]' '[:lower:]')
 ARCH := $(shell uname -m | sed -e 's/x86_64/amd64/' -e 's/aarch64/arm64/')
 
@@ -62,11 +66,12 @@ UNITTEST_FILES := -f 'tests/*_test.yaml' -f 'tests/*/*_test.yaml'
 
 KUBECONFORM_ARGS := -strict -summary -schema-location default $(LOCAL_SCHEMAS) -schema-location '$(CRDS_CATALOG)'
 
-.PHONY: help tools tools-e2e lint check-definitions check-fixtures unittest unittest-update crd-schema validate test test-all-helm e2e clean
+.PHONY: help tools tools-e2e lint check-definitions check-fixtures check-values-schema values-schema unittest unittest-update crd-schema validate test test-all-helm e2e clean
 
 help:
 	@echo "make tools          install helm $(HELM_VERSION), helm-unittest, kubeconform into .bin/"
-	@echo "make test           lint, check-definitions, check-fixtures, unittest, validate"
+	@echo "make test           lint, check-definitions, check-fixtures, check-values-schema, unittest, validate"
+	@echo "make values-schema  regenerate $(VALUES_SCHEMA) from the definitions"
 	@echo "make test-all-helm  make test under Helm $(HELM_VERSIONS)"
 	@echo "make e2e            k3d end-to-end tests (E2E_ARGS=<scenario>, E2E_KEEP=1, E2E_REUSE=1)"
 	@echo "make unittest-update  regenerate example snapshots (review the diff)"
@@ -138,6 +143,30 @@ unittest: $(UNITTEST_PLUGIN)
 unittest-update: $(UNITTEST_PLUGIN)
 	$(HELM) unittest -u $(UNITTEST_FILES) $(CHART)
 
+# Renders the values schema into $(1). The chart is assembled in .bin/ because a chart can only
+# read its own files.
+define render-values-schema
+	@rm -rf $(BIN)/values-schema-chart
+	@cp -r test/values-schema $(BIN)/values-schema-chart
+	@mkdir -p $(BIN)/values-schema-chart/definitions
+	@cp -r $(CHART)/definitions/validating $(BIN)/values-schema-chart/definitions/
+	@cp $(DEFINITION_SCHEMA)/values.schema.json $(BIN)/values-schema-chart/definition.schema.json
+	@$(HELM) template x $(BIN)/values-schema-chart --show-only templates/schema.yaml > $(BIN)/values-schema.out
+	@sed -e '/^---/d' -e '/^# Source/d' -e '/^$$/d' $(BIN)/values-schema.out > $(1)
+endef
+
+values-schema: $(HELM)
+	$(call render-values-schema,$(VALUES_SCHEMA))
+	@echo "==> wrote $(VALUES_SCHEMA)"
+
+check-values-schema: $(HELM)
+	@$(call render-values-schema,$(BIN)/values.schema.json)
+	@if ! cmp -s $(BIN)/values.schema.json $(VALUES_SCHEMA); then \
+	  echo "FAIL: $(VALUES_SCHEMA) is stale; run make values-schema and commit it"; \
+	  diff -u $(VALUES_SCHEMA) $(BIN)/values.schema.json | head -40; exit 1; \
+	fi
+	@echo "==> $(VALUES_SCHEMA) is current"
+
 crd-schema: $(CRD_SCHEMA)
 
 # Rebuilt whenever the CRD or the converter changes. The chart is assembled in .bin/ because a
@@ -147,7 +176,8 @@ $(CRD_SCHEMA): $(CRD) test/crd-schema/Chart.yaml test/crd-schema/templates/schem
 	cp -r test/crd-schema $(BIN)/crd-schema-chart
 	cp $(CRD) $(BIN)/crd-schema-chart/crd.yaml
 	mkdir -p $(dir $@)
-	$(HELM) template x $(BIN)/crd-schema-chart --show-only templates/schema.yaml | sed -e '/^---/d' -e '/^#/d' > $@
+	$(HELM) template x $(BIN)/crd-schema-chart --show-only templates/schema.yaml > $(BIN)/crd-schema.out
+	sed -e '/^---/d' -e '/^#/d' $(BIN)/crd-schema.out > $@
 
 # No public catalog publishes a JSON schema for CustomResourceDefinition itself, so the CRD object
 # is skipped here; tests/crd_test.yaml and the API server (make e2e) check it instead.
@@ -170,14 +200,23 @@ validate: $(HELM) $(KUBECONFORM) $(CRD_SCHEMA)
 	  echo "==> rejected as expected: $$f"; \
 	done
 
-# CLAUDE.md, "Testing": every policy has allow and deny fixtures, each covering a Pod, a
-# Deployment, and a CronJob; and no fixtures exist for a policy that isn't defined.
+# CLAUDE.md, "Testing": every policy has allow and deny fixtures covering the kinds it applies
+# to (read from its resources: line): workloads a Pod, a Deployment, and a CronJob; services a
+# Service; rbac a ClusterRole and a Role. A matchConstraints block (disallow-pod-exec) has no
+# object to fixture; its cases are commands in test/e2e/scenarios/catalog.sh. And no fixtures
+# exist for a policy that isn't defined.
 check-fixtures:
 	@set -e; fail=0; \
 	for def in $(DEFINITIONS); do \
 	  p=$$(basename $$def .yaml); \
+	  case $$(sed -n 's/^resources: *//p' $$def) in \
+	    workloads) kinds="Pod Deployment CronJob" ;; \
+	    services) kinds="Service" ;; \
+	    rbac) kinds="ClusterRole Role" ;; \
+	    *) echo "==> $$p: a matchConstraints block, covered by e2e commands (no fixtures)"; continue ;; \
+	  esac; \
 	  for dir in allow deny; do \
-	    for kind in Pod Deployment CronJob; do \
+	    for kind in $$kinds; do \
 	      if ! grep -lqx "kind: $$kind" fixtures/$$p/$$dir/*.yaml 2>/dev/null; then \
 	        echo "FAIL: fixtures/$$p/$$dir/ has no $$kind"; fail=1; \
 	      fi; \
@@ -190,9 +229,9 @@ check-fixtures:
 	    echo "FAIL: $$d has no definition ($(CHART)/definitions/validating/$$p.yaml)"; fail=1; \
 	  fi; \
 	done; \
-	[ $$fail -eq 0 ] && echo "==> fixtures cover every policy (Pod, Deployment, CronJob; allow and deny)"
+	[ $$fail -eq 0 ] && echo "==> fixtures cover every policy (the kinds it applies to; allow and deny)"
 
-test: lint check-definitions check-fixtures unittest validate
+test: lint check-definitions check-fixtures check-values-schema unittest validate
 
 test-all-helm:
 	@set -e; for v in $(HELM_VERSIONS); do \

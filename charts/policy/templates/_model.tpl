@@ -13,12 +13,14 @@ Shape:
       tier: baked-in | optional | custom
       kind: ValidatingAdmissionPolicy
       description, controls: { pss?, nist? }
-      resources: workloads | services | rbac | { matchConstraints }
+      resources: workloads | services | rbac | { resourceRules, ... }   # as defined
+      shape: workloads | services | rbac | custom   # what resources is; picks rules and bindings
       operations: [CREATE, UPDATE]
-      scope: namespaced | cluster         # cluster (rbac): no namespace to read exceptions from
+      exceptions: labels | none           # none: no paramKind, no exempt (rbac always)
       enabled: true
       action: enforce | audit             # resolved; never inherit
-      actions: { pods: [Deny, Audit], controllers: [Warn] }
+      actions: { pods: [Deny, Audit], controllers: [Warn] }   # workloads
+               { single: [Deny, Audit] }                      # every other shape
       settings: { <name>: value }         # resolved, defaults applied
       variables: [{ name, expression }]   # shared (workloads), setting_*, the definition's own
       validations: [{ expression, message | messageExpression, reason? }]
@@ -41,11 +43,18 @@ Usage: include "policy.definitions" . | fromJsonArray     (needs the chart root,
   {{- if hasKey $def "Error" -}}
     {{- fail (printf "policy: %s: not valid YAML: %s" $path $def.Error) -}}
   {{- end -}}
-  {{- /* Messages tell people what to do (CLAUDE.md): every built-in message names its exception.
-         Checked here, on the real files only, so the probe's test definitions stay minimal. */ -}}
+  {{- /* Messages tell people what to do (CLAUDE.md): every built-in message names its exception,
+         or, for a policy without exceptions, the setting that allows it. Checked here, on the
+         real files only, so the probe's test definitions stay minimal. */ -}}
+  {{- $none := or (eq (toString $def.exceptions) "none") (eq (toString $def.resources) "rbac") -}}
+  {{- $want := ternary (printf "policies.%s." $def.name) (printf "posture exception for %s" $def.name) $none -}}
   {{- range $i, $v := $def.validations -}}
-    {{- if and $v.message (not (contains (printf "posture exception for %s" $def.name) $v.message)) -}}
-      {{- fail (printf "policy: %s: validations[%d].message must say how to get an exception: \"... add a posture exception for %s.\"" $path $i $def.name) -}}
+    {{- if and $v.message (not (contains $want $v.message)) -}}
+      {{- if $none -}}
+        {{- fail (printf "policy: %s: validations[%d].message must name the setting that allows it (%s<setting>)" $path $i $want) -}}
+      {{- else -}}
+        {{- fail (printf "policy: %s: validations[%d].message must say how to get an exception: \"... add a posture exception for %s.\"" $path $i $def.name) -}}
+      {{- end -}}
     {{- end -}}
   {{- end -}}
   {{- $defs = append $defs (set $def "source" $path) -}}
@@ -90,9 +99,10 @@ Usage: include "policy.modelFor" . | fromJson
   {{- if hasKey $byName $name -}}
     {{- fail (printf "policy: custom.%s: %q is the name of a built-in policy (%s); choose another name" $name $name (get $byName $name).source) -}}
   {{- end -}}
-  {{- $def := merge (dict "name" $name "source" (printf "custom.%s" $name)) (get $custom $name | default dict) -}}
+  {{- $entry := get $custom $name | default dict -}}
+  {{- $def := merge (dict "name" $name "source" (printf "custom.%s" $name)) (omit $entry "enabled" "action") -}}
   {{- $out := dict -}}
-  {{- $_ := include "policy.normalize" (dict "def" $def "tier" "custom" "path" (printf "custom.%s" $name) "values" dict "enforcement" $enforcement "out" $out) -}}
+  {{- $_ := include "policy.normalize" (dict "def" $def "tier" "custom" "path" (printf "custom.%s" $name) "values" (pick $entry "enabled" "action") "enforcement" $enforcement "out" $out) -}}
   {{- $_ := set $byName $name $out -}}
 {{- end -}}
 
@@ -106,7 +116,8 @@ Usage: include "policy.modelFor" . | fromJson
 {{/*
 Normalize one policy into out.
 Input: dict "def" <definition> "tier" <baked-in|optional|custom> "path" <values path>
-            "values" <policies.<name>, or nil> "enforcement" <enforce|audit> "out" <dict>
+            "values" <policies.<name> (custom: the entry's enabled and action), or nil>
+            "enforcement" <enforce|audit> "out" <dict>
 */}}
 {{- define "policy.normalize" -}}
 {{- $def := .def -}}
@@ -124,6 +135,37 @@ Input: dict "def" <definition> "tier" <baked-in|optional|custom> "path" <values 
   {{- if ne (base $src | trimSuffix ".yaml") $name -}}
     {{- fail (printf "policy: %s: name is %q; it must match the file name" $src $name) -}}
   {{- end -}}
+{{- end -}}
+
+{{- /* What resources is (its shape), and whether the policy takes exceptions. */ -}}
+{{- $resources := $def.resources | default "workloads" -}}
+{{- $shape := "" -}}
+{{- if kindIs "map" $resources -}}
+  {{- $shape = "custom" -}}
+  {{- range $key := list "namespaceSelector" "objectSelector" -}}
+    {{- if hasKey $resources $key -}}
+      {{- fail (printf "policy: %s: resources.%s: not allowed; which namespaces are never evaluated is the chart's decision (kube-system only). Use posture exceptions for individual workloads" $src $key) -}}
+    {{- end -}}
+  {{- end -}}
+  {{- range $key := keys $resources | sortAlpha -}}
+    {{- if not (has $key (list "resourceRules" "excludeResourceRules" "matchPolicy")) -}}
+      {{- fail (printf "policy: %s: resources.%s: unknown key; a matchConstraints block takes resourceRules, excludeResourceRules, matchPolicy" $src $key) -}}
+    {{- end -}}
+  {{- end -}}
+  {{- if not $resources.resourceRules -}}
+    {{- fail (printf "policy: %s: resources.resourceRules: required (at least one rule)" $src) -}}
+  {{- end -}}
+{{- else if has (toString $resources) (list "workloads" "services" "rbac") -}}
+  {{- $shape = toString $resources -}}
+{{- else -}}
+  {{- fail (printf "policy: %s: resources must be workloads, services, rbac, or a matchConstraints block, not %q" $src (toString $resources)) -}}
+{{- end -}}
+{{- $exceptions := $def.exceptions | default (ternary "none" "labels" (eq $shape "rbac")) -}}
+{{- if not (has $exceptions (list "labels" "none")) -}}
+  {{- fail (printf "policy: %s: exceptions must be labels or none, not %q" $src $exceptions) -}}
+{{- end -}}
+{{- if and (eq $shape "rbac") (ne $exceptions "none") -}}
+  {{- fail (printf "policy: %s: exceptions: rbac objects are cluster-scoped or have no labels to match, so rbac policies take exceptions: none (allowlist settings instead)" $src) -}}
 {{- end -}}
 
 {{- /* Definitions stay portable CEL: no params (exceptions are injected), no authorizer. */ -}}
@@ -153,7 +195,7 @@ Input: dict "def" <definition> "tier" <baked-in|optional|custom> "path" <values 
 
 {{- /* Every key the user set must be a setting the definition declares (or enabled/action on an optional policy). */ -}}
 {{- $allowed := keys $settingsSpec -}}
-{{- if eq $tier "optional" -}}{{- $allowed = concat $allowed (list "enabled" "action") -}}{{- end -}}
+{{- if has $tier (list "optional" "custom") -}}{{- $allowed = concat $allowed (list "enabled" "action") -}}{{- end -}}
 {{- range $key := keys $userValues | sortAlpha -}}
   {{- if not (has $key $allowed) -}}
     {{- if eq $tier "baked-in" -}}
@@ -189,13 +231,15 @@ Input: dict "def" <definition> "tier" <baked-in|optional|custom> "path" <values 
 {{- $action := "inherit" -}}
 {{- if eq $tier "baked-in" -}}
   {{- $action = "enforce" -}}
-{{- else if eq $tier "optional" -}}
-  {{- $dflt := get $def "default" | default dict -}}
-  {{- if not (and (hasKey $dflt "enabled") (hasKey $dflt "action")) -}}
-    {{- fail (printf "policy: %s: an optional policy needs default.enabled and default.action" $src) -}}
+{{- else -}}
+  {{- if eq $tier "optional" -}}
+    {{- $dflt := get $def "default" | default dict -}}
+    {{- if not (and (hasKey $dflt "enabled") (hasKey $dflt "action")) -}}
+      {{- fail (printf "policy: %s: an optional policy needs default.enabled and default.action" $src) -}}
+    {{- end -}}
+    {{- $enabled = get $dflt "enabled" -}}
+    {{- $action = get $dflt "action" -}}
   {{- end -}}
-  {{- $enabled = get $dflt "enabled" -}}
-  {{- $action = get $dflt "action" -}}
   {{- if hasKey $userValues "enabled" -}}{{- $enabled = get $userValues "enabled" -}}{{- end -}}
   {{- if hasKey $userValues "action" -}}{{- $action = get $userValues "action" -}}{{- end -}}
   {{- if not (kindIs "bool" $enabled) -}}
@@ -207,11 +251,13 @@ Input: dict "def" <definition> "tier" <baked-in|optional|custom> "path" <values 
 {{- end -}}
 {{- if eq $action "inherit" -}}{{- $action = .enforcement -}}{{- end -}}
 
-{{- /* Variables: shared (workloads), then settings, then the definition's own. */ -}}
-{{- $resources := $def.resources | default "workloads" -}}
+{{- /* Variables: shared (workloads; workloadLabels alone for other objects that take
+       exceptions), then settings, then the definition's own. */ -}}
 {{- $variables := list -}}
-{{- if eq (toString $resources) "workloads" -}}
+{{- if eq $shape "workloads" -}}
   {{- $variables = include "policy.workloadVariables" . | fromJsonArray -}}
+{{- else if eq $exceptions "labels" -}}
+  {{- $variables = include "policy.objectVariables" . | fromJsonArray -}}
 {{- end -}}
 {{- $variables = concat $variables (include "policy.settingVariables" $settings | fromJsonArray) ($def.variables | default list) -}}
 
@@ -223,11 +269,12 @@ Input: dict "def" <definition> "tier" <baked-in|optional|custom> "path" <values 
 {{- $_ := set $out "description" ($def.description | default "") -}}
 {{- $_ := set $out "controls" ($def.controls | default dict) -}}
 {{- $_ := set $out "resources" $resources -}}
+{{- $_ := set $out "shape" $shape -}}
 {{- $_ := set $out "operations" ($def.operations | default (list "CREATE" "UPDATE")) -}}
-{{- $_ := set $out "scope" (ternary "cluster" "namespaced" (eq (toString $resources) "rbac")) -}}
+{{- $_ := set $out "exceptions" $exceptions -}}
 {{- $_ := set $out "enabled" $enabled -}}
 {{- $_ := set $out "action" $action -}}
-{{- $_ := set $out "actions" (include "policy.actions" $action | fromJson) -}}
+{{- $_ := set $out "actions" (include "policy.actions" (dict "action" $action "workloads" (eq $shape "workloads")) | fromJson) -}}
 {{- $_ := set $out "settings" $settings -}}
 {{- $_ := set $out "variables" (default list $variables) -}}
 {{- $_ := set $out "validations" ($def.validations | default list) -}}

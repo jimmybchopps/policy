@@ -295,3 +295,89 @@ tests:
     asserts:
       - failedTemplate:
           errorPattern: "the policy name \"twin\" is already defined in definitions/validating/twin.yaml"
+
+  # ---- resources and exceptions (phase 2)
+  - it: rejects a resources value that isn't a shortcut or a block
+    set:
+      definitions:
+        - { name: odd, source: definitions/validating/odd.yaml, tier: baked-in, description: x, resources: pods, validations: [{ expression: "true", message: x }] }
+    asserts:
+      - failedTemplate:
+          errorPattern: 'policy: definitions/validating/odd.yaml: resources must be workloads, services, rbac, or a matchConstraints block, not "pods"'
+
+  - it: rejects a namespaceSelector in a custom policy's matchConstraints, saying why
+    set:
+      input:
+        custom:
+          scoped:
+            description: x
+            resources:
+              namespaceSelector: { matchLabels: { team: a } }
+              resourceRules: [{ apiGroups: [""], apiVersions: [v1], resources: [configmaps] }]
+            validations: [{ expression: "true", message: x }]
+    asserts:
+      - failedTemplate:
+          errorPattern: "policy: custom.scoped: resources.namespaceSelector: not allowed; which namespaces are never evaluated is the chart's decision"
+
+  - it: rejects an objectSelector in a matchConstraints block
+    set:
+      input:
+        custom:
+          scoped:
+            description: x
+            resources:
+              objectSelector: { matchLabels: { team: a } }
+              resourceRules: [{ apiGroups: [""], apiVersions: [v1], resources: [configmaps] }]
+            validations: [{ expression: "true", message: x }]
+    asserts:
+      - failedTemplate:
+          errorPattern: "policy: custom.scoped: resources.objectSelector: not allowed"
+
+  - it: rejects an unknown key in a matchConstraints block
+    set:
+      input:
+        custom:
+          odd:
+            description: x
+            resources:
+              resourceRule: [{ apiGroups: [""], apiVersions: [v1], resources: [configmaps] }]
+            validations: [{ expression: "true", message: x }]
+    asserts:
+      - failedTemplate:
+          errorPattern: "policy: custom.odd: resources.resourceRule: unknown key; a matchConstraints block takes resourceRules, excludeResourceRules, matchPolicy"
+
+  - it: rejects a matchConstraints block without resourceRules
+    set:
+      input:
+        custom:
+          odd: { description: x, resources: { matchPolicy: Exact }, validations: [{ expression: "true", message: x }] }
+    asserts:
+      - failedTemplate:
+          errorPattern: "policy: custom.odd: resources.resourceRules: required"
+
+  - it: rejects an unknown exceptions value
+    set:
+      input:
+        custom:
+          odd: { description: x, exceptions: namespaces, validations: [{ expression: "true", message: x }] }
+    asserts:
+      - failedTemplate:
+          errorPattern: 'policy: custom.odd: exceptions must be labels or none, not "namespaces"'
+
+  - it: rejects exceptions labels on an rbac policy
+    set:
+      input:
+        custom:
+          odd: { description: x, resources: rbac, exceptions: labels, validations: [{ expression: "true", message: x }] }
+    asserts:
+      - failedTemplate:
+          errorPattern: "policy: custom.odd: exceptions: rbac objects are cluster-scoped or have no labels to match, so rbac policies take exceptions: none"
+
+  - it: rejects an unknown action on a custom policy
+    set:
+      input:
+        custom:
+          odd: { description: x, action: warn, validations: [{ expression: "true", message: x }] }
+    asserts:
+      - failedTemplate:
+          errorPattern: 'policy: custom.odd.action: must be inherit, enforce, or audit, not "warn"'

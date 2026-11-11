@@ -1,4 +1,5 @@
-# The Phase 1 catalog: every baked-in policy renders a policy and its two bindings. Field-level
+# The catalog with the minimal example: every policy that's on by default renders a policy and
+# its bindings (two for workloads, one otherwise). Field-level
 # details are in policy_test, bindings_test, and the examples snapshot; the CEL itself is
 # checked by the API server (make e2e).
 suite: catalog
@@ -9,9 +10,38 @@ release:
 values:
   - ../../../../examples/minimal.yaml
 tests:
-  - it: renders a policy and two bindings for each of the five baked-in policies
+  - it: renders the policies on by default (6 workloads x 3, 1 services x 2, 1 rbac x 2)
     asserts:
-      - hasDocuments: { count: 15 }
+      - hasDocuments: { count: 22 }
+
+  - it: disallow-pod-exec is off by default
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: disallow-pod-exec, any: true }
+        not: true
+
+  - it: disallow-pod-exec renders a policy and one binding when enabled
+    set:
+      policies:
+        disallow-pod-exec: { enabled: true }
+    asserts:
+      - hasDocuments: { count: 24 }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: disallow-pod-exec, any: true }
+
+  - it: require-read-only-root-filesystem
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: require-read-only-root-filesystem, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: require-read-only-root-filesystem, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: require-read-only-root-filesystem-controllers, any: true }
+
+  - it: restrict-external-ips
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: restrict-external-ips, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: restrict-external-ips, any: true }
+
+  - it: restrict-wildcard-rbac
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: restrict-wildcard-rbac, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: restrict-wildcard-rbac, any: true }
 
   - it: disallow-host-namespaces
     asserts:

@@ -1,0 +1,10 @@
+# "*" verbs on a ClusterRole named in policies.restrict-wildcard-rbac.allowedRoles (the catalog
+# scenario sets it): admitted.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: e2e-allowed-wildcard
+rules:
+  - apiGroups: [""]
+    resources: [configmaps]
+    verbs: ["*"]

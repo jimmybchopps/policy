@@ -1,0 +1,10 @@
+# exceptions must be labels or none.
+name: bad-exceptions
+tier: baked-in
+description: x
+resources: workloads
+exceptions: namespaces
+operations: [CREATE, UPDATE]
+validations:
+  - expression: "true"
+    message: "x. If this workload needs it, add a posture exception for bad-exceptions."

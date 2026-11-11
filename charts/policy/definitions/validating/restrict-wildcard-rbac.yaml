@@ -1,0 +1,33 @@
+name: restrict-wildcard-rbac
+tier: optional
+default: { enabled: true, action: inherit }
+description: Roles and ClusterRoles don't grant "*" verbs, resources, or API groups.
+controls:
+  nist: [AC-6]
+resources: rbac
+operations: [CREATE, UPDATE]
+settings:
+  allowedRoles:
+    type: list
+    description: Role and ClusterRole names allowed to use "*"
+variables:
+  # Bindings have no rules, so they always pass.
+  - name: rules
+    expression: "has(object.rules) ? object.rules : []"
+  # cluster-admin is Kubernetes' own superuser role: its "*" rules are reconciled by the API
+  # server, so it's always allowed.
+  - name: allowed
+    expression: "object.metadata.name in ['cluster-admin'] + variables.setting_allowedRoles"
+validations:
+  - expression: "variables.allowed || variables.rules.all(r, !('*' in r.verbs))"
+    message: >-
+      rules[*].verbs must not contain "*": list the verbs this role needs. To allow this role,
+      add its name to policies.restrict-wildcard-rbac.allowedRoles.
+  - expression: "variables.allowed || variables.rules.all(r, !has(r.resources) || !('*' in r.resources))"
+    message: >-
+      rules[*].resources must not contain "*": list the resources this role needs. To allow
+      this role, add its name to policies.restrict-wildcard-rbac.allowedRoles.
+  - expression: "variables.allowed || variables.rules.all(r, !has(r.apiGroups) || !('*' in r.apiGroups))"
+    message: >-
+      rules[*].apiGroups must not contain "*": list the API groups this role needs. To allow
+      this role, add its name to policies.restrict-wildcard-rbac.allowedRoles.

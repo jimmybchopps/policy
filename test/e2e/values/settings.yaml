@@ -1,0 +1,11 @@
+# The settings scenario: enforcement audit, and the custom policy from CLAUDE.md at enforce.
+enforcement: audit
+custom:
+  require-team-label:
+    description: Every workload carries a team label.
+    action: enforce
+    validations:
+      - expression: "'team' in variables.workloadLabels"
+        message: >-
+          Add a 'team' label to the pod template. If this workload can't have one, add a
+          posture exception for require-team-label.

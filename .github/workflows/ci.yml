@@ -39,6 +39,9 @@ jobs:
       - name: fixtures cover every policy
         run: make check-fixtures
 
+      - name: values schema is current
+        run: make check-values-schema
+
       - name: helm unittest
         run: make unittest
 

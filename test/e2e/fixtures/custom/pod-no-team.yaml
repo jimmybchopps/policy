@@ -1,0 +1,22 @@
+# Compliant with every built-in policy, but no team label: denied by the custom require-team-label.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-no-team
+  labels: { app.kubernetes.io/name: pod-no-team }
+spec:
+  automountServiceAccountToken: false
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65532
+    seccompProfile: { type: RuntimeDefault }
+  containers:
+    - name: app
+      image: registry.example.mil/app@sha256:0000000000000000000000000000000000000000000000000000000000000000
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities: { drop: [ALL] }
+      resources:
+        requests: { cpu: 10m, memory: 16Mi }
+        limits: { memory: 16Mi }

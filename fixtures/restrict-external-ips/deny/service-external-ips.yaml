@@ -1,0 +1,11 @@
+# externalIPs on a Service (CVE-2020-8554): denied.
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-external-ips
+  labels: { app.kubernetes.io/name: service-external-ips, e2e.test/fixture: "true" }
+spec:
+  selector: { app.kubernetes.io/name: app }
+  externalIPs: [203.0.113.10]
+  ports:
+    - { name: http, port: 80, targetPort: 8080 }

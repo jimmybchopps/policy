@@ -1,6 +1,7 @@
 # The exempt namespace's exceptions, written exactly as posture renders them: one entry per
-# policy (sorted by kind, then name) with its workloads. Every Phase 1 policy is excepted for
-# the fixtures (e2e.test/fixture=true), plus:
+# policy (sorted by kind, then name) with its workloads. Every policy that takes exceptions is
+# excepted for the fixtures (e2e.test/fixture=true; lib.sh's require_exempt_covers checks none
+# is missing), plus:
 #   - a MutatingAdmissionPolicy entry named restrict-image-registries, which must NOT exempt
 #     the ValidatingAdmissionPolicy of that name (wrong-kind-pod.yaml);
 #   - a disallow-host-path entry needing two labels, both of which must match
@@ -30,7 +31,15 @@ spec:
       workloads:
         - matchLabels: { e2e.test/fixture: "true" }
           reason: e2e fixture
+    - policy: { kind: ValidatingAdmissionPolicy, name: require-read-only-root-filesystem }
+      workloads:
+        - matchLabels: { e2e.test/fixture: "true" }
+          reason: e2e fixture
     - policy: { kind: ValidatingAdmissionPolicy, name: require-run-as-non-root }
+      workloads:
+        - matchLabels: { e2e.test/fixture: "true" }
+          reason: e2e fixture
+    - policy: { kind: ValidatingAdmissionPolicy, name: restrict-external-ips }
       workloads:
         - matchLabels: { e2e.test/fixture: "true" }
           reason: e2e fixture

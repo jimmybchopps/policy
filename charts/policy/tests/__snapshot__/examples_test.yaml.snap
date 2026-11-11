@@ -592,6 +592,168 @@ minimal:
     kind: ValidatingAdmissionPolicy
     metadata:
       annotations:
+        policy.posture.dev/description: Every container runs with a read-only root filesystem.
+        policy.posture.dev/nist: CM-7, SI-7
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: require-read-only-root-filesystem
+    spec:
+      failurePolicy: Fail
+      matchConditions:
+        - expression: '!(request.operation == ''UPDATE'' && object.kind == ''Pod'' && !(has(request.subResource) && request.subResource == ''ephemeralcontainers'') && object.spec == oldObject.spec)'
+          name: pod-spec-changed
+      matchConstraints:
+        resourceRules:
+          - apiGroups:
+              - ""
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - pods
+              - pods/ephemeralcontainers
+          - apiGroups:
+              - apps
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - deployments
+              - statefulsets
+              - daemonsets
+              - replicasets
+          - apiGroups:
+              - batch
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - jobs
+              - cronjobs
+      paramKind:
+        apiVersion: policy.posture.dev/v1alpha1
+        kind: PolicyExceptions
+      validations:
+        - expression: |-
+            variables.exempt || (variables.allContainers.all(c,
+              has(c.securityContext) && has(c.securityContext.readOnlyRootFilesystem) &&
+              c.securityContext.readOnlyRootFilesystem))
+          message: containers[*].securityContext.readOnlyRootFilesystem must be true; mount an emptyDir where the container needs to write. If this workload needs a writable root filesystem, add a posture exception for require-read-only-root-filesystem.
+      variables:
+        - expression: 'object.kind == ''Pod'' ? object.spec : (object.kind == ''CronJob'' ? object.spec.jobTemplate.spec.template.spec : object.spec.template.spec)'
+          name: podSpec
+        - expression: 'object.kind == ''Pod'' ? dyn(object.metadata) : (object.kind == ''CronJob'' ? (has(object.spec.jobTemplate.spec.template.metadata) ? dyn(object.spec.jobTemplate.spec.template.metadata) : dyn({})) : (has(object.spec.template.metadata) ? dyn(object.spec.template.metadata) : dyn({})))'
+          name: podMeta
+        - expression: 'has(variables.podMeta.labels) ? variables.podMeta.labels : {}'
+          name: workloadLabels
+        - expression: 'variables.podSpec.containers + (has(variables.podSpec.initContainers) ? variables.podSpec.initContainers : []) + dyn(has(variables.podSpec.ephemeralContainers) ? variables.podSpec.ephemeralContainers : [])'
+          name: allContainers
+        - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'require-read-only-root-filesystem' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
+          name: exempt
+  12: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicyBinding
+    metadata:
+      annotations:
+        policy.posture.dev/binding: pods
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: require-read-only-root-filesystem
+    spec:
+      matchResources:
+        namespaceSelector:
+          matchExpressions:
+            - key: kubernetes.io/metadata.name
+              operator: NotIn
+              values:
+                - kube-system
+        resourceRules:
+          - apiGroups:
+              - ""
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - pods
+              - pods/ephemeralcontainers
+      paramRef:
+        name: posture-exceptions
+        parameterNotFoundAction: Deny
+      policyName: require-read-only-root-filesystem
+      validationActions:
+        - Deny
+        - Audit
+  13: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicyBinding
+    metadata:
+      annotations:
+        policy.posture.dev/binding: controllers
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: require-read-only-root-filesystem-controllers
+    spec:
+      matchResources:
+        namespaceSelector:
+          matchExpressions:
+            - key: kubernetes.io/metadata.name
+              operator: NotIn
+              values:
+                - kube-system
+        resourceRules:
+          - apiGroups:
+              - apps
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - deployments
+              - statefulsets
+              - daemonsets
+              - replicasets
+          - apiGroups:
+              - batch
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - jobs
+              - cronjobs
+      paramRef:
+        name: posture-exceptions
+        parameterNotFoundAction: Deny
+      policyName: require-read-only-root-filesystem
+      validationActions:
+        - Warn
+  14: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicy
+    metadata:
+      annotations:
         policy.posture.dev/description: Every container runs as a non-root user.
         policy.posture.dev/nist: AC-6
         policy.posture.dev/pss: restricted
@@ -672,7 +834,7 @@ minimal:
           name: podRunAsNonRoot
         - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'require-run-as-non-root' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
           name: exempt
-  12: |
+  15: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -711,7 +873,7 @@ minimal:
       validationActions:
         - Deny
         - Audit
-  13: |
+  16: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -761,7 +923,83 @@ minimal:
       policyName: require-run-as-non-root
       validationActions:
         - Warn
-  14: |
+  17: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicy
+    metadata:
+      annotations:
+        policy.posture.dev/description: Services may not set externalIPs.
+        policy.posture.dev/nist: SC-7
+        policy.posture.dev/tier: baked-in
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: restrict-external-ips
+    spec:
+      failurePolicy: Fail
+      matchConstraints:
+        resourceRules:
+          - apiGroups:
+              - ""
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - services
+      paramKind:
+        apiVersion: policy.posture.dev/v1alpha1
+        kind: PolicyExceptions
+      validations:
+        - expression: variables.exempt || (!has(object.spec.externalIPs) || size(object.spec.externalIPs) == 0)
+          message: 'spec.externalIPs must be empty or unset: it lets a Service take traffic for any address (CVE-2020-8554). If this Service needs it, add a posture exception for restrict-external-ips.'
+      variables:
+        - expression: 'has(object.metadata.labels) ? object.metadata.labels : {}'
+          name: workloadLabels
+        - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'restrict-external-ips' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
+          name: exempt
+  18: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicyBinding
+    metadata:
+      annotations:
+        policy.posture.dev/binding: services
+        policy.posture.dev/tier: baked-in
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: restrict-external-ips
+    spec:
+      matchResources:
+        namespaceSelector:
+          matchExpressions:
+            - key: kubernetes.io/metadata.name
+              operator: NotIn
+              values:
+                - kube-system
+        resourceRules:
+          - apiGroups:
+              - ""
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - services
+      paramRef:
+        name: posture-exceptions
+        parameterNotFoundAction: Deny
+      policyName: restrict-external-ips
+      validationActions:
+        - Deny
+        - Audit
+  19: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicy
     metadata:
@@ -835,7 +1073,7 @@ minimal:
           name: setting_registries
         - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'restrict-image-registries' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
           name: exempt
-  15: |
+  20: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -874,7 +1112,7 @@ minimal:
       validationActions:
         - Deny
         - Audit
-  16: |
+  21: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -924,3 +1162,88 @@ minimal:
       policyName: restrict-image-registries
       validationActions:
         - Warn
+  22: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicy
+    metadata:
+      annotations:
+        policy.posture.dev/description: Roles and ClusterRoles don't grant "*" verbs, resources, or API groups.
+        policy.posture.dev/nist: AC-6
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: restrict-wildcard-rbac
+    spec:
+      failurePolicy: Fail
+      matchConditions:
+        - expression: '!object.metadata.name.startsWith(''system:'')'
+          name: not-system
+      matchConstraints:
+        resourceRules:
+          - apiGroups:
+              - rbac.authorization.k8s.io
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - roles
+              - clusterroles
+              - rolebindings
+              - clusterrolebindings
+      validations:
+        - expression: variables.allowed || variables.rules.all(r, !('*' in r.verbs))
+          message: 'rules[*].verbs must not contain "*": list the verbs this role needs. To allow this role, add its name to policies.restrict-wildcard-rbac.allowedRoles.'
+        - expression: variables.allowed || variables.rules.all(r, !has(r.resources) || !('*' in r.resources))
+          message: 'rules[*].resources must not contain "*": list the resources this role needs. To allow this role, add its name to policies.restrict-wildcard-rbac.allowedRoles.'
+        - expression: variables.allowed || variables.rules.all(r, !has(r.apiGroups) || !('*' in r.apiGroups))
+          message: 'rules[*].apiGroups must not contain "*": list the API groups this role needs. To allow this role, add its name to policies.restrict-wildcard-rbac.allowedRoles.'
+      variables:
+        - expression: '[]'
+          name: setting_allowedRoles
+        - expression: 'has(object.rules) ? object.rules : []'
+          name: rules
+        - expression: object.metadata.name in ['cluster-admin'] + variables.setting_allowedRoles
+          name: allowed
+  23: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicyBinding
+    metadata:
+      annotations:
+        policy.posture.dev/binding: rbac
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: restrict-wildcard-rbac
+    spec:
+      matchResources:
+        namespaceSelector:
+          matchExpressions:
+            - key: kubernetes.io/metadata.name
+              operator: NotIn
+              values:
+                - kube-system
+        resourceRules:
+          - apiGroups:
+              - rbac.authorization.k8s.io
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - roles
+              - clusterroles
+              - rolebindings
+              - clusterrolebindings
+      policyName: restrict-wildcard-rbac
+      validationActions:
+        - Deny
+        - Audit

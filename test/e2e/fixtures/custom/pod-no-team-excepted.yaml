@@ -1,0 +1,22 @@
+# No team label, but selected by a require-team-label exception (e2e.test/fixture): admitted.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-no-team-excepted
+  labels: { app.kubernetes.io/name: pod-no-team-excepted, e2e.test/fixture: "true" }
+spec:
+  automountServiceAccountToken: false
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65532
+    seccompProfile: { type: RuntimeDefault }
+  containers:
+    - name: app
+      image: registry.example.mil/app@sha256:0000000000000000000000000000000000000000000000000000000000000000
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities: { drop: [ALL] }
+      resources:
+        requests: { cpu: 10m, memory: 16Mi }
+        limits: { memory: 16Mi }

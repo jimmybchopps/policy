@@ -58,8 +58,17 @@ tests:
       - matchRegex: { path: "variables[3].expression", pattern: "has\\(variables.podSpec.initContainers\\)" }
       - matchRegex: { path: "variables[3].expression", pattern: "dyn\\(has\\(variables.podSpec.ephemeralContainers\\)" }
 
-  - it: services policies get no shared variables
+  - it: services policies get workloadLabels (the Service's own labels) for exceptions
     documentSelector: { path: name, value: opt-audit }
+    asserts:
+      - equal: { path: variables, value: [{ name: workloadLabels, expression: "has(object.metadata.labels) ? object.metadata.labels : {}" }] }
+
+  - it: a custom matchConstraints policy with exceptions none gets no shared variables
+    set:
+      input:
+        custom:
+          no-exc: { description: x, exceptions: none, resources: { resourceRules: [{ apiGroups: [""], apiVersions: [v1], resources: [pods/exec] }] }, operations: [CONNECT], validations: [{ expression: "true", message: x }] }
+    documentSelector: { path: name, value: no-exc }
     asserts:
       - equal: { path: variables, value: [] }
 

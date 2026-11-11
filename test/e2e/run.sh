@@ -45,7 +45,7 @@ fi
 
 scenarios=("$@")
 if [[ ${#scenarios[@]} -eq 0 ]]; then
-  scenarios=(smoke catalog)                           # every scenario, in order
+  scenarios=(smoke catalog settings)                  # every scenario, in order
 fi
 for s in "${scenarios[@]}"; do
   run_scenario "$s"
