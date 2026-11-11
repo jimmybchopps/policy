@@ -308,9 +308,14 @@ rbac (`make check-fixtures` enforces it). A `matchConstraints` policy is covered
 commands instead (`check_command`). Every fixture is compliant with every other policy (a deny fixture breaks as few as it can;
 the e2e exception-path fixtures break exactly one, so a denial always names the same policy),
 optional ones included: the catalog scenario installs with every optional policy on at
-`enforce`. In e2e (`test/e2e/scenarios/catalog.sh`) a deny fixture is checked in
+`enforce`. So every workload fixture runs as ServiceAccount `app` (the e2e `namespace` helper
+creates it, and `run.sh` creates it in kube-system), pins its images by digest, and has
+probes on long-running containers. A check that needs other policies out of the way (a
+tag-only image for `disallow-latest-tag`) goes in that policy's `only-<policy>` as an explicit
+`expect admit`. In e2e (`test/e2e/scenarios/catalog.sh`) a deny fixture is checked in
 `only-<policy>`, a namespace whose `posture-exceptions` excepts every other policy, so it must
-be refused by its own policy alone, and in `exempt`, where every policy is excepted, so it must
+be refused by its own policy alone (`disallow-default-namespace` uses `default` instead: its
+deny fixtures are compliant objects, and the namespace is what it refuses), and in `exempt`, where every policy is excepted, so it must
 be admitted with no warning. Policies with `exceptions: none` skip both; their deny fixtures
 are denied in `apps`, and their allowlist settings get their own checks. "No warning" means no
 warning from a ValidatingAdmissionPolicy: the API server adds its own (deprecations such as
@@ -324,5 +329,5 @@ exempt workload admitted with no warning, non-exempt denied, namespace without
 | Phase | Area | Status |
 |---|---|---|
 | 1 | Foundations: format, renderer, CRD, exceptions, first policies | 1a–1e done, e2e green; green CI run pending |
-| 2 | Full catalog, custom policies, enforcement controls | 2a done, e2e green; 2b built, e2e run pending |
+| 2 | Full catalog, custom policies, enforcement controls | 2a, 2b done, e2e green; 2c built, e2e run pending |
 | 3 | Mutations, reporting, docs, release | not started |

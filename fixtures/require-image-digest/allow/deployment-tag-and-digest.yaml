@@ -1,0 +1,31 @@
+# A tag before the digest: admitted.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deployment-tag-and-digest
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app.kubernetes.io/name: deployment-tag-and-digest }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: deployment-tag-and-digest, e2e.test/fixture: "true" }
+    spec:
+      automountServiceAccountToken: false
+      serviceAccountName: app
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: app
+          image: registry.example.mil/app:1.4.2@sha256:0000000000000000000000000000000000000000000000000000000000000000
+          readinessProbe: { tcpSocket: { port: 8080 } }
+          livenessProbe: { tcpSocket: { port: 8080 } }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { memory: 16Mi }

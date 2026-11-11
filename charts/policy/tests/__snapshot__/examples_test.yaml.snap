@@ -96,6 +96,481 @@ minimal:
     kind: ValidatingAdmissionPolicy
     metadata:
       annotations:
+        policy.posture.dev/description: Pods set automountServiceAccountToken to false.
+        policy.posture.dev/nist: AC-6
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: disallow-automount-service-account-token
+    spec:
+      failurePolicy: Fail
+      matchConditions:
+        - expression: '!(request.operation == ''UPDATE'' && object.kind == ''Pod'' && !(has(request.subResource) && request.subResource == ''ephemeralcontainers'') && object.spec == oldObject.spec)'
+          name: pod-spec-changed
+      matchConstraints:
+        resourceRules:
+          - apiGroups:
+              - ""
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - pods
+              - pods/ephemeralcontainers
+          - apiGroups:
+              - apps
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - deployments
+              - statefulsets
+              - daemonsets
+              - replicasets
+          - apiGroups:
+              - batch
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - jobs
+              - cronjobs
+      paramKind:
+        apiVersion: policy.posture.dev/v1alpha1
+        kind: PolicyExceptions
+      validations:
+        - expression: variables.exempt || (has(variables.podSpec.automountServiceAccountToken) && !variables.podSpec.automountServiceAccountToken)
+          message: spec.automountServiceAccountToken must be false; mount a projected token only where the workload calls the API. If this workload needs the token, add a posture exception for disallow-automount-service-account-token.
+      variables:
+        - expression: 'object.kind == ''Pod'' ? object.spec : (object.kind == ''CronJob'' ? object.spec.jobTemplate.spec.template.spec : object.spec.template.spec)'
+          name: podSpec
+        - expression: 'object.kind == ''Pod'' ? dyn(object.metadata) : (object.kind == ''CronJob'' ? (has(object.spec.jobTemplate.spec.template.metadata) ? dyn(object.spec.jobTemplate.spec.template.metadata) : dyn({})) : (has(object.spec.template.metadata) ? dyn(object.spec.template.metadata) : dyn({})))'
+          name: podMeta
+        - expression: 'has(variables.podMeta.labels) ? variables.podMeta.labels : {}'
+          name: workloadLabels
+        - expression: 'variables.podSpec.containers + (has(variables.podSpec.initContainers) ? variables.podSpec.initContainers : []) + dyn(has(variables.podSpec.ephemeralContainers) ? variables.podSpec.ephemeralContainers : [])'
+          name: allContainers
+        - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'disallow-automount-service-account-token' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
+          name: exempt
+  3: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicyBinding
+    metadata:
+      annotations:
+        policy.posture.dev/binding: pods
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: disallow-automount-service-account-token
+    spec:
+      matchResources:
+        namespaceSelector:
+          matchExpressions:
+            - key: kubernetes.io/metadata.name
+              operator: NotIn
+              values:
+                - kube-system
+        resourceRules:
+          - apiGroups:
+              - ""
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - pods
+              - pods/ephemeralcontainers
+      paramRef:
+        name: posture-exceptions
+        parameterNotFoundAction: Deny
+      policyName: disallow-automount-service-account-token
+      validationActions:
+        - Audit
+  4: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicyBinding
+    metadata:
+      annotations:
+        policy.posture.dev/binding: controllers
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: disallow-automount-service-account-token-controllers
+    spec:
+      matchResources:
+        namespaceSelector:
+          matchExpressions:
+            - key: kubernetes.io/metadata.name
+              operator: NotIn
+              values:
+                - kube-system
+        resourceRules:
+          - apiGroups:
+              - apps
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - deployments
+              - statefulsets
+              - daemonsets
+              - replicasets
+          - apiGroups:
+              - batch
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - jobs
+              - cronjobs
+      paramRef:
+        name: posture-exceptions
+        parameterNotFoundAction: Deny
+      policyName: disallow-automount-service-account-token
+      validationActions:
+        - Warn
+  5: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicy
+    metadata:
+      annotations:
+        policy.posture.dev/description: Nothing runs in the default namespace.
+        policy.posture.dev/nist: CM-7
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: disallow-default-namespace
+    spec:
+      failurePolicy: Fail
+      matchConditions:
+        - expression: '!(request.operation == ''UPDATE'' && object.kind == ''Pod'' && !(has(request.subResource) && request.subResource == ''ephemeralcontainers'') && object.spec == oldObject.spec)'
+          name: pod-spec-changed
+      matchConstraints:
+        resourceRules:
+          - apiGroups:
+              - ""
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - pods
+              - pods/ephemeralcontainers
+          - apiGroups:
+              - apps
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - deployments
+              - statefulsets
+              - daemonsets
+              - replicasets
+          - apiGroups:
+              - batch
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - jobs
+              - cronjobs
+      paramKind:
+        apiVersion: policy.posture.dev/v1alpha1
+        kind: PolicyExceptions
+      validations:
+        - expression: variables.exempt || (request.namespace != 'default')
+          message: Workloads may not run in the default namespace; deploy into a namespace of their own. If this workload needs it, add a posture exception for disallow-default-namespace.
+      variables:
+        - expression: 'object.kind == ''Pod'' ? object.spec : (object.kind == ''CronJob'' ? object.spec.jobTemplate.spec.template.spec : object.spec.template.spec)'
+          name: podSpec
+        - expression: 'object.kind == ''Pod'' ? dyn(object.metadata) : (object.kind == ''CronJob'' ? (has(object.spec.jobTemplate.spec.template.metadata) ? dyn(object.spec.jobTemplate.spec.template.metadata) : dyn({})) : (has(object.spec.template.metadata) ? dyn(object.spec.template.metadata) : dyn({})))'
+          name: podMeta
+        - expression: 'has(variables.podMeta.labels) ? variables.podMeta.labels : {}'
+          name: workloadLabels
+        - expression: 'variables.podSpec.containers + (has(variables.podSpec.initContainers) ? variables.podSpec.initContainers : []) + dyn(has(variables.podSpec.ephemeralContainers) ? variables.podSpec.ephemeralContainers : [])'
+          name: allContainers
+        - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'disallow-default-namespace' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
+          name: exempt
+  6: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicyBinding
+    metadata:
+      annotations:
+        policy.posture.dev/binding: pods
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: disallow-default-namespace
+    spec:
+      matchResources:
+        namespaceSelector:
+          matchExpressions:
+            - key: kubernetes.io/metadata.name
+              operator: NotIn
+              values:
+                - kube-system
+        resourceRules:
+          - apiGroups:
+              - ""
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - pods
+              - pods/ephemeralcontainers
+      paramRef:
+        name: posture-exceptions
+        parameterNotFoundAction: Deny
+      policyName: disallow-default-namespace
+      validationActions:
+        - Deny
+        - Audit
+  7: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicyBinding
+    metadata:
+      annotations:
+        policy.posture.dev/binding: controllers
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: disallow-default-namespace-controllers
+    spec:
+      matchResources:
+        namespaceSelector:
+          matchExpressions:
+            - key: kubernetes.io/metadata.name
+              operator: NotIn
+              values:
+                - kube-system
+        resourceRules:
+          - apiGroups:
+              - apps
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - deployments
+              - statefulsets
+              - daemonsets
+              - replicasets
+          - apiGroups:
+              - batch
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - jobs
+              - cronjobs
+      paramRef:
+        name: posture-exceptions
+        parameterNotFoundAction: Deny
+      policyName: disallow-default-namespace
+      validationActions:
+        - Warn
+  8: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicy
+    metadata:
+      annotations:
+        policy.posture.dev/description: Pods run as a service account of their own, not default.
+        policy.posture.dev/nist: AC-6
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: disallow-default-service-account
+    spec:
+      failurePolicy: Fail
+      matchConditions:
+        - expression: '!(request.operation == ''UPDATE'' && object.kind == ''Pod'' && !(has(request.subResource) && request.subResource == ''ephemeralcontainers'') && object.spec == oldObject.spec)'
+          name: pod-spec-changed
+      matchConstraints:
+        resourceRules:
+          - apiGroups:
+              - ""
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - pods
+              - pods/ephemeralcontainers
+          - apiGroups:
+              - apps
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - deployments
+              - statefulsets
+              - daemonsets
+              - replicasets
+          - apiGroups:
+              - batch
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - jobs
+              - cronjobs
+      paramKind:
+        apiVersion: policy.posture.dev/v1alpha1
+        kind: PolicyExceptions
+      validations:
+        - expression: variables.exempt || (has(variables.podSpec.serviceAccountName) && variables.podSpec.serviceAccountName != '' && variables.podSpec.serviceAccountName != 'default')
+          message: spec.serviceAccountName must name a service account other than default. If this workload needs default, add a posture exception for disallow-default-service-account.
+      variables:
+        - expression: 'object.kind == ''Pod'' ? object.spec : (object.kind == ''CronJob'' ? object.spec.jobTemplate.spec.template.spec : object.spec.template.spec)'
+          name: podSpec
+        - expression: 'object.kind == ''Pod'' ? dyn(object.metadata) : (object.kind == ''CronJob'' ? (has(object.spec.jobTemplate.spec.template.metadata) ? dyn(object.spec.jobTemplate.spec.template.metadata) : dyn({})) : (has(object.spec.template.metadata) ? dyn(object.spec.template.metadata) : dyn({})))'
+          name: podMeta
+        - expression: 'has(variables.podMeta.labels) ? variables.podMeta.labels : {}'
+          name: workloadLabels
+        - expression: 'variables.podSpec.containers + (has(variables.podSpec.initContainers) ? variables.podSpec.initContainers : []) + dyn(has(variables.podSpec.ephemeralContainers) ? variables.podSpec.ephemeralContainers : [])'
+          name: allContainers
+        - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'disallow-default-service-account' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
+          name: exempt
+  9: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicyBinding
+    metadata:
+      annotations:
+        policy.posture.dev/binding: pods
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: disallow-default-service-account
+    spec:
+      matchResources:
+        namespaceSelector:
+          matchExpressions:
+            - key: kubernetes.io/metadata.name
+              operator: NotIn
+              values:
+                - kube-system
+        resourceRules:
+          - apiGroups:
+              - ""
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - pods
+              - pods/ephemeralcontainers
+      paramRef:
+        name: posture-exceptions
+        parameterNotFoundAction: Deny
+      policyName: disallow-default-service-account
+      validationActions:
+        - Audit
+  10: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicyBinding
+    metadata:
+      annotations:
+        policy.posture.dev/binding: controllers
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: disallow-default-service-account-controllers
+    spec:
+      matchResources:
+        namespaceSelector:
+          matchExpressions:
+            - key: kubernetes.io/metadata.name
+              operator: NotIn
+              values:
+                - kube-system
+        resourceRules:
+          - apiGroups:
+              - apps
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - deployments
+              - statefulsets
+              - daemonsets
+              - replicasets
+          - apiGroups:
+              - batch
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - jobs
+              - cronjobs
+      paramRef:
+        name: posture-exceptions
+        parameterNotFoundAction: Deny
+      policyName: disallow-default-service-account
+      validationActions:
+        - Warn
+  11: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicy
+    metadata:
+      annotations:
         policy.posture.dev/description: Pods may not share the node's network, process, or IPC namespaces.
         policy.posture.dev/nist: AC-6, SC-39
         policy.posture.dev/pss: baseline
@@ -166,7 +641,7 @@ minimal:
           name: allContainers
         - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'disallow-host-namespaces' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
           name: exempt
-  3: |
+  12: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -205,7 +680,7 @@ minimal:
       validationActions:
         - Deny
         - Audit
-  4: |
+  13: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -255,7 +730,7 @@ minimal:
       policyName: disallow-host-namespaces
       validationActions:
         - Warn
-  5: |
+  14: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicy
     metadata:
@@ -326,7 +801,7 @@ minimal:
           name: allContainers
         - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'disallow-host-path' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
           name: exempt
-  6: |
+  15: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -365,7 +840,7 @@ minimal:
       validationActions:
         - Deny
         - Audit
-  7: |
+  16: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -415,7 +890,7 @@ minimal:
       policyName: disallow-host-path
       validationActions:
         - Warn
-  8: |
+  17: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicy
     metadata:
@@ -488,7 +963,7 @@ minimal:
           name: allContainers
         - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'disallow-host-ports' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
           name: exempt
-  9: |
+  18: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -527,7 +1002,7 @@ minimal:
       validationActions:
         - Deny
         - Audit
-  10: |
+  19: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -577,7 +1052,334 @@ minimal:
       policyName: disallow-host-ports
       validationActions:
         - Warn
-  11: |
+  20: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicy
+    metadata:
+      annotations:
+        policy.posture.dev/description: No image uses the latest tag or no tag at all (unless it is pinned by digest).
+        policy.posture.dev/nist: CM-2
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: disallow-latest-tag
+    spec:
+      failurePolicy: Fail
+      matchConditions:
+        - expression: '!(request.operation == ''UPDATE'' && object.kind == ''Pod'' && !(has(request.subResource) && request.subResource == ''ephemeralcontainers'') && object.spec == oldObject.spec)'
+          name: pod-spec-changed
+      matchConstraints:
+        resourceRules:
+          - apiGroups:
+              - ""
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - pods
+              - pods/ephemeralcontainers
+          - apiGroups:
+              - apps
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - deployments
+              - statefulsets
+              - daemonsets
+              - replicasets
+          - apiGroups:
+              - batch
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - jobs
+              - cronjobs
+      paramKind:
+        apiVersion: policy.posture.dev/v1alpha1
+        kind: PolicyExceptions
+      validations:
+        - expression: |-
+            variables.exempt || (variables.allContainers.all(c, c.image.contains('@') ||
+              (c.image.matches(':[^/]+$') && !c.image.endsWith(':latest'))))
+          message: containers[*].image must have a tag other than latest, or a digest. If this workload needs it, add a posture exception for disallow-latest-tag.
+      variables:
+        - expression: 'object.kind == ''Pod'' ? object.spec : (object.kind == ''CronJob'' ? object.spec.jobTemplate.spec.template.spec : object.spec.template.spec)'
+          name: podSpec
+        - expression: 'object.kind == ''Pod'' ? dyn(object.metadata) : (object.kind == ''CronJob'' ? (has(object.spec.jobTemplate.spec.template.metadata) ? dyn(object.spec.jobTemplate.spec.template.metadata) : dyn({})) : (has(object.spec.template.metadata) ? dyn(object.spec.template.metadata) : dyn({})))'
+          name: podMeta
+        - expression: 'has(variables.podMeta.labels) ? variables.podMeta.labels : {}'
+          name: workloadLabels
+        - expression: 'variables.podSpec.containers + (has(variables.podSpec.initContainers) ? variables.podSpec.initContainers : []) + dyn(has(variables.podSpec.ephemeralContainers) ? variables.podSpec.ephemeralContainers : [])'
+          name: allContainers
+        - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'disallow-latest-tag' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
+          name: exempt
+  21: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicyBinding
+    metadata:
+      annotations:
+        policy.posture.dev/binding: pods
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: disallow-latest-tag
+    spec:
+      matchResources:
+        namespaceSelector:
+          matchExpressions:
+            - key: kubernetes.io/metadata.name
+              operator: NotIn
+              values:
+                - kube-system
+        resourceRules:
+          - apiGroups:
+              - ""
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - pods
+              - pods/ephemeralcontainers
+      paramRef:
+        name: posture-exceptions
+        parameterNotFoundAction: Deny
+      policyName: disallow-latest-tag
+      validationActions:
+        - Deny
+        - Audit
+  22: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicyBinding
+    metadata:
+      annotations:
+        policy.posture.dev/binding: controllers
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: disallow-latest-tag-controllers
+    spec:
+      matchResources:
+        namespaceSelector:
+          matchExpressions:
+            - key: kubernetes.io/metadata.name
+              operator: NotIn
+              values:
+                - kube-system
+        resourceRules:
+          - apiGroups:
+              - apps
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - deployments
+              - statefulsets
+              - daemonsets
+              - replicasets
+          - apiGroups:
+              - batch
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - jobs
+              - cronjobs
+      paramRef:
+        name: posture-exceptions
+        parameterNotFoundAction: Deny
+      policyName: disallow-latest-tag
+      validationActions:
+        - Warn
+  23: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicy
+    metadata:
+      annotations:
+        policy.posture.dev/description: Pods don't carry the labels or annotations that take them out of the service mesh.
+        policy.posture.dev/nist: SC-7, SC-8
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: disallow-mesh-opt-out
+    spec:
+      failurePolicy: Fail
+      matchConditions:
+        - expression: '!(request.operation == ''UPDATE'' && object.kind == ''Pod'' && !(has(request.subResource) && request.subResource == ''ephemeralcontainers'') && object.spec == oldObject.spec)'
+          name: pod-spec-changed
+      matchConstraints:
+        resourceRules:
+          - apiGroups:
+              - ""
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - pods
+              - pods/ephemeralcontainers
+          - apiGroups:
+              - apps
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - deployments
+              - statefulsets
+              - daemonsets
+              - replicasets
+          - apiGroups:
+              - batch
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - jobs
+              - cronjobs
+      paramKind:
+        apiVersion: policy.posture.dev/v1alpha1
+        kind: PolicyExceptions
+      validations:
+        - expression: |-
+            variables.exempt || (!variables.setting_markers.exists(m, m.kind == 'label'
+              ? m.key in variables.workloadLabels && variables.workloadLabels[m.key] == m.value
+              : m.key in variables.annotations && variables.annotations[m.key] == m.value))
+          message: The pod (or pod template) carries a label or annotation in policies.disallow-mesh-opt-out.markers, which takes it out of the service mesh. Remove it; if this workload must run outside the mesh, add a posture exception for disallow-mesh-opt-out.
+      variables:
+        - expression: 'object.kind == ''Pod'' ? object.spec : (object.kind == ''CronJob'' ? object.spec.jobTemplate.spec.template.spec : object.spec.template.spec)'
+          name: podSpec
+        - expression: 'object.kind == ''Pod'' ? dyn(object.metadata) : (object.kind == ''CronJob'' ? (has(object.spec.jobTemplate.spec.template.metadata) ? dyn(object.spec.jobTemplate.spec.template.metadata) : dyn({})) : (has(object.spec.template.metadata) ? dyn(object.spec.template.metadata) : dyn({})))'
+          name: podMeta
+        - expression: 'has(variables.podMeta.labels) ? variables.podMeta.labels : {}'
+          name: workloadLabels
+        - expression: 'variables.podSpec.containers + (has(variables.podSpec.initContainers) ? variables.podSpec.initContainers : []) + dyn(has(variables.podSpec.ephemeralContainers) ? variables.podSpec.ephemeralContainers : [])'
+          name: allContainers
+        - expression: '[{"key":"istio.io/dataplane-mode","kind":"label","value":"none"},{"key":"sidecar.istio.io/inject","kind":"label","value":"false"},{"key":"sidecar.istio.io/inject","kind":"annotation","value":"false"},{"key":"linkerd.io/inject","kind":"annotation","value":"disabled"}]'
+          name: setting_markers
+        - expression: 'has(variables.podMeta.annotations) ? variables.podMeta.annotations : {}'
+          name: annotations
+        - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'disallow-mesh-opt-out' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
+          name: exempt
+  24: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicyBinding
+    metadata:
+      annotations:
+        policy.posture.dev/binding: pods
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: disallow-mesh-opt-out
+    spec:
+      matchResources:
+        namespaceSelector:
+          matchExpressions:
+            - key: kubernetes.io/metadata.name
+              operator: NotIn
+              values:
+                - kube-system
+        resourceRules:
+          - apiGroups:
+              - ""
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - pods
+              - pods/ephemeralcontainers
+      paramRef:
+        name: posture-exceptions
+        parameterNotFoundAction: Deny
+      policyName: disallow-mesh-opt-out
+      validationActions:
+        - Deny
+        - Audit
+  25: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicyBinding
+    metadata:
+      annotations:
+        policy.posture.dev/binding: controllers
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: disallow-mesh-opt-out-controllers
+    spec:
+      matchResources:
+        namespaceSelector:
+          matchExpressions:
+            - key: kubernetes.io/metadata.name
+              operator: NotIn
+              values:
+                - kube-system
+        resourceRules:
+          - apiGroups:
+              - apps
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - deployments
+              - statefulsets
+              - daemonsets
+              - replicasets
+          - apiGroups:
+              - batch
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - jobs
+              - cronjobs
+      paramRef:
+        name: posture-exceptions
+        parameterNotFoundAction: Deny
+      policyName: disallow-mesh-opt-out
+      validationActions:
+        - Warn
+  26: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicy
     metadata:
@@ -651,7 +1453,7 @@ minimal:
           name: allContainers
         - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'disallow-privilege-escalation' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
           name: exempt
-  12: |
+  27: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -690,7 +1492,7 @@ minimal:
       validationActions:
         - Deny
         - Audit
-  13: |
+  28: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -740,7 +1542,7 @@ minimal:
       policyName: disallow-privilege-escalation
       validationActions:
         - Warn
-  14: |
+  29: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicy
     metadata:
@@ -823,7 +1625,7 @@ minimal:
           name: allContainers
         - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'disallow-privileged-containers' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
           name: exempt
-  15: |
+  30: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -862,7 +1664,7 @@ minimal:
       validationActions:
         - Deny
         - Audit
-  16: |
+  31: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -912,7 +1714,326 @@ minimal:
       policyName: disallow-privileged-containers
       validationActions:
         - Warn
-  17: |
+  32: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicy
+    metadata:
+      annotations:
+        policy.posture.dev/description: Secrets are mounted as files, not passed in environment variables.
+        policy.posture.dev/nist: SC-28
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: disallow-secrets-in-env
+    spec:
+      failurePolicy: Fail
+      matchConditions:
+        - expression: '!(request.operation == ''UPDATE'' && object.kind == ''Pod'' && !(has(request.subResource) && request.subResource == ''ephemeralcontainers'') && object.spec == oldObject.spec)'
+          name: pod-spec-changed
+      matchConstraints:
+        resourceRules:
+          - apiGroups:
+              - ""
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - pods
+              - pods/ephemeralcontainers
+          - apiGroups:
+              - apps
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - deployments
+              - statefulsets
+              - daemonsets
+              - replicasets
+          - apiGroups:
+              - batch
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - jobs
+              - cronjobs
+      paramKind:
+        apiVersion: policy.posture.dev/v1alpha1
+        kind: PolicyExceptions
+      validations:
+        - expression: |-
+            variables.exempt || (!variables.allContainers.exists(c,
+              (has(c.env) && c.env.exists(e, has(e.valueFrom) && has(e.valueFrom.secretKeyRef))) ||
+              (has(c.envFrom) && c.envFrom.exists(e, has(e.secretRef)))))
+          message: containers[*].env[*].valueFrom.secretKeyRef and containers[*].envFrom[*].secretRef must be unset; mount the Secret as a volume instead. If this workload needs it, add a posture exception for disallow-secrets-in-env.
+      variables:
+        - expression: 'object.kind == ''Pod'' ? object.spec : (object.kind == ''CronJob'' ? object.spec.jobTemplate.spec.template.spec : object.spec.template.spec)'
+          name: podSpec
+        - expression: 'object.kind == ''Pod'' ? dyn(object.metadata) : (object.kind == ''CronJob'' ? (has(object.spec.jobTemplate.spec.template.metadata) ? dyn(object.spec.jobTemplate.spec.template.metadata) : dyn({})) : (has(object.spec.template.metadata) ? dyn(object.spec.template.metadata) : dyn({})))'
+          name: podMeta
+        - expression: 'has(variables.podMeta.labels) ? variables.podMeta.labels : {}'
+          name: workloadLabels
+        - expression: 'variables.podSpec.containers + (has(variables.podSpec.initContainers) ? variables.podSpec.initContainers : []) + dyn(has(variables.podSpec.ephemeralContainers) ? variables.podSpec.ephemeralContainers : [])'
+          name: allContainers
+        - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'disallow-secrets-in-env' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
+          name: exempt
+  33: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicyBinding
+    metadata:
+      annotations:
+        policy.posture.dev/binding: pods
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: disallow-secrets-in-env
+    spec:
+      matchResources:
+        namespaceSelector:
+          matchExpressions:
+            - key: kubernetes.io/metadata.name
+              operator: NotIn
+              values:
+                - kube-system
+        resourceRules:
+          - apiGroups:
+              - ""
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - pods
+              - pods/ephemeralcontainers
+      paramRef:
+        name: posture-exceptions
+        parameterNotFoundAction: Deny
+      policyName: disallow-secrets-in-env
+      validationActions:
+        - Audit
+  34: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicyBinding
+    metadata:
+      annotations:
+        policy.posture.dev/binding: controllers
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: disallow-secrets-in-env-controllers
+    spec:
+      matchResources:
+        namespaceSelector:
+          matchExpressions:
+            - key: kubernetes.io/metadata.name
+              operator: NotIn
+              values:
+                - kube-system
+        resourceRules:
+          - apiGroups:
+              - apps
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - deployments
+              - statefulsets
+              - daemonsets
+              - replicasets
+          - apiGroups:
+              - batch
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - jobs
+              - cronjobs
+      paramRef:
+        name: posture-exceptions
+        parameterNotFoundAction: Deny
+      policyName: disallow-secrets-in-env
+      validationActions:
+        - Warn
+  35: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicy
+    metadata:
+      annotations:
+        policy.posture.dev/description: Containers in a pod don't share a process namespace.
+        policy.posture.dev/nist: SC-39
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: disallow-shared-process-namespace
+    spec:
+      failurePolicy: Fail
+      matchConditions:
+        - expression: '!(request.operation == ''UPDATE'' && object.kind == ''Pod'' && !(has(request.subResource) && request.subResource == ''ephemeralcontainers'') && object.spec == oldObject.spec)'
+          name: pod-spec-changed
+      matchConstraints:
+        resourceRules:
+          - apiGroups:
+              - ""
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - pods
+              - pods/ephemeralcontainers
+          - apiGroups:
+              - apps
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - deployments
+              - statefulsets
+              - daemonsets
+              - replicasets
+          - apiGroups:
+              - batch
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - jobs
+              - cronjobs
+      paramKind:
+        apiVersion: policy.posture.dev/v1alpha1
+        kind: PolicyExceptions
+      validations:
+        - expression: variables.exempt || (!has(variables.podSpec.shareProcessNamespace) || !variables.podSpec.shareProcessNamespace)
+          message: spec.shareProcessNamespace must be false or unset. If this workload needs it, add a posture exception for disallow-shared-process-namespace.
+      variables:
+        - expression: 'object.kind == ''Pod'' ? object.spec : (object.kind == ''CronJob'' ? object.spec.jobTemplate.spec.template.spec : object.spec.template.spec)'
+          name: podSpec
+        - expression: 'object.kind == ''Pod'' ? dyn(object.metadata) : (object.kind == ''CronJob'' ? (has(object.spec.jobTemplate.spec.template.metadata) ? dyn(object.spec.jobTemplate.spec.template.metadata) : dyn({})) : (has(object.spec.template.metadata) ? dyn(object.spec.template.metadata) : dyn({})))'
+          name: podMeta
+        - expression: 'has(variables.podMeta.labels) ? variables.podMeta.labels : {}'
+          name: workloadLabels
+        - expression: 'variables.podSpec.containers + (has(variables.podSpec.initContainers) ? variables.podSpec.initContainers : []) + dyn(has(variables.podSpec.ephemeralContainers) ? variables.podSpec.ephemeralContainers : [])'
+          name: allContainers
+        - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'disallow-shared-process-namespace' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
+          name: exempt
+  36: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicyBinding
+    metadata:
+      annotations:
+        policy.posture.dev/binding: pods
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: disallow-shared-process-namespace
+    spec:
+      matchResources:
+        namespaceSelector:
+          matchExpressions:
+            - key: kubernetes.io/metadata.name
+              operator: NotIn
+              values:
+                - kube-system
+        resourceRules:
+          - apiGroups:
+              - ""
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - pods
+              - pods/ephemeralcontainers
+      paramRef:
+        name: posture-exceptions
+        parameterNotFoundAction: Deny
+      policyName: disallow-shared-process-namespace
+      validationActions:
+        - Audit
+  37: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicyBinding
+    metadata:
+      annotations:
+        policy.posture.dev/binding: controllers
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: disallow-shared-process-namespace-controllers
+    spec:
+      matchResources:
+        namespaceSelector:
+          matchExpressions:
+            - key: kubernetes.io/metadata.name
+              operator: NotIn
+              values:
+                - kube-system
+        resourceRules:
+          - apiGroups:
+              - apps
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - deployments
+              - statefulsets
+              - daemonsets
+              - replicasets
+          - apiGroups:
+              - batch
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - jobs
+              - cronjobs
+      paramRef:
+        name: posture-exceptions
+        parameterNotFoundAction: Deny
+      policyName: disallow-shared-process-namespace
+      validationActions:
+        - Warn
+  38: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicy
     metadata:
@@ -993,7 +2114,7 @@ minimal:
           name: allContainers
         - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'require-drop-all-capabilities' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
           name: exempt
-  18: |
+  39: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -1032,7 +2153,7 @@ minimal:
       validationActions:
         - Deny
         - Audit
-  19: |
+  40: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -1082,7 +2203,333 @@ minimal:
       policyName: require-drop-all-capabilities
       validationActions:
         - Warn
-  20: |
+  41: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicy
+    metadata:
+      annotations:
+        policy.posture.dev/description: Every container image is pinned by sha256 digest.
+        policy.posture.dev/nist: CM-2, SI-7
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: require-image-digest
+    spec:
+      failurePolicy: Fail
+      matchConditions:
+        - expression: '!(request.operation == ''UPDATE'' && object.kind == ''Pod'' && !(has(request.subResource) && request.subResource == ''ephemeralcontainers'') && object.spec == oldObject.spec)'
+          name: pod-spec-changed
+      matchConstraints:
+        resourceRules:
+          - apiGroups:
+              - ""
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - pods
+              - pods/ephemeralcontainers
+          - apiGroups:
+              - apps
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - deployments
+              - statefulsets
+              - daemonsets
+              - replicasets
+          - apiGroups:
+              - batch
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - jobs
+              - cronjobs
+      paramKind:
+        apiVersion: policy.posture.dev/v1alpha1
+        kind: PolicyExceptions
+      validations:
+        - expression: variables.exempt || (variables.allContainers.all(c, c.image.matches('@sha256:[0-9a-f]{64}$')))
+          message: containers[*].image must be pinned by digest (<image>@sha256:<64 hex digits>, a tag before the digest is fine). If this workload can't pin its images, add a posture exception for require-image-digest.
+      variables:
+        - expression: 'object.kind == ''Pod'' ? object.spec : (object.kind == ''CronJob'' ? object.spec.jobTemplate.spec.template.spec : object.spec.template.spec)'
+          name: podSpec
+        - expression: 'object.kind == ''Pod'' ? dyn(object.metadata) : (object.kind == ''CronJob'' ? (has(object.spec.jobTemplate.spec.template.metadata) ? dyn(object.spec.jobTemplate.spec.template.metadata) : dyn({})) : (has(object.spec.template.metadata) ? dyn(object.spec.template.metadata) : dyn({})))'
+          name: podMeta
+        - expression: 'has(variables.podMeta.labels) ? variables.podMeta.labels : {}'
+          name: workloadLabels
+        - expression: 'variables.podSpec.containers + (has(variables.podSpec.initContainers) ? variables.podSpec.initContainers : []) + dyn(has(variables.podSpec.ephemeralContainers) ? variables.podSpec.ephemeralContainers : [])'
+          name: allContainers
+        - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'require-image-digest' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
+          name: exempt
+  42: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicyBinding
+    metadata:
+      annotations:
+        policy.posture.dev/binding: pods
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: require-image-digest
+    spec:
+      matchResources:
+        namespaceSelector:
+          matchExpressions:
+            - key: kubernetes.io/metadata.name
+              operator: NotIn
+              values:
+                - kube-system
+        resourceRules:
+          - apiGroups:
+              - ""
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - pods
+              - pods/ephemeralcontainers
+      paramRef:
+        name: posture-exceptions
+        parameterNotFoundAction: Deny
+      policyName: require-image-digest
+      validationActions:
+        - Deny
+        - Audit
+  43: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicyBinding
+    metadata:
+      annotations:
+        policy.posture.dev/binding: controllers
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: require-image-digest-controllers
+    spec:
+      matchResources:
+        namespaceSelector:
+          matchExpressions:
+            - key: kubernetes.io/metadata.name
+              operator: NotIn
+              values:
+                - kube-system
+        resourceRules:
+          - apiGroups:
+              - apps
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - deployments
+              - statefulsets
+              - daemonsets
+              - replicasets
+          - apiGroups:
+              - batch
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - jobs
+              - cronjobs
+      paramRef:
+        name: posture-exceptions
+        parameterNotFoundAction: Deny
+      policyName: require-image-digest
+      validationActions:
+        - Warn
+  44: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicy
+    metadata:
+      annotations:
+        policy.posture.dev/description: Long-running containers have readiness and liveness probes.
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: require-probes
+    spec:
+      failurePolicy: Fail
+      matchConditions:
+        - expression: '!(request.operation == ''UPDATE'' && object.kind == ''Pod'' && !(has(request.subResource) && request.subResource == ''ephemeralcontainers'') && object.spec == oldObject.spec)'
+          name: pod-spec-changed
+      matchConstraints:
+        resourceRules:
+          - apiGroups:
+              - ""
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - pods
+              - pods/ephemeralcontainers
+          - apiGroups:
+              - apps
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - deployments
+              - statefulsets
+              - daemonsets
+              - replicasets
+          - apiGroups:
+              - batch
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - jobs
+              - cronjobs
+      paramKind:
+        apiVersion: policy.posture.dev/v1alpha1
+        kind: PolicyExceptions
+      validations:
+        - expression: variables.exempt || (variables.longRunning.all(c, has(c.readinessProbe)))
+          message: containers[*].readinessProbe must be set on long-running containers (and sidecar init containers). If this workload can't have one, add a posture exception for require-probes.
+        - expression: variables.exempt || (variables.longRunning.all(c, has(c.livenessProbe)))
+          message: containers[*].livenessProbe must be set on long-running containers (and sidecar init containers). If this workload can't have one, add a posture exception for require-probes.
+      variables:
+        - expression: 'object.kind == ''Pod'' ? object.spec : (object.kind == ''CronJob'' ? object.spec.jobTemplate.spec.template.spec : object.spec.template.spec)'
+          name: podSpec
+        - expression: 'object.kind == ''Pod'' ? dyn(object.metadata) : (object.kind == ''CronJob'' ? (has(object.spec.jobTemplate.spec.template.metadata) ? dyn(object.spec.jobTemplate.spec.template.metadata) : dyn({})) : (has(object.spec.template.metadata) ? dyn(object.spec.template.metadata) : dyn({})))'
+          name: podMeta
+        - expression: 'has(variables.podMeta.labels) ? variables.podMeta.labels : {}'
+          name: workloadLabels
+        - expression: 'variables.podSpec.containers + (has(variables.podSpec.initContainers) ? variables.podSpec.initContainers : []) + dyn(has(variables.podSpec.ephemeralContainers) ? variables.podSpec.ephemeralContainers : [])'
+          name: allContainers
+        - expression: |-
+            (!has(variables.podSpec.restartPolicy) || variables.podSpec.restartPolicy == 'Always'
+              ? variables.podSpec.containers : []) +
+            (has(variables.podSpec.initContainers)
+              ? variables.podSpec.initContainers.filter(c,
+                  has(c.restartPolicy) && c.restartPolicy == 'Always')
+              : [])
+          name: longRunning
+        - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'require-probes' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
+          name: exempt
+  45: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicyBinding
+    metadata:
+      annotations:
+        policy.posture.dev/binding: pods
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: require-probes
+    spec:
+      matchResources:
+        namespaceSelector:
+          matchExpressions:
+            - key: kubernetes.io/metadata.name
+              operator: NotIn
+              values:
+                - kube-system
+        resourceRules:
+          - apiGroups:
+              - ""
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - pods
+              - pods/ephemeralcontainers
+      paramRef:
+        name: posture-exceptions
+        parameterNotFoundAction: Deny
+      policyName: require-probes
+      validationActions:
+        - Audit
+  46: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicyBinding
+    metadata:
+      annotations:
+        policy.posture.dev/binding: controllers
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: require-probes-controllers
+    spec:
+      matchResources:
+        namespaceSelector:
+          matchExpressions:
+            - key: kubernetes.io/metadata.name
+              operator: NotIn
+              values:
+                - kube-system
+        resourceRules:
+          - apiGroups:
+              - apps
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - deployments
+              - statefulsets
+              - daemonsets
+              - replicasets
+          - apiGroups:
+              - batch
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - jobs
+              - cronjobs
+      paramRef:
+        name: posture-exceptions
+        parameterNotFoundAction: Deny
+      policyName: require-probes
+      validationActions:
+        - Warn
+  47: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicy
     metadata:
@@ -1155,7 +2602,7 @@ minimal:
           name: allContainers
         - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'require-read-only-root-filesystem' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
           name: exempt
-  21: |
+  48: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -1194,7 +2641,7 @@ minimal:
       validationActions:
         - Deny
         - Audit
-  22: |
+  49: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -1244,7 +2691,178 @@ minimal:
       policyName: require-read-only-root-filesystem
       validationActions:
         - Warn
-  23: |
+  50: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicy
+    metadata:
+      annotations:
+        policy.posture.dev/description: Every container sets a memory limit and CPU and memory requests.
+        policy.posture.dev/nist: SC-5
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: require-resource-limits
+    spec:
+      failurePolicy: Fail
+      matchConditions:
+        - expression: '!(request.operation == ''UPDATE'' && object.kind == ''Pod'' && !(has(request.subResource) && request.subResource == ''ephemeralcontainers'') && object.spec == oldObject.spec)'
+          name: pod-spec-changed
+      matchConstraints:
+        resourceRules:
+          - apiGroups:
+              - ""
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - pods
+              - pods/ephemeralcontainers
+          - apiGroups:
+              - apps
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - deployments
+              - statefulsets
+              - daemonsets
+              - replicasets
+          - apiGroups:
+              - batch
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - jobs
+              - cronjobs
+      paramKind:
+        apiVersion: policy.posture.dev/v1alpha1
+        kind: PolicyExceptions
+      validations:
+        - expression: |-
+            variables.exempt || (variables.resourceContainers.all(c, has(c.resources) && has(c.resources.limits) &&
+              'memory' in c.resources.limits))
+          message: containers[*].resources.limits.memory must be set (init containers too). If this workload needs it unset, add a posture exception for require-resource-limits.
+        - expression: |-
+            variables.exempt || (variables.resourceContainers.all(c, has(c.resources) && has(c.resources.requests) &&
+              'cpu' in c.resources.requests))
+          message: containers[*].resources.requests.cpu must be set (init containers too). If this workload needs it unset, add a posture exception for require-resource-limits.
+        - expression: |-
+            variables.exempt || (variables.resourceContainers.all(c, has(c.resources) && has(c.resources.requests) &&
+              'memory' in c.resources.requests))
+          message: containers[*].resources.requests.memory must be set (init containers too). If this workload needs it unset, add a posture exception for require-resource-limits.
+      variables:
+        - expression: 'object.kind == ''Pod'' ? object.spec : (object.kind == ''CronJob'' ? object.spec.jobTemplate.spec.template.spec : object.spec.template.spec)'
+          name: podSpec
+        - expression: 'object.kind == ''Pod'' ? dyn(object.metadata) : (object.kind == ''CronJob'' ? (has(object.spec.jobTemplate.spec.template.metadata) ? dyn(object.spec.jobTemplate.spec.template.metadata) : dyn({})) : (has(object.spec.template.metadata) ? dyn(object.spec.template.metadata) : dyn({})))'
+          name: podMeta
+        - expression: 'has(variables.podMeta.labels) ? variables.podMeta.labels : {}'
+          name: workloadLabels
+        - expression: 'variables.podSpec.containers + (has(variables.podSpec.initContainers) ? variables.podSpec.initContainers : []) + dyn(has(variables.podSpec.ephemeralContainers) ? variables.podSpec.ephemeralContainers : [])'
+          name: allContainers
+        - expression: 'variables.podSpec.containers + (has(variables.podSpec.initContainers) ? variables.podSpec.initContainers : [])'
+          name: resourceContainers
+        - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'require-resource-limits' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
+          name: exempt
+  51: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicyBinding
+    metadata:
+      annotations:
+        policy.posture.dev/binding: pods
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: require-resource-limits
+    spec:
+      matchResources:
+        namespaceSelector:
+          matchExpressions:
+            - key: kubernetes.io/metadata.name
+              operator: NotIn
+              values:
+                - kube-system
+        resourceRules:
+          - apiGroups:
+              - ""
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - pods
+              - pods/ephemeralcontainers
+      paramRef:
+        name: posture-exceptions
+        parameterNotFoundAction: Deny
+      policyName: require-resource-limits
+      validationActions:
+        - Deny
+        - Audit
+  52: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicyBinding
+    metadata:
+      annotations:
+        policy.posture.dev/binding: controllers
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: require-resource-limits-controllers
+    spec:
+      matchResources:
+        namespaceSelector:
+          matchExpressions:
+            - key: kubernetes.io/metadata.name
+              operator: NotIn
+              values:
+                - kube-system
+        resourceRules:
+          - apiGroups:
+              - apps
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - deployments
+              - statefulsets
+              - daemonsets
+              - replicasets
+          - apiGroups:
+              - batch
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - jobs
+              - cronjobs
+      paramRef:
+        name: posture-exceptions
+        parameterNotFoundAction: Deny
+      policyName: require-resource-limits
+      validationActions:
+        - Warn
+  53: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicy
     metadata:
@@ -1329,7 +2947,7 @@ minimal:
           name: podRunAsNonRoot
         - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'require-run-as-non-root' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
           name: exempt
-  24: |
+  54: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -1368,7 +2986,7 @@ minimal:
       validationActions:
         - Deny
         - Audit
-  25: |
+  55: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -1418,7 +3036,166 @@ minimal:
       policyName: require-run-as-non-root
       validationActions:
         - Warn
-  26: |
+  56: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicy
+    metadata:
+      annotations:
+        policy.posture.dev/description: Every pod carries the app.kubernetes.io/name label.
+        policy.posture.dev/nist: CM-8
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: require-standard-labels
+    spec:
+      failurePolicy: Fail
+      matchConditions:
+        - expression: '!(request.operation == ''UPDATE'' && object.kind == ''Pod'' && !(has(request.subResource) && request.subResource == ''ephemeralcontainers'') && object.spec == oldObject.spec)'
+          name: pod-spec-changed
+      matchConstraints:
+        resourceRules:
+          - apiGroups:
+              - ""
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - pods
+              - pods/ephemeralcontainers
+          - apiGroups:
+              - apps
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - deployments
+              - statefulsets
+              - daemonsets
+              - replicasets
+          - apiGroups:
+              - batch
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - jobs
+              - cronjobs
+      paramKind:
+        apiVersion: policy.posture.dev/v1alpha1
+        kind: PolicyExceptions
+      validations:
+        - expression: variables.exempt || ('app.kubernetes.io/name' in variables.workloadLabels)
+          message: The pod (or pod template) must carry the label app.kubernetes.io/name; posture selects workloads by it. If this workload can't, add a posture exception for require-standard-labels.
+      variables:
+        - expression: 'object.kind == ''Pod'' ? object.spec : (object.kind == ''CronJob'' ? object.spec.jobTemplate.spec.template.spec : object.spec.template.spec)'
+          name: podSpec
+        - expression: 'object.kind == ''Pod'' ? dyn(object.metadata) : (object.kind == ''CronJob'' ? (has(object.spec.jobTemplate.spec.template.metadata) ? dyn(object.spec.jobTemplate.spec.template.metadata) : dyn({})) : (has(object.spec.template.metadata) ? dyn(object.spec.template.metadata) : dyn({})))'
+          name: podMeta
+        - expression: 'has(variables.podMeta.labels) ? variables.podMeta.labels : {}'
+          name: workloadLabels
+        - expression: 'variables.podSpec.containers + (has(variables.podSpec.initContainers) ? variables.podSpec.initContainers : []) + dyn(has(variables.podSpec.ephemeralContainers) ? variables.podSpec.ephemeralContainers : [])'
+          name: allContainers
+        - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'require-standard-labels' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
+          name: exempt
+  57: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicyBinding
+    metadata:
+      annotations:
+        policy.posture.dev/binding: pods
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: require-standard-labels
+    spec:
+      matchResources:
+        namespaceSelector:
+          matchExpressions:
+            - key: kubernetes.io/metadata.name
+              operator: NotIn
+              values:
+                - kube-system
+        resourceRules:
+          - apiGroups:
+              - ""
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - pods
+              - pods/ephemeralcontainers
+      paramRef:
+        name: posture-exceptions
+        parameterNotFoundAction: Deny
+      policyName: require-standard-labels
+      validationActions:
+        - Deny
+        - Audit
+  58: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicyBinding
+    metadata:
+      annotations:
+        policy.posture.dev/binding: controllers
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: require-standard-labels-controllers
+    spec:
+      matchResources:
+        namespaceSelector:
+          matchExpressions:
+            - key: kubernetes.io/metadata.name
+              operator: NotIn
+              values:
+                - kube-system
+        resourceRules:
+          - apiGroups:
+              - apps
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - deployments
+              - statefulsets
+              - daemonsets
+              - replicasets
+          - apiGroups:
+              - batch
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - jobs
+              - cronjobs
+      paramRef:
+        name: posture-exceptions
+        parameterNotFoundAction: Deny
+      policyName: require-standard-labels
+      validationActions:
+        - Warn
+  59: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicy
     metadata:
@@ -1501,7 +3278,7 @@ minimal:
           name: allContainers
         - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'restrict-apparmor' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
           name: exempt
-  27: |
+  60: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -1540,7 +3317,7 @@ minimal:
       validationActions:
         - Deny
         - Audit
-  28: |
+  61: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -1590,7 +3367,7 @@ minimal:
       policyName: restrict-apparmor
       validationActions:
         - Warn
-  29: |
+  62: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicy
     metadata:
@@ -1628,7 +3405,7 @@ minimal:
           name: workloadLabels
         - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'restrict-external-ips' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
           name: exempt
-  30: |
+  63: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -1666,7 +3443,7 @@ minimal:
       validationActions:
         - Deny
         - Audit
-  31: |
+  64: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicy
     metadata:
@@ -1740,7 +3517,7 @@ minimal:
           name: setting_registries
         - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'restrict-image-registries' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
           name: exempt
-  32: |
+  65: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -1779,7 +3556,7 @@ minimal:
       validationActions:
         - Deny
         - Audit
-  33: |
+  66: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -1829,7 +3606,7 @@ minimal:
       policyName: restrict-image-registries
       validationActions:
         - Warn
-  34: |
+  67: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicy
     metadata:
@@ -1903,7 +3680,7 @@ minimal:
           name: allContainers
         - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'restrict-proc-mount' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
           name: exempt
-  35: |
+  68: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -1942,7 +3719,7 @@ minimal:
       validationActions:
         - Deny
         - Audit
-  36: |
+  69: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -1992,7 +3769,7 @@ minimal:
       policyName: restrict-proc-mount
       validationActions:
         - Warn
-  37: |
+  70: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicy
     metadata:
@@ -2069,7 +3846,7 @@ minimal:
           name: podSeccompAllowed
         - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'restrict-seccomp' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
           name: exempt
-  38: |
+  71: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -2108,7 +3885,7 @@ minimal:
       validationActions:
         - Deny
         - Audit
-  39: |
+  72: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -2158,7 +3935,7 @@ minimal:
       policyName: restrict-seccomp
       validationActions:
         - Warn
-  40: |
+  73: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicy
     metadata:
@@ -2243,7 +4020,7 @@ minimal:
           name: seLinuxOptions
         - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'restrict-selinux' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
           name: exempt
-  41: |
+  74: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -2282,7 +4059,7 @@ minimal:
       validationActions:
         - Deny
         - Audit
-  42: |
+  75: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -2332,7 +4109,7 @@ minimal:
       policyName: restrict-selinux
       validationActions:
         - Warn
-  43: |
+  76: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicy
     metadata:
@@ -2416,7 +4193,7 @@ minimal:
           name: allContainers
         - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'restrict-sysctls' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
           name: exempt
-  44: |
+  77: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -2455,7 +4232,7 @@ minimal:
       validationActions:
         - Deny
         - Audit
-  45: |
+  78: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -2505,7 +4282,7 @@ minimal:
       policyName: restrict-sysctls
       validationActions:
         - Warn
-  46: |
+  79: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicy
     metadata:
@@ -2579,7 +4356,7 @@ minimal:
           name: allContainers
         - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'restrict-volume-types' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
           name: exempt
-  47: |
+  80: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -2618,7 +4395,7 @@ minimal:
       validationActions:
         - Deny
         - Audit
-  48: |
+  81: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -2668,7 +4445,7 @@ minimal:
       policyName: restrict-volume-types
       validationActions:
         - Warn
-  49: |
+  82: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicy
     metadata:
@@ -2715,7 +4492,7 @@ minimal:
           name: rules
         - expression: object.metadata.name in ['cluster-admin'] + variables.setting_allowedRoles
           name: allowed
-  50: |
+  83: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:

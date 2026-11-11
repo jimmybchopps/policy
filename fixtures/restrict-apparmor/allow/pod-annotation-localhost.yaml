@@ -8,6 +8,7 @@ metadata:
     container.apparmor.security.beta.kubernetes.io/app: localhost/app
 spec:
   automountServiceAccountToken: false
+  serviceAccountName: app
   securityContext:
     runAsNonRoot: true
     runAsUser: 65532
@@ -15,6 +16,8 @@ spec:
   containers:
     - name: app
       image: registry.example.mil/app@sha256:0000000000000000000000000000000000000000000000000000000000000000
+      readinessProbe: { tcpSocket: { port: 8080 } }
+      livenessProbe: { tcpSocket: { port: 8080 } }
       securityContext:
         allowPrivilegeEscalation: false
         readOnlyRootFilesystem: true

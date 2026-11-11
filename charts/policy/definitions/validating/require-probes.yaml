@@ -1,0 +1,29 @@
+name: require-probes
+tier: optional
+default: { enabled: true, action: audit }
+description: Long-running containers have readiness and liveness probes.
+controls: {}
+resources: workloads
+operations: [CREATE, UPDATE]
+variables:
+  # Long-running: the regular containers, unless the pod runs to completion (a Job's pods,
+  # restartPolicy OnFailure or Never), and sidecar init containers (restartPolicy Always).
+  - name: longRunning
+    expression: >-
+      (!has(variables.podSpec.restartPolicy) || variables.podSpec.restartPolicy == 'Always'
+        ? variables.podSpec.containers : []) +
+      (has(variables.podSpec.initContainers)
+        ? variables.podSpec.initContainers.filter(c,
+            has(c.restartPolicy) && c.restartPolicy == 'Always')
+        : [])
+validations:
+  - expression: "variables.longRunning.all(c, has(c.readinessProbe))"
+    message: >-
+      containers[*].readinessProbe must be set on long-running containers (and sidecar init
+      containers). If this workload can't have one, add a posture exception for
+      require-probes.
+  - expression: "variables.longRunning.all(c, has(c.livenessProbe))"
+    message: >-
+      containers[*].livenessProbe must be set on long-running containers (and sidecar init
+      containers). If this workload can't have one, add a posture exception for
+      require-probes.

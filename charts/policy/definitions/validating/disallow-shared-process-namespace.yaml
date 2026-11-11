@@ -1,0 +1,15 @@
+name: disallow-shared-process-namespace
+tier: optional
+default: { enabled: true, action: audit }
+description: Containers in a pod don't share a process namespace.
+controls:
+  nist: [SC-39]
+resources: workloads
+operations: [CREATE, UPDATE]
+validations:
+  - expression: >-
+      !has(variables.podSpec.shareProcessNamespace) ||
+      !variables.podSpec.shareProcessNamespace
+    message: >-
+      spec.shareProcessNamespace must be false or unset. If this workload needs it, add a
+      posture exception for disallow-shared-process-namespace.

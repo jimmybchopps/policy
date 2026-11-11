@@ -178,3 +178,57 @@ tests:
       - matchRegex: { path: "spec.validations[0].expression", pattern: "has\\(v\\.projected\\)" }
       - matchRegex: { path: "spec.validations[0].expression", pattern: "has\\(v\\.secret\\)" }
       - notMatchRegex: { path: "spec.validations[0].expression", pattern: "hostPath|nfs" }
+
+  # ---- Optional workload policies
+  - it: disallow-ephemeral-containers (custom matchConstraints) matches only adding ephemeral containers, and reads exceptions
+    set:
+      policies:
+        disallow-ephemeral-containers: { enabled: true }
+    documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "No kubectl debug ephemeral containers." }
+    asserts:
+      - equal:
+          path: spec.matchConstraints.resourceRules
+          value:
+            - { apiGroups: [""], apiVersions: [v1], operations: [UPDATE], resources: [pods/ephemeralcontainers] }
+      - equal: { path: spec.paramKind, value: { apiVersion: policy.posture.dev/v1alpha1, kind: PolicyExceptions } }
+      - notExists: { path: spec.matchConditions }
+      - equal: { path: "spec.variables[0].name", value: workloadLabels }
+      - equal: { path: "spec.variables[1].name", value: exempt }
+      - lengthEqual: { path: spec.variables, count: 2 }
+
+  - it: disallow-mesh-opt-out renders its default markers as a CEL list of maps
+    documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Pods don't carry the labels or annotations that take them out of the service mesh." }
+    asserts:
+      - equal:
+          path: "spec.variables[4]"
+          value:
+            name: setting_markers
+            expression: '[{"key":"istio.io/dataplane-mode","kind":"label","value":"none"},{"key":"sidecar.istio.io/inject","kind":"label","value":"false"},{"key":"sidecar.istio.io/inject","kind":"annotation","value":"false"},{"key":"linkerd.io/inject","kind":"annotation","value":"disabled"}]'
+      - equal: { path: "spec.variables[5].name", value: annotations }
+      - equal: { path: "spec.variables[6].name", value: exempt }
+
+  - it: disallow-mesh-opt-out's markers can be replaced
+    set:
+      policies:
+        disallow-mesh-opt-out:
+          markers: [{ kind: annotation, key: example.mil/mesh, value: "off" }]
+    documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Pods don't carry the labels or annotations that take them out of the service mesh." }
+    asserts:
+      - equal: { path: "spec.variables[4].expression", value: '[{"key":"example.mil/mesh","kind":"annotation","value":"off"}]' }
+
+  - it: require-probes counts sidecar init containers as long-running
+    documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Long-running containers have readiness and liveness probes." }
+    asserts:
+      - equal: { path: "spec.variables[4].name", value: longRunning }
+      - matchRegex: { path: "spec.variables[4].expression", pattern: "has\\(c\\.restartPolicy\\) && c\\.restartPolicy == 'Always'" }
+
+  - it: require-resource-limits skips ephemeral containers
+    documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Every container sets a memory limit and CPU and memory requests." }
+    asserts:
+      - equal: { path: "spec.variables[4].name", value: resourceContainers }
+      - notMatchRegex: { path: "spec.variables[4].expression", pattern: "ephemeral" }
+
+  - it: the audit-default optional policies are on with the minimal example
+    documentSelector: { path: metadata.name, value: require-probes-controllers }
+    asserts:
+      - equal: { path: spec.validationActions, value: [Warn] }

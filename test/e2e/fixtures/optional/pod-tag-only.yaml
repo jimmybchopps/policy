@@ -1,0 +1,25 @@
+# A tag, no digest: admitted by disallow-latest-tag (require-image-digest is excepted).
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-tag-only
+  labels: { app.kubernetes.io/name: pod-tag-only, e2e.test/fixture: "true" }
+spec:
+  automountServiceAccountToken: false
+  serviceAccountName: app
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65532
+    seccompProfile: { type: RuntimeDefault }
+  containers:
+    - name: app
+      image: registry.example.mil/app:1.4.2
+      readinessProbe: { tcpSocket: { port: 8080 } }
+      livenessProbe: { tcpSocket: { port: 8080 } }
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities: { drop: [ALL] }
+      resources:
+        requests: { cpu: 10m, memory: 16Mi }
+        limits: { memory: 16Mi }

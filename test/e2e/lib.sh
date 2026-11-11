@@ -65,9 +65,17 @@ delete_cluster() {
 
 NAMESPACES=()
 
-namespace() { # namespace <name>: created fresh, removed after the scenario
+namespace() { # namespace <name>: created fresh, with the fixtures' service account; removed after the scenario
   "$KUBECTL" create namespace "$1" >/dev/null
   NAMESPACES+=("$1")
+  fixture_service_account "$1"
+}
+
+# fixture_service_account <namespace>: ServiceAccount app, which every workload fixture runs as
+# (disallow-default-service-account). The ServiceAccount admission plugin refuses a Pod whose
+# service account doesn't exist, before any policy runs. Idempotent.
+fixture_service_account() {
+  "$KUBECTL" create serviceaccount app -n "$1" --dry-run=client -o yaml | quiet "$KUBECTL" apply -f -
 }
 
 RELEASE=${RELEASE:-policy}
@@ -267,12 +275,21 @@ spec:
 EOT
 }
 
-# policy_namespaces: one namespace per policy that takes exceptions, only-<policy>, for that
-# policy's deny fixtures.
+# policy_test_namespace <policy>: where its deny fixtures are checked, with every other policy
+# excepted: only-<policy>, or default for disallow-default-namespace (whose deny fixtures are
+# compliant objects; the namespace is what it refuses).
+policy_test_namespace() {
+  if [[ $1 == disallow-default-namespace ]]; then echo default; else echo "only-$1"; fi
+}
+
+# policy_namespaces: one namespace per policy that takes exceptions, for that policy's deny
+# fixtures (default already exists; it only gets the service account).
 policy_namespaces() {
-  local p
+  local p ns
   for p in $(fixture_policies); do
-    [[ $(policy_exceptions_mode "$p") == labels ]] && namespace "only-${p}"
+    [[ $(policy_exceptions_mode "$p") == labels ]] || continue
+    ns=$(policy_test_namespace "$p")
+    if [[ $ns == default ]]; then fixture_service_account default; else namespace "$ns"; fi
   done
   return 0
 }
@@ -287,7 +304,7 @@ policy_exceptions() {
   for p in $(fixture_policies); do
     [[ $(policy_exceptions_mode "$p") == labels ]] || continue
     # shellcheck disable=SC2046 # word splitting of policy names is intended
-    exceptions_object "only-${p}" $(printf '%s\n' "${all[@]}" | grep -vxF "$p")
+    exceptions_object "$(policy_test_namespace "$p")" $(printf '%s\n' "${all[@]}" | grep -vxF "$p")
   done
 }
 
@@ -311,7 +328,7 @@ expect_policy_fixtures() {
     for f in "$ROOT/fixtures/$p"/allow/*.yaml; do
       expect admit apps "fixtures/$p/allow/$(basename "$f")"
     done
-    if [[ $(policy_exceptions_mode "$p") == labels ]]; then ns="only-${p}"; else ns=apps; fi
+    if [[ $(policy_exceptions_mode "$p") == labels ]]; then ns=$(policy_test_namespace "$p"); else ns=apps; fi
     for f in "$ROOT/fixtures/$p"/deny/*.yaml; do
       rel="fixtures/$p/deny/$(basename "$f")"
       kind=$(fixture_kind "$rel")

@@ -1,0 +1,17 @@
+name: disallow-latest-tag
+tier: optional
+default: { enabled: true, action: inherit }
+description: No image uses the latest tag or no tag at all (unless it is pinned by digest).
+controls:
+  nist: [CM-2]
+resources: workloads
+operations: [CREATE, UPDATE]
+validations:
+  # A digest pins the image whatever the tag. Otherwise the tag is what follows the last ':'
+  # after the last '/', so a registry port (registry.site.mil:5000/app) isn't a tag.
+  - expression: >-
+      variables.allContainers.all(c, c.image.contains('@') ||
+        (c.image.matches(':[^/]+$') && !c.image.endsWith(':latest')))
+    message: >-
+      containers[*].image must have a tag other than latest, or a digest. If this workload
+      needs it, add a posture exception for disallow-latest-tag.

@@ -154,3 +154,30 @@ tests:
     values: [../../../examples/minimal.yaml, ../../../test/e2e/values/settings.yaml]
     asserts:
       - notFailedTemplate: {}
+
+  # ---- list settings with an item schema
+  - it: accepts disallow-mesh-opt-out markers
+    set:
+      policies:
+        disallow-mesh-opt-out:
+          markers: [{ kind: label, key: example.mil/mesh, value: "off" }]
+    asserts:
+      - notFailedTemplate: {}
+
+  - it: rejects a marker with an unknown kind
+    set:
+      policies:
+        disallow-mesh-opt-out:
+          markers: [{ kind: env, key: MESH, value: "off" }]
+    asserts:
+      - failedTemplate:
+          errorPattern: "markers"
+
+  - it: rejects a marker without a value
+    set:
+      policies:
+        disallow-mesh-opt-out:
+          markers: [{ kind: label, key: example.mil/mesh }]
+    asserts:
+      - failedTemplate:
+          errorPattern: "markers"

@@ -70,8 +70,8 @@ authoritative mapping; confirm them with your ISSM before citing them.
 | `disallow-default-service-account` | audit | workloads | pods don't run as the `default` service account | AC-6 |
 | `disallow-secrets-in-env` | audit | workloads | no `secretKeyRef` in env; mount secrets as files instead | SC-28 |
 | `disallow-shared-process-namespace` | audit | workloads | `shareProcessNamespace` unset or false | SC-39 |
-| `require-probes` | audit | workloads | readiness and liveness probes on long-running containers | — |
-| `disallow-ephemeral-containers` | off | workloads | no `kubectl debug` ephemeral containers | AC-6, CM-7 |
+| `require-probes` | audit | workloads | readiness and liveness probes on long-running containers (regular containers unless the pod runs to completion, as a Job's do; sidecar init containers always) | — |
+| `disallow-ephemeral-containers` | off | pods/ephemeralcontainers (UPDATE) | no `kubectl debug` ephemeral containers | AC-6, CM-7 |
 | `disallow-pod-exec` | off | pods/exec, pods/attach (CONNECT) | no interactive exec or attach | AC-6 |
 
 Services and RBAC objects have no controller in front of them, so those policies use a single
@@ -260,18 +260,23 @@ Split like Phase 1; each subphase ends with a green `make e2e`.
       exceptions.
 - [x] The exception-path e2e fixtures use `hostPID` instead of `hostPath` (which
       restrict-volume-types now also refuses), so each breaks exactly one policy.
-- [ ] e2e: written, not yet run.
+- [x] e2e: green.
 
 ### 2c. Optional workload policies
 
-- [ ] `require-image-digest`, `disallow-latest-tag`, `require-resource-limits`,
+- [x] `require-image-digest`, `disallow-latest-tag`, `require-resource-limits`,
       `require-standard-labels`, `disallow-default-namespace`, `disallow-mesh-opt-out`,
       `disallow-automount-service-account-token`, `disallow-default-service-account`,
-      `disallow-secrets-in-env`, `disallow-shared-process-namespace`, `require-probes`,
-      `disallow-ephemeral-containers`, each with allow and deny fixtures.
-- [ ] The fixture base gains a non-default ServiceAccount (created in every e2e namespace)
-      and probes; the kubectl debug checks move to a namespace that excepts
-      `disallow-ephemeral-containers`.
+      `disallow-secrets-in-env`, `disallow-shared-process-namespace`, `require-probes`, each
+      with allow and deny fixtures; `disallow-ephemeral-containers` (a `matchConstraints`
+      policy on `pods/ephemeralcontainers`: a Pod can't be created with ephemeral containers,
+      so it's covered by kubectl debug checks instead).
+- [x] The fixture base gains ServiceAccount `app` (created in every e2e namespace and
+      kube-system), probes on long-running containers, and digest-pinned images everywhere;
+      the kubectl debug checks move to `debug-allowed`, which excepts
+      `disallow-ephemeral-containers`. disallow-default-namespace's deny fixtures are checked
+      in `default`.
+- [ ] e2e: written, not yet run.
 
 ### 2d. Optional Services and RBAC policies
 

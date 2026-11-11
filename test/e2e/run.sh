@@ -42,6 +42,9 @@ else
   delete_cluster
   create_cluster
 fi
+# kube-system is never evaluated, but the ServiceAccount admission plugin still looks up the
+# fixtures' service account there.
+fixture_service_account kube-system
 
 scenarios=("$@")
 if [[ ${#scenarios[@]} -eq 0 ]]; then

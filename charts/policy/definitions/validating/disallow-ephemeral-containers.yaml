@@ -1,0 +1,19 @@
+name: disallow-ephemeral-containers
+tier: optional
+default: { enabled: false, action: inherit }
+description: No kubectl debug ephemeral containers.
+controls:
+  nist: [AC-6, CM-7]
+# Ephemeral containers can only be added through this subresource (never on create), so the
+# policy matches it alone. Exceptions select the Pod by its own labels.
+resources:
+  resourceRules:
+    - { apiGroups: [""], apiVersions: [v1], resources: [pods/ephemeralcontainers] }
+operations: [UPDATE]
+validations:
+  - expression: >-
+      (has(object.spec.ephemeralContainers) ? size(object.spec.ephemeralContainers) : 0) <=
+      (has(oldObject.spec.ephemeralContainers) ? size(oldObject.spec.ephemeralContainers) : 0)
+    message: >-
+      spec.ephemeralContainers may not be added (kubectl debug). If this workload needs to be
+      debugged in place, add a posture exception for disallow-ephemeral-containers.

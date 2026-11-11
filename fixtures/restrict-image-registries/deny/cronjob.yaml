@@ -13,13 +13,14 @@ spec:
         spec:
           restartPolicy: OnFailure
           automountServiceAccountToken: false
+          serviceAccountName: app
           securityContext:
             runAsNonRoot: true
             runAsUser: 65532
             seccompProfile: { type: RuntimeDefault }
           containers:
             - name: app
-              image: registry.example.mil.evil.example/app:1.0
+              image: registry.example.mil.evil.example/app:1.0@sha256:0000000000000000000000000000000000000000000000000000000000000000
               securityContext:
                 allowPrivilegeEscalation: false
                 readOnlyRootFilesystem: true

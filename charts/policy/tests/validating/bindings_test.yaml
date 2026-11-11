@@ -8,7 +8,15 @@ release:
 values:
   - ../../../../examples/minimal.yaml
 tests:
-  - it: Pod bindings deny and audit (baked-in), Pods only
+  # The audit-default optional policies are turned up to enforce, so every Pod binding enforces.
+  - it: Pod bindings deny and audit (baked-in, and optional at enforce), Pods only
+    set:
+      policies:
+        disallow-automount-service-account-token: { action: enforce }
+        disallow-default-service-account: { action: enforce }
+        disallow-secrets-in-env: { action: enforce }
+        disallow-shared-process-namespace: { action: enforce }
+        require-probes: { action: enforce }
     documentSelector: { path: "metadata.annotations['policy.posture.dev/binding']", value: pods, matchMany: true }
     asserts:
       - isKind: { of: ValidatingAdmissionPolicyBinding }

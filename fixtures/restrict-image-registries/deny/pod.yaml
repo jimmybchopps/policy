@@ -6,13 +6,16 @@ metadata:
   labels: { app.kubernetes.io/name: pod, e2e.test/fixture: "true" }
 spec:
   automountServiceAccountToken: false
+  serviceAccountName: app
   securityContext:
     runAsNonRoot: true
     runAsUser: 65532
     seccompProfile: { type: RuntimeDefault }
   containers:
     - name: app
-      image: docker.io/library/busybox:1.37
+      image: docker.io/library/busybox:1.37@sha256:0000000000000000000000000000000000000000000000000000000000000000
+      readinessProbe: { tcpSocket: { port: 8080 } }
+      livenessProbe: { tcpSocket: { port: 8080 } }
       securityContext:
         allowPrivilegeEscalation: false
         readOnlyRootFilesystem: true

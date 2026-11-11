@@ -6,6 +6,7 @@ metadata:
   labels: { app.kubernetes.io/name: pod-unmasked, e2e.test/fixture: "true" }
 spec:
   automountServiceAccountToken: false
+  serviceAccountName: app
   hostUsers: false
   securityContext:
     runAsNonRoot: true
@@ -14,6 +15,8 @@ spec:
   containers:
     - name: app
       image: registry.example.mil/app@sha256:0000000000000000000000000000000000000000000000000000000000000000
+      readinessProbe: { tcpSocket: { port: 8080 } }
+      livenessProbe: { tcpSocket: { port: 8080 } }
       securityContext:
         allowPrivilegeEscalation: false
         readOnlyRootFilesystem: true

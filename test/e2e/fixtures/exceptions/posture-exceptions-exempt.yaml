@@ -17,6 +17,22 @@ spec:
       workloads:
         - matchLabels: { e2e.test/wrong-kind: "true" }
           reason: e2e, a mutating exception never exempts a validating policy
+    - policy: { kind: ValidatingAdmissionPolicy, name: disallow-automount-service-account-token }
+      workloads:
+        - matchLabels: { e2e.test/fixture: "true" }
+          reason: e2e fixture
+    - policy: { kind: ValidatingAdmissionPolicy, name: disallow-default-namespace }
+      workloads:
+        - matchLabels: { e2e.test/fixture: "true" }
+          reason: e2e fixture
+    - policy: { kind: ValidatingAdmissionPolicy, name: disallow-default-service-account }
+      workloads:
+        - matchLabels: { e2e.test/fixture: "true" }
+          reason: e2e fixture
+    - policy: { kind: ValidatingAdmissionPolicy, name: disallow-ephemeral-containers }
+      workloads:
+        - matchLabels: { e2e.test/fixture: "true" }
+          reason: e2e fixture
     - policy: { kind: ValidatingAdmissionPolicy, name: disallow-host-namespaces }
       workloads:
         - matchLabels: { e2e.test/a: "1", e2e.test/b: "2" }
@@ -31,6 +47,14 @@ spec:
       workloads:
         - matchLabels: { e2e.test/fixture: "true" }
           reason: e2e fixture
+    - policy: { kind: ValidatingAdmissionPolicy, name: disallow-latest-tag }
+      workloads:
+        - matchLabels: { e2e.test/fixture: "true" }
+          reason: e2e fixture
+    - policy: { kind: ValidatingAdmissionPolicy, name: disallow-mesh-opt-out }
+      workloads:
+        - matchLabels: { e2e.test/fixture: "true" }
+          reason: e2e fixture
     - policy: { kind: ValidatingAdmissionPolicy, name: disallow-privilege-escalation }
       workloads:
         - matchLabels: { e2e.test/fixture: "true" }
@@ -39,7 +63,23 @@ spec:
       workloads:
         - matchLabels: { e2e.test/fixture: "true" }
           reason: e2e fixture
+    - policy: { kind: ValidatingAdmissionPolicy, name: disallow-secrets-in-env }
+      workloads:
+        - matchLabels: { e2e.test/fixture: "true" }
+          reason: e2e fixture
+    - policy: { kind: ValidatingAdmissionPolicy, name: disallow-shared-process-namespace }
+      workloads:
+        - matchLabels: { e2e.test/fixture: "true" }
+          reason: e2e fixture
     - policy: { kind: ValidatingAdmissionPolicy, name: require-drop-all-capabilities }
+      workloads:
+        - matchLabels: { e2e.test/fixture: "true" }
+          reason: e2e fixture
+    - policy: { kind: ValidatingAdmissionPolicy, name: require-image-digest }
+      workloads:
+        - matchLabels: { e2e.test/fixture: "true" }
+          reason: e2e fixture
+    - policy: { kind: ValidatingAdmissionPolicy, name: require-probes }
       workloads:
         - matchLabels: { e2e.test/fixture: "true" }
           reason: e2e fixture
@@ -47,7 +87,15 @@ spec:
       workloads:
         - matchLabels: { e2e.test/fixture: "true" }
           reason: e2e fixture
+    - policy: { kind: ValidatingAdmissionPolicy, name: require-resource-limits }
+      workloads:
+        - matchLabels: { e2e.test/fixture: "true" }
+          reason: e2e fixture
     - policy: { kind: ValidatingAdmissionPolicy, name: require-run-as-non-root }
+      workloads:
+        - matchLabels: { e2e.test/fixture: "true" }
+          reason: e2e fixture
+    - policy: { kind: ValidatingAdmissionPolicy, name: require-standard-labels }
       workloads:
         - matchLabels: { e2e.test/fixture: "true" }
           reason: e2e fixture
