@@ -282,6 +282,6 @@ exempt workload admitted with no warning, non-exempt denied, namespace without
 
 | Phase | Area | Status |
 |---|---|---|
-| 1 | Foundations: format, renderer, CRD, exceptions, first policies | 1a–1e built; e2e run pending |
+| 1 | Foundations: format, renderer, CRD, exceptions, first policies | 1a–1e done, e2e green; green CI run pending |
 | 2 | Full catalog, custom policies, enforcement controls | not started |
 | 3 | Mutations, reporting, docs, release | not started |
