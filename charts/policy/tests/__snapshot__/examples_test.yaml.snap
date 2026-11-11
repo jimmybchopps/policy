@@ -109,7 +109,7 @@ minimal:
     spec:
       failurePolicy: Fail
       matchConditions:
-        - expression: '!(request.operation == ''UPDATE'' && object.kind == ''Pod'' && request.subResource != ''ephemeralcontainers'' && object.spec == oldObject.spec)'
+        - expression: '!(request.operation == ''UPDATE'' && object.kind == ''Pod'' && !(has(request.subResource) && request.subResource == ''ephemeralcontainers'') && object.spec == oldObject.spec)'
           name: pod-spec-changed
       matchConstraints:
         resourceRules:
@@ -273,7 +273,7 @@ minimal:
     spec:
       failurePolicy: Fail
       matchConditions:
-        - expression: '!(request.operation == ''UPDATE'' && object.kind == ''Pod'' && request.subResource != ''ephemeralcontainers'' && object.spec == oldObject.spec)'
+        - expression: '!(request.operation == ''UPDATE'' && object.kind == ''Pod'' && !(has(request.subResource) && request.subResource == ''ephemeralcontainers'') && object.spec == oldObject.spec)'
           name: pod-spec-changed
       matchConstraints:
         resourceRules:
@@ -433,7 +433,7 @@ minimal:
     spec:
       failurePolicy: Fail
       matchConditions:
-        - expression: '!(request.operation == ''UPDATE'' && object.kind == ''Pod'' && request.subResource != ''ephemeralcontainers'' && object.spec == oldObject.spec)'
+        - expression: '!(request.operation == ''UPDATE'' && object.kind == ''Pod'' && !(has(request.subResource) && request.subResource == ''ephemeralcontainers'') && object.spec == oldObject.spec)'
           name: pod-spec-changed
       matchConstraints:
         resourceRules:
@@ -605,7 +605,7 @@ minimal:
     spec:
       failurePolicy: Fail
       matchConditions:
-        - expression: '!(request.operation == ''UPDATE'' && object.kind == ''Pod'' && request.subResource != ''ephemeralcontainers'' && object.spec == oldObject.spec)'
+        - expression: '!(request.operation == ''UPDATE'' && object.kind == ''Pod'' && !(has(request.subResource) && request.subResource == ''ephemeralcontainers'') && object.spec == oldObject.spec)'
           name: pod-spec-changed
       matchConstraints:
         resourceRules:
@@ -778,7 +778,7 @@ minimal:
     spec:
       failurePolicy: Fail
       matchConditions:
-        - expression: '!(request.operation == ''UPDATE'' && object.kind == ''Pod'' && request.subResource != ''ephemeralcontainers'' && object.spec == oldObject.spec)'
+        - expression: '!(request.operation == ''UPDATE'' && object.kind == ''Pod'' && !(has(request.subResource) && request.subResource == ''ephemeralcontainers'') && object.spec == oldObject.spec)'
           name: pod-spec-changed
       matchConstraints:
         resourceRules:

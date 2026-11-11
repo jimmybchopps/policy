@@ -45,7 +45,7 @@ tests:
           path: spec.matchConditions
           value:
             - name: pod-spec-changed
-              expression: "!(request.operation == 'UPDATE' && object.kind == 'Pod' && request.subResource != 'ephemeralcontainers' && object.spec == oldObject.spec)"
+              expression: "!(request.operation == 'UPDATE' && object.kind == 'Pod' && !(has(request.subResource) && request.subResource == 'ephemeralcontainers') && object.spec == oldObject.spec)"
 
   - it: every policy starts with the shared variables
     documentSelector: { path: kind, value: ValidatingAdmissionPolicy, matchMany: true }

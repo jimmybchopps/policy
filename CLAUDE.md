@@ -41,7 +41,9 @@ The build order is in `docs/PLAN.md`. Work through it phase by phase.
   ValidatingPolicy and MutatingPolicy accept the same CEL), which isn't being built now.
 - **Fail closed.** `failurePolicy: Fail` everywhere. Bindings use
   `parameterNotFoundAction: Deny`, so a namespace without its `posture-exceptions` object is
-  denied rather than skipped. That's safe because `posture` always deploys first.
+  denied rather than skipped. That covers controllers too: a missing param is a binding
+  error, which denies whatever the binding's actions are, so even a `[Warn]` binding refuses
+  a Deployment there. That's safe because `posture` always deploys first.
 - **Exclusions are the chart's decision, not the user's.** The only namespace never evaluated
   is `kube-system`. There is no values key for excluding namespaces, because one would get
   used to exclude whole namespaces instead of requesting exceptions. Maintainers can extend

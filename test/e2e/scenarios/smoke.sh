@@ -2,7 +2,7 @@
 # Smoke test: the chart (examples/minimal.yaml) installs its CRD and policies, and they work.
 #
 #   apps         gets an empty posture-exceptions after install, as posture renders it
-#   bare         never gets one, so its workloads fail closed
+#   bare         never gets one, so its workloads (Pods and controllers) are denied
 #   kube-system  never evaluated
 #
 # Also, in extra: every policy type-checks cleanly in the API server; the CRD accepts posture's
@@ -26,9 +26,10 @@ checks() {
   expect admit apps "$FIXTURES/smoke-deployment.yaml"
   expect deny apps "$FIXTURES/bad-registry-pod.yaml" restrict-image-registries
   expect warn apps "$FIXTURES/bad-registry-deployment.yaml" restrict-image-registries
-  # No posture-exceptions: fail closed. The controller is only ever warned.
+  # No posture-exceptions: fail closed. A missing param is a binding error, which denies
+  # whatever the binding's actions are, so the controller is refused too, not just warned.
   expect deny bare "$FIXTURES/smoke-pod.yaml" restrict-image-registries
-  expect warn bare "$FIXTURES/smoke-deployment.yaml" restrict-image-registries
+  expect deny bare "$FIXTURES/smoke-deployment.yaml" restrict-image-registries
   # Excluded.
   expect admit kube-system "$FIXTURES/bad-registry-pod.yaml"
 }

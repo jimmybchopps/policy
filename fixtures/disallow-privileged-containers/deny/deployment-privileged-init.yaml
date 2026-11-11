@@ -1,4 +1,6 @@
 # A privileged init container.
+# allowPrivilegeEscalation is left unset on the privileged container: the API server rejects
+# privileged: true together with allowPrivilegeEscalation: false.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -20,7 +22,6 @@ spec:
         - name: init
           image: registry.example.mil/app@sha256:0000000000000000000000000000000000000000000000000000000000000000
           securityContext:
-            allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             capabilities: { drop: [ALL] }
             privileged: true

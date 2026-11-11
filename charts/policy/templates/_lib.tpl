@@ -98,7 +98,7 @@ policy (or an expired exception) would be denied, leaving it stuck. kubectl debu
 (pods/ephemeralcontainers) and controller updates are always evaluated.
 */}}
 {{- define "policy.workloadMatchConditions" -}}
-{{- list (dict "name" "pod-spec-changed" "expression" "!(request.operation == 'UPDATE' && object.kind == 'Pod' && request.subResource != 'ephemeralcontainers' && object.spec == oldObject.spec)") | toJson -}}
+{{- list (dict "name" "pod-spec-changed" "expression" "!(request.operation == 'UPDATE' && object.kind == 'Pod' && !(has(request.subResource) && request.subResource == 'ephemeralcontainers') && object.spec == oldObject.spec)") | toJson -}}
 {{- end -}}
 
 {{/*
