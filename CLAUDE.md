@@ -11,7 +11,7 @@ runs is checked at admission, including the platform's own.
 
 The `posture` chart (per-namespace network, mesh, and exception settings; always the first
 release in any namespace) is a separate companion. This chart never references it; the only
-contract between them is the `PolicyExceptions` CRD described below.
+contract between them is the `PolicyExceptions` CRD, which this chart owns (see below).
 
 The build order is in `docs/PLAN.md`. Work through it phase by phase.
 
@@ -157,7 +157,7 @@ values in baked-in policies (the safe sysctls, allowed SELinux types, allowed vo
 
 ### Exceptions
 
-Each policy gets `paramKind` `posture.dev/v1alpha1` `PolicyExceptions`, and both of its
+Each policy gets `paramKind` `policy.posture.dev/v1alpha1` `PolicyExceptions`, and both of its
 bindings get `paramRef: { name: posture-exceptions, parameterNotFoundAction: Deny }` with no
 namespace, so the object is read from the admitted object's namespace. The renderer adds an
 `exempt` variable and rewrites every validation `E` as `variables.exempt || (E)`:
@@ -180,13 +180,26 @@ they get no `paramKind`; their allowlists come from their own settings
 
 ### The PolicyExceptions CRD
 
-The source of truth is `posture`'s reference CRD
-(`crds-reference/posture.dev_policyexceptions.yaml` in the posture repo). This chart vendors a
-copy at `vendor/posture.dev_policyexceptions.yaml`, pinned to a posture release in
-`vendor/VERSION`, and renders it from `templates/crd.yaml`. It lives under `templates/`, not
-`crds/`, so Helm upgrades it. It carries `helm.sh/resource-policy: keep`, so uninstalling this
-chart never deletes every namespace's exceptions. `make sync-crd` refreshes the copy; CI fails
-if it drifts from the pinned version.
+**This chart owns the CRD: it defines it and deploys it.** The policies read it as their
+parameters, so its schema and their CEL change together, in one repo. `posture` is a
+producer: it creates `posture-exceptions` objects and pins to a released version of this CRD
+for its own validation and e2e tests. (Kyverno works the same way: Kyverno owns its
+PolicyException CRD, tenants just create the objects.)
+
+- **Source file:** `crd/policy.posture.dev_policyexceptions.yaml`, plain YAML, the single source.
+  Group `policy.posture.dev` (the CRD is `policyexceptions.policy.posture.dev`), so the group
+  itself says this chart owns it.
+  `templates/crd.yaml` renders it with `.Files.Get` and adds the chart's labels and
+  `helm.sh/resource-policy: keep`, so uninstalling this chart never deletes every namespace's
+  exceptions. It lives under `templates/`, not Helm's `crds/` folder, so Helm upgrades it.
+- **Consumers fetch the same file** at a release tag (for example from the repo or a release
+  asset); `posture` pins to that tag.
+- **Compatibility rule:** within an API version (`v1alpha1`, `v1beta1`, ...) changes are
+  additive only (new optional fields). Anything else means a new API version, served alongside
+  the old one until `posture` moves over.
+- **Tests here:** schema-level checks that the CRD accepts an object shaped exactly like
+  `posture`'s output (`examples/posture-exceptions.yaml`) and rejects bad ones (missing
+  required fields, an unknown `policy.kind`). Deeper rendering tests stay in `posture`.
 
 ## Naming
 
@@ -205,7 +218,7 @@ charts/policy/
   definitions/
     validating/<name>.yaml        one file per policy (read with .Files.Glob)
     mutating/<name>.yaml
-  vendor/                          PolicyExceptions CRD copy + VERSION
+  crd/policy.posture.dev_policyexceptions.yaml   the PolicyExceptions CRD (owned here)
   templates/
     _lib.tpl                       shared variables, policy settings as CEL literals, actions, exclusions
     _model.tpl                     definitions + values + custom -> one normalized list

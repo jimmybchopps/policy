@@ -109,8 +109,10 @@ cluster, on four baked-in policies.
       `values.schema.json`, `_helpers.tpl`.
 - [x] Tooling pinned in a `Makefile` or `.tool-versions`: helm (3.14+ and 4), helm-unittest,
       kubeconform, k3d, kubectl.
-- [ ] CI: lint, unit tests, kubeconform (with the vendored CRD's schema), and the e2e job
+- [ ] CI: lint, unit tests, kubeconform (with this chart's CRD schema), and the e2e job
       (1e).
+      Workflow is in place (Helm matrix + k3d smoke e2e); still to do: a green run on GitHub,
+      and the CRD schema for kubeconform once 1d adds the CRD.
 
 ### 1b. Definition format and model
 
@@ -146,8 +148,17 @@ cluster, on four baked-in policies.
 
 ### 1d. The PolicyExceptions CRD
 
-- [ ] Vendor posture's reference CRD into `vendor/` with `VERSION`; `make sync-crd` fetches a
-      tagged version; CI fails on drift.
+This chart owns the CRD (see CLAUDE.md). Nothing here waits on `posture`.
+
+- [ ] `crd/policy.posture.dev_policyexceptions.yaml`: group `policy.posture.dev`, version
+      `v1alpha1`, kind `PolicyExceptions`, namespaced, with an OpenAPI schema for the object
+      shape `posture` renders (`spec.exceptions[].policy.{kind,name}` with `kind` limited to
+      `ValidatingAdmissionPolicy` and `MutatingAdmissionPolicy`;
+      `spec.exceptions[].workloads[].{matchLabels,reason,expires}`).
+- [ ] Schema tests: `examples/posture-exceptions.yaml` (shaped like posture's output) is
+      accepted by kubeconform and by a k3d API server; objects with a missing `policy`, an
+      unknown `kind`, or empty `matchLabels` are rejected.
+- [ ] Publish the CRD file with each release so `posture` can pin to it.
 - [ ] `templates/crd.yaml` renders it with `helm.sh/resource-policy: keep`.
 
 ### 1e. First policies, fixtures, e2e
@@ -235,6 +246,8 @@ current.
 - Baked-in policies are always enforced and fixed; only `restrict-image-registries` takes
   configuration. Per-workload needs go through `posture` exceptions.
 - Settings live under each policy in `policies.<name>`; there's no global settings block.
+- This chart owns the `PolicyExceptions` CRD (defines and deploys it); `posture` creates the
+  objects and pins to a released version of the CRD.
 - `kube-system` is the only excluded namespace, and exclusions aren't configurable through
   values. `posture` always deploys first in every other namespace, so failing closed when its
   exceptions object is missing is safe.

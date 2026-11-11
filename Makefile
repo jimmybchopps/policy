@@ -24,8 +24,8 @@ EXAMPLES := $(wildcard examples/*.yaml)
 # Objects each policy must admit or refuse (phase 1e); validated as plain Kubernetes objects.
 FIXTURES := $(shell find fixtures test/e2e/fixtures -name '*.yaml' 2>/dev/null)
 CRDS_CATALOG := https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json
-# Phase 1d: a JSON schema generated from the vendored PolicyExceptions CRD, so fixtures that
-# contain PolicyExceptions objects validate against the exact contract this chart installs.
+# Phase 1d: a JSON schema generated from charts/policy/crd/policy.posture.dev_policyexceptions.yaml,
+# so examples/posture-exceptions.yaml and fixtures validate against the CRD this chart installs.
 # LOCAL_SCHEMAS := -schema-location '$(CURDIR)/.bin/schemas/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
 LOCAL_SCHEMAS :=
 
