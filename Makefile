@@ -62,11 +62,11 @@ UNITTEST_FILES := -f 'tests/*_test.yaml' -f 'tests/*/*_test.yaml'
 
 KUBECONFORM_ARGS := -strict -summary -schema-location default $(LOCAL_SCHEMAS) -schema-location '$(CRDS_CATALOG)'
 
-.PHONY: help tools tools-e2e lint check-definitions unittest unittest-update crd-schema validate test test-all-helm e2e clean
+.PHONY: help tools tools-e2e lint check-definitions check-fixtures unittest unittest-update crd-schema validate test test-all-helm e2e clean
 
 help:
 	@echo "make tools          install helm $(HELM_VERSION), helm-unittest, kubeconform into .bin/"
-	@echo "make test           lint, check-definitions, unittest, validate"
+	@echo "make test           lint, check-definitions, check-fixtures, unittest, validate"
 	@echo "make test-all-helm  make test under Helm $(HELM_VERSIONS)"
 	@echo "make e2e            k3d end-to-end tests (E2E_ARGS=<scenario>, E2E_KEEP=1, E2E_REUSE=1)"
 	@echo "make unittest-update  regenerate example snapshots (review the diff)"
@@ -170,7 +170,29 @@ validate: $(HELM) $(KUBECONFORM) $(CRD_SCHEMA)
 	  echo "==> rejected as expected: $$f"; \
 	done
 
-test: lint check-definitions unittest validate
+# CLAUDE.md, "Testing": every policy has allow and deny fixtures, each covering a Pod, a
+# Deployment, and a CronJob; and no fixtures exist for a policy that isn't defined.
+check-fixtures:
+	@set -e; fail=0; \
+	for def in $(DEFINITIONS); do \
+	  p=$$(basename $$def .yaml); \
+	  for dir in allow deny; do \
+	    for kind in Pod Deployment CronJob; do \
+	      if ! grep -lqx "kind: $$kind" fixtures/$$p/$$dir/*.yaml 2>/dev/null; then \
+	        echo "FAIL: fixtures/$$p/$$dir/ has no $$kind"; fail=1; \
+	      fi; \
+	    done; \
+	  done; \
+	done; \
+	for d in fixtures/*/; do \
+	  p=$$(basename $$d); \
+	  if [ ! -f $(CHART)/definitions/validating/$$p.yaml ]; then \
+	    echo "FAIL: $$d has no definition ($(CHART)/definitions/validating/$$p.yaml)"; fail=1; \
+	  fi; \
+	done; \
+	[ $$fail -eq 0 ] && echo "==> fixtures cover every policy (Pod, Deployment, CronJob; allow and deny)"
+
+test: lint check-definitions check-fixtures unittest validate
 
 test-all-helm:
 	@set -e; for v in $(HELM_VERSIONS); do \

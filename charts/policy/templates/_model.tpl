@@ -41,6 +41,13 @@ Usage: include "policy.definitions" . | fromJsonArray     (needs the chart root,
   {{- if hasKey $def "Error" -}}
     {{- fail (printf "policy: %s: not valid YAML: %s" $path $def.Error) -}}
   {{- end -}}
+  {{- /* Messages tell people what to do (CLAUDE.md): every built-in message names its exception.
+         Checked here, on the real files only, so the probe's test definitions stay minimal. */ -}}
+  {{- range $i, $v := $def.validations -}}
+    {{- if and $v.message (not (contains (printf "posture exception for %s" $def.name) $v.message)) -}}
+      {{- fail (printf "policy: %s: validations[%d].message must say how to get an exception: \"... add a posture exception for %s.\"" $path $i $def.name) -}}
+    {{- end -}}
+  {{- end -}}
   {{- $defs = append $defs (set $def "source" $path) -}}
 {{- end -}}
 {{- toJson $defs -}}

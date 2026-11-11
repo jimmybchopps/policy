@@ -1,0 +1,39 @@
+# A privileged init container.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deployment-privileged-init
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app.kubernetes.io/name: deployment-privileged-init }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: deployment-privileged-init, e2e.test/fixture: "true" }
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        seccompProfile: { type: RuntimeDefault }
+      initContainers:
+        - name: init
+          image: registry.example.mil/app@sha256:0000000000000000000000000000000000000000000000000000000000000000
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+            privileged: true
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { memory: 16Mi }
+      containers:
+        - name: app
+          image: registry.example.mil/app@sha256:0000000000000000000000000000000000000000000000000000000000000000
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { memory: 16Mi }

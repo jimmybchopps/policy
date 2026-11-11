@@ -1,4 +1,6 @@
-suite: ValidatingAdmissionPolicyBindings (restrict-image-registries)
+# The rendered bindings, selected by half (the policy.posture.dev/binding annotation), so the
+# suite keeps working as the catalog grows.
+suite: ValidatingAdmissionPolicyBindings
 templates:
   - templates/validating.yaml
 release:
@@ -6,29 +8,20 @@ release:
 values:
   - ../../../../examples/minimal.yaml
 tests:
-  - it: renders one policy and two bindings
+  - it: Pod bindings deny and audit (baked-in), Pods only
+    documentSelector: { path: "metadata.annotations['policy.posture.dev/binding']", value: pods, matchMany: true }
     asserts:
-      - hasDocuments: { count: 3 }
-      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: restrict-image-registries, any: true }
-      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: restrict-image-registries, any: true }
-      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: restrict-image-registries-controllers, any: true }
-
-  # Documents come in order: the policy, its Pod binding, its controllers binding.
-  - it: the Pod binding denies and audits, Pods only
-    documentIndex: 1
-    asserts:
-      - equal: { path: metadata.name, value: restrict-image-registries }
-      - equal: { path: spec.policyName, value: restrict-image-registries }
+      - isKind: { of: ValidatingAdmissionPolicyBinding }
       - equal: { path: spec.validationActions, value: [Deny, Audit] }
       - equal:
           path: spec.matchResources.resourceRules
           value:
             - { apiGroups: [""], apiVersions: [v1], operations: [CREATE, UPDATE], resources: [pods, pods/ephemeralcontainers] }
 
-  - it: the controllers binding only warns, controllers only
-    documentSelector: { path: metadata.name, value: restrict-image-registries-controllers }
+  - it: controller bindings only warn, controllers only
+    documentSelector: { path: "metadata.annotations['policy.posture.dev/binding']", value: controllers, matchMany: true }
     asserts:
-      - equal: { path: spec.policyName, value: restrict-image-registries }
+      - isKind: { of: ValidatingAdmissionPolicyBinding }
       - equal: { path: spec.validationActions, value: [Warn] }
       - equal:
           path: spec.matchResources.resourceRules
@@ -36,13 +29,19 @@ tests:
             - { apiGroups: [apps], apiVersions: [v1], operations: [CREATE, UPDATE], resources: [deployments, statefulsets, daemonsets, replicasets] }
             - { apiGroups: [batch], apiVersions: [v1], operations: [CREATE, UPDATE], resources: [jobs, cronjobs] }
 
-  - it: both bindings read posture-exceptions from the object's namespace and fail closed without it
+  - it: a controllers binding is named <policy>-controllers and points at its policy
+    documentSelector: { path: metadata.name, value: restrict-image-registries-controllers }
+    asserts:
+      - equal: { path: spec.policyName, value: restrict-image-registries }
+      - equal: { path: metadata.annotations, value: { policy.posture.dev/tier: baked-in, policy.posture.dev/binding: controllers } }
+
+  - it: every binding reads posture-exceptions from the object's namespace and fails closed without it
     documentSelector: { path: kind, value: ValidatingAdmissionPolicyBinding, matchMany: true }
     asserts:
       - equal: { path: spec.paramRef, value: { name: posture-exceptions, parameterNotFoundAction: Deny } }
       - notExists: { path: spec.paramRef.namespace }
 
-  - it: both bindings skip kube-system, and only kube-system
+  - it: every binding skips kube-system, and only kube-system
     documentSelector: { path: kind, value: ValidatingAdmissionPolicyBinding, matchMany: true }
     asserts:
       - equal:
@@ -51,8 +50,8 @@ tests:
             matchExpressions:
               - { key: kubernetes.io/metadata.name, operator: NotIn, values: [kube-system] }
 
-  - it: both bindings carry the chart labels and the tier
+  - it: every binding carries the chart labels and the tier
     documentSelector: { path: kind, value: ValidatingAdmissionPolicyBinding, matchMany: true }
     asserts:
       - equal: { path: "metadata.labels['app.kubernetes.io/name']", value: policy }
-      - equal: { path: metadata.annotations, value: { policy.posture.dev/tier: baked-in } }
+      - equal: { path: "metadata.annotations['policy.posture.dev/tier']", value: baked-in }

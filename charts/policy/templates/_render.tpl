@@ -5,6 +5,9 @@ two bindings (CLAUDE.md, "Actions" and "Exceptions"):
   <name>              Pods (pods, pods/ephemeralcontainers), actions.pods
   <name>-controllers  Deployment, StatefulSet, DaemonSet, ReplicaSet, Job, CronJob, [Warn]
 
+Each binding is annotated policy.posture.dev/binding: pods | controllers (which half it is;
+the Pod binding shares its name with the policy).
+
 Objects are built as dicts and serialized with toYaml, so CEL strings never need YAML quoting.
 
 Usage: include "policy.renderValidating" (dict "model" $model "root" .)
@@ -50,7 +53,7 @@ The root (Chart, Release) is only used for labels; the probe chart passes its ow
 ---
 {{ dict "apiVersion" "admissionregistration.k8s.io/v1" "kind" "ValidatingAdmissionPolicy" "metadata" (dict "name" $p.name "labels" $labels "annotations" $annotations) "spec" $spec | toYaml }}
 {{- $namespaceSelector := dict "matchExpressions" (list (dict "key" "kubernetes.io/metadata.name" "operator" "NotIn" "values" $excluded)) -}}
-{{- range $half := list (dict "suffix" "" "actions" $p.actions.pods "rules" $podRules) (dict "suffix" "-controllers" "actions" $p.actions.controllers "rules" $controllerRules) -}}
+{{- range $half := list (dict "half" "pods" "suffix" "" "actions" $p.actions.pods "rules" $podRules) (dict "half" "controllers" "suffix" "-controllers" "actions" $p.actions.controllers "rules" $controllerRules) -}}
 {{- $bindingSpec := dict
   "policyName" $p.name
   "validationActions" $half.actions
@@ -59,7 +62,7 @@ The root (Chart, Release) is only used for labels; the probe chart passes its ow
   {{- $_ := set $bindingSpec "paramRef" (dict "name" "posture-exceptions" "parameterNotFoundAction" "Deny") -}}
 {{- end }}
 ---
-{{ dict "apiVersion" "admissionregistration.k8s.io/v1" "kind" "ValidatingAdmissionPolicyBinding" "metadata" (dict "name" (printf "%s%s" $p.name $half.suffix) "labels" $labels "annotations" (pick $annotations "policy.posture.dev/tier")) "spec" $bindingSpec | toYaml }}
+{{ dict "apiVersion" "admissionregistration.k8s.io/v1" "kind" "ValidatingAdmissionPolicyBinding" "metadata" (dict "name" (printf "%s%s" $p.name $half.suffix) "labels" $labels "annotations" (dict "policy.posture.dev/tier" $p.tier "policy.posture.dev/binding" $half.half)) "spec" $bindingSpec | toYaml }}
 {{- end -}}
 {{- end -}}
 {{- end -}}

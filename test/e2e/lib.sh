@@ -182,6 +182,111 @@ verify() {
   fi
 }
 
+# ---------------------------------------------------------------------------------------------
+# The policy catalog's fixtures and exceptions
+
+# fixture_policies: every policy with fixtures (fixtures/<policy>/), sorted.
+fixture_policies() {
+  local d
+  for d in "$ROOT"/fixtures/*/; do basename "$d"; done | sort
+}
+
+# exceptions_object <namespace> [policy...]: applies a posture-exceptions in exactly the shape
+# posture renders (one entry per policy, sorted), excepting each listed ValidatingAdmissionPolicy
+# for the fixtures (e2e.test/fixture=true). With no policies it is empty, as posture renders it
+# for a namespace without exceptions.
+exceptions_object() {
+  local ns=$1 p entries=""
+  shift
+  for p in $(printf '%s\n' "$@" | sort); do
+    entries+="
+    - policy: { kind: ValidatingAdmissionPolicy, name: ${p} }
+      workloads:
+        - matchLabels: { e2e.test/fixture: \"true\" }
+          reason: e2e fixture"
+  done
+  quiet "$KUBECTL" apply -n "$ns" -f - <<EOT
+apiVersion: policy.posture.dev/v1alpha1
+kind: PolicyExceptions
+metadata:
+  name: posture-exceptions
+  annotations: { posture.dev/rule: exceptions }
+spec:
+  exceptions:${entries:- []}
+EOT
+}
+
+# policy_namespaces: one namespace per policy, only-<policy>, for that policy's deny fixtures.
+policy_namespaces() {
+  local p
+  for p in $(fixture_policies); do namespace "only-${p}"; done
+}
+
+# policy_exceptions: in each only-<policy>, every OTHER policy is excepted for the fixtures, so
+# a deny fixture there is refused by its own policy alone (some, like a HostProcess pod, can't
+# help breaking two).
+policy_exceptions() {
+  local p
+  local -a all
+  mapfile -t all < <(fixture_policies)
+  for p in "${all[@]}"; do
+    # shellcheck disable=SC2046 # word splitting of policy names is intended
+    exceptions_object "only-${p}" $(printf '%s\n' "${all[@]}" | grep -vxF "$p")
+  done
+}
+
+# expect_policy_fixtures: declares every fixture's expectations (CLAUDE.md, "Testing"):
+#   allow/*            admitted, with no warning, in apps (an empty posture-exceptions)
+#   deny/* Pods        denied by the policy in only-<policy>; admitted in exempt (every policy
+#                      excepted) and in kube-system (never evaluated)
+#   deny/* controllers admitted with a warning naming the policy in only-<policy>; admitted
+#                      with no warning in exempt
+fixture_kind() { awk '/^kind:/ { print $2; exit }' "$ROOT/$1"; }
+
+expect_policy_fixtures() {
+  local p f rel
+  for p in $(fixture_policies); do
+    for f in "$ROOT/fixtures/$p"/allow/*.yaml; do
+      expect admit apps "fixtures/$p/allow/$(basename "$f")"
+    done
+    for f in "$ROOT/fixtures/$p"/deny/*.yaml; do
+      rel="fixtures/$p/deny/$(basename "$f")"
+      if [[ $(fixture_kind "$rel") == Pod ]]; then
+        expect deny "only-${p}" "$rel" "$p"
+        expect admit kube-system "$rel"
+      else
+        expect warn "only-${p}" "$rel" "$p"
+      fi
+      expect admit exempt "$rel"
+    done
+  done
+}
+
+# check_command <admit|deny> <substring> <description> -- <command...>: runs a command that
+# makes an admission request (e.g. a --dry-run=server patch) and records whether it was
+# admitted with no warning, or refused with a message containing <substring>. Retried like
+# the other checks.
+check_command() {
+  local want=$1 sub=$2 desc=$3 out="" rc _attempt ok
+  shift 4
+  for _attempt in 1 2 3 4 5 6 7 8 9 10; do
+    rc=0
+    out=$("$@" 2>&1) || rc=$?
+    ok=0
+    case $want in
+      admit) [[ $rc -eq 0 ]] && ! grep -q '^Warning:' <<<"$out" && ok=1 ;;
+      deny) [[ $rc -ne 0 ]] && grep -qF -- "$sub" <<<"$out" && ok=1 ;;
+    esac
+    [[ $ok == 1 ]] && break
+    sleep 2
+  done
+  if [[ $ok == 1 ]]; then
+    record PASS "[command] $want: $desc"
+  else
+    record FAIL "[command] $want: $desc" "$out"
+  fi
+}
+
 # check_type_checking: every installed ValidatingAdmissionPolicy has been type-checked by the
 # API server (status.observedGeneration caught up) with no expressionWarnings. The API server
 # is the only real check of the policies' CEL against the Kubernetes types.

@@ -221,6 +221,9 @@ PolicyException CRD, tenants just create the objects.)
 - Its bindings: `disallow-host-path` (Pods) and `disallow-host-path-controllers` (warnings).
 - Annotations on every policy: `policy.posture.dev/tier`, `policy.posture.dev/description`,
   `policy.posture.dev/pss`, `policy.posture.dev/nist`.
+- Annotations on every binding: `policy.posture.dev/tier` and `policy.posture.dev/binding`
+  (`pods` or `controllers`; the Pod binding shares its name with the policy, so this tells
+  them apart).
 - Custom policy names must not collide with built-in ones; collisions fail the render.
 
 ## Layout
@@ -255,18 +258,21 @@ docs/policies.md                   generated catalog (make docs); CI checks it's
 
 ## Testing
 
-    helm lint --strict charts/policy
-    helm unittest charts/policy
-    helm template t charts/policy -f examples/<x>.yaml | kubeconform -strict ...
-    test/e2e/run.sh               # k3d, Kubernetes 1.36+ (MutatingAdmissionPolicy is v1 there)
+    make test           # lint, check-definitions, check-fixtures, unittest, validate (kubeconform)
+    make test-all-helm  # the same under every supported Helm version
+    make e2e            # k3d, Kubernetes 1.36+ (MutatingAdmissionPolicy is v1 there)
 
 The API server is the source of truth for CEL: fixtures are checked with
 `kubectl apply --dry-run=server`, which runs admission without persisting anything. For a deny
 fixture, a Pod must be refused, and a controller must be admitted with a `Warning:` naming the
 policy.
 
-Every policy needs at least one allow and one deny fixture, covering a Pod and a Deployment
-(and a CronJob where the pod spec path differs). Every exception path needs an e2e case:
+Every policy needs allow and deny fixtures, each covering a Pod, a Deployment, and a CronJob
+(`make check-fixtures` enforces it). Every fixture is compliant with every other policy. In e2e
+(`test/e2e/scenarios/catalog.sh`) a deny fixture is checked in `only-<policy>`, a namespace
+whose `posture-exceptions` excepts every other policy, so it must be refused by its own policy
+alone, and in `exempt`, where every policy is excepted, so it must be admitted with no warning.
+Every exception path needs an e2e case:
 exempt workload admitted with no warning, non-exempt denied, namespace without
 `posture-exceptions` denied, `kube-system` never evaluated.
 
@@ -274,6 +280,6 @@ exempt workload admitted with no warning, non-exempt denied, namespace without
 
 | Phase | Area | Status |
 |---|---|---|
-| 1 | Foundations: format, renderer, CRD, exceptions, first policies | in progress (1a–1d done) |
+| 1 | Foundations: format, renderer, CRD, exceptions, first policies | 1a–1e built; e2e run pending |
 | 2 | Full catalog, custom policies, enforcement controls | not started |
 | 3 | Mutations, reporting, docs, release | not started |

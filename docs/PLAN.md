@@ -187,13 +187,19 @@ This chart owns the CRD (see CLAUDE.md). Nothing here waits on `posture`.
 
 ### 1e. First policies, fixtures, e2e
 
-- [ ] Definitions: `disallow-privileged-containers`, `disallow-host-namespaces`,
+- [x] Definitions: `disallow-privileged-containers`, `disallow-host-namespaces`,
       `disallow-host-path`, `require-run-as-non-root` (plus `restrict-image-registries`, whose
-      definition landed in 1b).
-- [ ] Fixtures: allow and deny cases for each, as a Pod, a Deployment, and a CronJob.
+      definition landed in 1b). Every built-in message must name its exception (checked when
+      the definitions load).
+- [x] Fixtures: allow and deny cases for each, as a Pod, a Deployment, and a CronJob
+      (`fixtures/<policy>/`, 38 files; `make check-fixtures` enforces the coverage).
 - [ ] `test/e2e/run.sh`: k3d on Kubernetes 1.36, install the chart, create a test namespace
       with an empty `posture-exceptions`, then `kubectl apply --dry-run=server` every fixture.
       Deny fixtures: Pods refused; controllers admitted with a `Warning:` naming the policy.
+      Written (`scenarios/catalog.sh`), not yet run: allow fixtures in `apps`; deny fixtures in
+      `only-<policy>` (every other policy excepted, so each is refused by its own policy alone).
+      Also `kubectl debug` (`pods/ephemeralcontainers`) is evaluated, and a label change on a
+      pre-existing non-compliant pod is admitted (`pod-spec-changed`).
 - [ ] Exception e2e, using hand-written `PolicyExceptions` objects shaped exactly as posture
       renders them:
       (`examples/objects/posture-exceptions.yaml` is one; `verify` in `test/e2e/lib.sh` checks
@@ -202,7 +208,11 @@ This chart owns the CRD (see CLAUDE.md). Nothing here waits on `posture`.
       - a non-exempt Pod is denied;
       - a namespace with no `posture-exceptions` object is denied;
       - `kube-system` is never evaluated.
-- [ ] Unit tests: model rules, both actions tables, the exclusion list, the exemption rewrite.
+      Written, not yet run: every deny fixture admitted in `exempt`; an unlabeled pod, a pod
+      matching only a MutatingAdmissionPolicy entry, and a pod with one of two required labels
+      are denied there; `bare` (smoke) has no object; every deny Pod admitted in `kube-system`.
+- [x] Unit tests: model rules, both actions tables, the exclusion list, the exemption rewrite
+      (`test/model-probe/tests/`, `charts/policy/tests/validating/`, including `catalog_test`).
 
 **Done when** the five policies pass their fixtures in k3d and every exception case behaves as
 listed.

@@ -1,0 +1,35 @@
+name: require-run-as-non-root
+tier: baked-in
+description: Every container runs as a non-root user.
+controls:
+  pss: restricted
+  nist: [AC-6]
+resources: workloads
+operations: [CREATE, UPDATE]
+variables:
+  # The pod-level default; a container's own setting wins over it (PSS restricted).
+  - name: podRunAsNonRoot
+    expression: >-
+      has(variables.podSpec.securityContext) &&
+      has(variables.podSpec.securityContext.runAsNonRoot) &&
+      variables.podSpec.securityContext.runAsNonRoot
+validations:
+  - expression: >-
+      variables.allContainers.all(c,
+        has(c.securityContext) && has(c.securityContext.runAsNonRoot)
+          ? c.securityContext.runAsNonRoot
+          : variables.podRunAsNonRoot)
+    message: >-
+      securityContext.runAsNonRoot must be true, set on the pod (spec.securityContext) or on
+      every container, and no container may set it to false. If this workload needs it, add a
+      posture exception for require-run-as-non-root.
+  - expression: >-
+      !(has(variables.podSpec.securityContext) &&
+        has(variables.podSpec.securityContext.runAsUser) &&
+        variables.podSpec.securityContext.runAsUser == 0) &&
+      !variables.allContainers.exists(c,
+        has(c.securityContext) && has(c.securityContext.runAsUser) &&
+        c.securityContext.runAsUser == 0)
+    message: >-
+      securityContext.runAsUser (pod and containers[*]) must not be 0. If this workload needs
+      it, add a posture exception for require-run-as-non-root.

@@ -1,0 +1,28 @@
+name: disallow-privileged-containers
+tier: baked-in
+description: Containers may not run privileged or as Windows HostProcess.
+controls:
+  pss: baseline
+  nist: [AC-6, CM-7]
+resources: workloads
+operations: [CREATE, UPDATE]
+validations:
+  - expression: >-
+      !variables.allContainers.exists(c,
+        has(c.securityContext) && has(c.securityContext.privileged) && c.securityContext.privileged)
+    message: >-
+      containers[*].securityContext.privileged must be false or unset. If this workload needs
+      it, add a posture exception for disallow-privileged-containers.
+  - expression: >-
+      !(has(variables.podSpec.securityContext) &&
+        has(variables.podSpec.securityContext.windowsOptions) &&
+        has(variables.podSpec.securityContext.windowsOptions.hostProcess) &&
+        variables.podSpec.securityContext.windowsOptions.hostProcess) &&
+      !variables.allContainers.exists(c,
+        has(c.securityContext) && has(c.securityContext.windowsOptions) &&
+        has(c.securityContext.windowsOptions.hostProcess) &&
+        c.securityContext.windowsOptions.hostProcess)
+    message: >-
+      securityContext.windowsOptions.hostProcess (pod and containers[*]) must be false or
+      unset. If this workload needs it, add a posture exception for
+      disallow-privileged-containers.

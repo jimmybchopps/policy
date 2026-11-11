@@ -36,6 +36,9 @@ jobs:
       - name: definitions schema
         run: make check-definitions
 
+      - name: fixtures cover every policy
+        run: make check-fixtures
+
       - name: helm unittest
         run: make unittest
 
