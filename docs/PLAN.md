@@ -105,9 +105,9 @@ cluster, on four baked-in policies.
 
 ### 1a. Repository and tooling
 
-- [ ] `charts/policy/` with `Chart.yaml`, `values.yaml` (every key documented),
+- [x] `charts/policy/` with `Chart.yaml`, `values.yaml` (every key documented),
       `values.schema.json`, `_helpers.tpl`.
-- [ ] Tooling pinned in a `Makefile` or `.tool-versions`: helm (3.14+ and 4), helm-unittest,
+- [x] Tooling pinned in a `Makefile` or `.tool-versions`: helm (3.14+ and 4), helm-unittest,
       kubeconform, k3d, kubectl.
 - [ ] CI: lint, unit tests, kubeconform (with the vendored CRD's schema), and the e2e job
       (1e).

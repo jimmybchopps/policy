@@ -1,0 +1,23 @@
+# A Pod that meets the whole baked-in baseline; every phase must keep admitting it.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: smoke
+  labels:
+    app.kubernetes.io/name: smoke
+spec:
+  automountServiceAccountToken: false
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65532
+    seccompProfile: { type: RuntimeDefault }
+  containers:
+    - name: app
+      image: registry.example.mil/smoke@sha256:0000000000000000000000000000000000000000000000000000000000000000
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities: { drop: [ALL] }
+      resources:
+        requests: { cpu: 10m, memory: 16Mi }
+        limits: { memory: 16Mi }

@@ -1,0 +1,20 @@
+apiVersion: v2
+name: policy
+description: >-
+  Installs a cluster's admission policies: a fixed, always-enforced security baseline plus
+  optional policies and mutations, as native ValidatingAdmissionPolicy and
+  MutatingAdmissionPolicy (no webhook), and the PolicyExceptions CRD that the posture chart
+  fills in each namespace. Requires Kubernetes 1.30+.
+type: application
+version: 0.1.0
+home: https://github.com/jimmybchopps/policy
+sources:
+  - https://github.com/jimmybchopps/policy
+keywords:
+  - admission
+  - validatingadmissionpolicy
+  - mutatingadmissionpolicy
+  - security
+  - pod-security
+annotations:
+  licenses: Apache-2.0
