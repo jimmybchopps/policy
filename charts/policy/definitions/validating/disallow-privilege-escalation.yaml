@@ -1,0 +1,17 @@
+name: disallow-privilege-escalation
+tier: baked-in
+description: Every container sets allowPrivilegeEscalation to false.
+controls:
+  pss: restricted
+  nist: [AC-6]
+resources: workloads
+operations: [CREATE, UPDATE]
+validations:
+  - expression: >-
+      variables.allContainers.all(c,
+        has(c.securityContext) && has(c.securityContext.allowPrivilegeEscalation) &&
+        !c.securityContext.allowPrivilegeEscalation)
+    message: >-
+      containers[*].securityContext.allowPrivilegeEscalation must be false (unset is not
+      enough: the runtime default allows escalation). If this workload needs it, add a posture
+      exception for disallow-privilege-escalation.

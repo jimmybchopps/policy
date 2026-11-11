@@ -1,0 +1,16 @@
+name: restrict-proc-mount
+tier: baked-in
+description: Containers use the default (masked) /proc mount.
+controls:
+  pss: baseline
+  nist: [SC-39]
+resources: workloads
+operations: [CREATE, UPDATE]
+validations:
+  - expression: >-
+      variables.allContainers.all(c,
+        !has(c.securityContext) || !has(c.securityContext.procMount) ||
+        c.securityContext.procMount == 'Default')
+    message: >-
+      containers[*].securityContext.procMount must be Default or unset. If this workload needs
+      an unmasked /proc, add a posture exception for restrict-proc-mount.

@@ -1,0 +1,31 @@
+# The legacy annotation sets unconfined on the pod template.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cronjob-annotation-unconfined
+spec:
+  schedule: "0 3 * * *"
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels: { app.kubernetes.io/name: cronjob-annotation-unconfined, e2e.test/fixture: "true" }
+          annotations:
+            container.apparmor.security.beta.kubernetes.io/app: unconfined
+        spec:
+          restartPolicy: OnFailure
+          automountServiceAccountToken: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            seccompProfile: { type: RuntimeDefault }
+          containers:
+            - name: app
+              image: registry.example.mil/app@sha256:0000000000000000000000000000000000000000000000000000000000000000
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: { drop: [ALL] }
+              resources:
+                requests: { cpu: 10m, memory: 16Mi }
+                limits: { memory: 16Mi }

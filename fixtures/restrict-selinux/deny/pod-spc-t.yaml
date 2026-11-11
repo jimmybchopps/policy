@@ -1,0 +1,23 @@
+# The container asks for spc_t (unconfined).
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-spc-t
+  labels: { app.kubernetes.io/name: pod-spc-t, e2e.test/fixture: "true" }
+spec:
+  automountServiceAccountToken: false
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65532
+    seccompProfile: { type: RuntimeDefault }
+  containers:
+    - name: app
+      image: registry.example.mil/app@sha256:0000000000000000000000000000000000000000000000000000000000000000
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities: { drop: [ALL] }
+        seLinuxOptions: { type: spc_t }
+      resources:
+        requests: { cpu: 10m, memory: 16Mi }
+        limits: { memory: 16Mi }

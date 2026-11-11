@@ -1,4 +1,4 @@
-# hostPath, carrying both labels its exception requires: admitted.
+# hostPID, carrying both labels its exception requires: admitted.
 apiVersion: v1
 kind: Pod
 metadata:
@@ -6,6 +6,7 @@ metadata:
   labels: { app.kubernetes.io/name: both, e2e.test/a: "1", e2e.test/b: "2" }
 spec:
   automountServiceAccountToken: false
+  hostPID: true
   securityContext:
     runAsNonRoot: true
     runAsUser: 65532
@@ -20,5 +21,3 @@ spec:
       resources:
         requests: { cpu: 10m, memory: 16Mi }
         limits: { memory: 16Mi }
-  volumes:
-    - { name: proc, hostPath: { path: /proc } }

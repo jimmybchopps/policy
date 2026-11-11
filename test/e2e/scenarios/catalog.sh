@@ -40,9 +40,9 @@ setup() {
 checks() {
   expect_policy_fixtures
   # An exception covers only the workloads it selects, only for its own policy and kind.
-  expect deny exempt "$EXC/unlabeled-pod.yaml" disallow-host-path
+  expect deny exempt "$EXC/unlabeled-pod.yaml" disallow-host-namespaces
   expect deny exempt "$EXC/wrong-kind-pod.yaml" restrict-image-registries
-  expect deny exempt "$EXC/partial-labels-pod.yaml" disallow-host-path
+  expect deny exempt "$EXC/partial-labels-pod.yaml" disallow-host-namespaces
   expect admit exempt "$EXC/both-labels-pod.yaml"
   # restrict-wildcard-rbac's allowlists: a name in allowedRoles, and Kubernetes' own system: names.
   expect admit apps "$RBAC/allowed-wildcard-clusterrole.yaml"

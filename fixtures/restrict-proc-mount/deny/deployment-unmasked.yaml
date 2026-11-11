@@ -1,0 +1,40 @@
+# procMount Unmasked on an init container.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deployment-unmasked
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app.kubernetes.io/name: deployment-unmasked }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: deployment-unmasked, e2e.test/fixture: "true" }
+    spec:
+      automountServiceAccountToken: false
+      hostUsers: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        seccompProfile: { type: RuntimeDefault }
+      initContainers:
+        - name: init
+          image: registry.example.mil/app@sha256:0000000000000000000000000000000000000000000000000000000000000000
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+            procMount: Unmasked
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { memory: 16Mi }
+      containers:
+        - name: app
+          image: registry.example.mil/app@sha256:0000000000000000000000000000000000000000000000000000000000000000
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { memory: 16Mi }

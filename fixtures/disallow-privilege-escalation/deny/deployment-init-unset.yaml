@@ -1,0 +1,37 @@
+# An init container leaves it unset.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deployment-init-unset
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app.kubernetes.io/name: deployment-init-unset }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: deployment-init-unset, e2e.test/fixture: "true" }
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        seccompProfile: { type: RuntimeDefault }
+      initContainers:
+        - name: init
+          image: registry.example.mil/app@sha256:0000000000000000000000000000000000000000000000000000000000000000
+          securityContext:
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { memory: 16Mi }
+      containers:
+        - name: app
+          image: registry.example.mil/app@sha256:0000000000000000000000000000000000000000000000000000000000000000
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { memory: 16Mi }

@@ -23,7 +23,7 @@ setup() {
 checks() {
   expect admit apps fixtures/require-read-only-root-filesystem/deny/pod-unset.yaml
   expect warn apps fixtures/require-read-only-root-filesystem/deny/deployment-init-writable.yaml
-  expect deny apps fixtures/disallow-host-path/deny/pod.yaml
+  expect deny apps fixtures/disallow-host-namespaces/deny/pod-host-pid.yaml
   expect deny apps "$CUSTOM/pod-no-team.yaml" require-team-label
   expect admit apps "$CUSTOM/pod-team.yaml"
   expect warn apps "$CUSTOM/deployment-no-team.yaml" require-team-label

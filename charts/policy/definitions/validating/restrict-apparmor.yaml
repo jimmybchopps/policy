@@ -1,0 +1,31 @@
+name: restrict-apparmor
+tier: baked-in
+description: AppArmor, where set, uses the runtime default or a node-local profile.
+controls:
+  pss: baseline
+  nist: [CM-7, SC-39]
+resources: workloads
+operations: [CREATE, UPDATE]
+validations:
+  - expression: >-
+      !(has(variables.podSpec.securityContext) &&
+        has(variables.podSpec.securityContext.appArmorProfile) &&
+        !(variables.podSpec.securityContext.appArmorProfile.type in ['RuntimeDefault', 'Localhost'])) &&
+      !variables.allContainers.exists(c,
+        has(c.securityContext) && has(c.securityContext.appArmorProfile) &&
+        !(c.securityContext.appArmorProfile.type in ['RuntimeDefault', 'Localhost']))
+    message: >-
+      securityContext.appArmorProfile.type (pod and containers[*]) must be RuntimeDefault,
+      Localhost, or unset. If this workload needs it, add a posture exception for
+      restrict-apparmor.
+  # The legacy annotation, still honored by the kubelet.
+  - expression: >-
+      !has(variables.podMeta.annotations) ||
+      variables.podMeta.annotations.all(k,
+        !k.startsWith('container.apparmor.security.beta.kubernetes.io/') ||
+        variables.podMeta.annotations[k] == 'runtime/default' ||
+        variables.podMeta.annotations[k].startsWith('localhost/'))
+    message: >-
+      container.apparmor.security.beta.kubernetes.io/* annotations must be runtime/default or
+      localhost/<profile>. If this workload needs it, add a posture exception for
+      restrict-apparmor.

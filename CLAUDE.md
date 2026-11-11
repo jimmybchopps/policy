@@ -24,7 +24,10 @@ The build order is in `docs/PLAN.md`. Work through it phase by phase.
   without the site's registry list, so it takes exactly that and nothing else. Any other key
   on a baked-in policy fails the render. A workload that genuinely needs more gets a
   per-workload exception through `posture`, which is reviewed and visible, instead of a
-  cluster-wide loosening.
+  cluster-wide loosening. That includes Windows pods: the API server forbids the Linux-only
+  securityContext fields on them (`allowPrivilegeEscalation`, `capabilities`, `seccompProfile`,
+  `readOnlyRootFilesystem`), so unlike Pod Security Admission there's no built-in Windows
+  carve-out; they get exceptions.
 - **Settings live with their policy.** A policy that takes configuration declares it in its
   definition, and users set it under `policies.<name>`. There's no separate global settings
   block, so it's always clear which policy a value affects.
@@ -302,7 +305,8 @@ policy.
 Every policy needs allow and deny fixtures covering the kinds it applies to: a Pod, a
 Deployment, and a CronJob for workloads; a Service for services; a ClusterRole and a Role for
 rbac (`make check-fixtures` enforces it). A `matchConstraints` policy is covered by e2e
-commands instead (`check_command`). Every fixture is compliant with every other policy,
+commands instead (`check_command`). Every fixture is compliant with every other policy (a deny fixture breaks as few as it can;
+the e2e exception-path fixtures break exactly one, so a denial always names the same policy),
 optional ones included: the catalog scenario installs with every optional policy on at
 `enforce`. In e2e (`test/e2e/scenarios/catalog.sh`) a deny fixture is checked in
 `only-<policy>`, a namespace whose `posture-exceptions` excepts every other policy, so it must
@@ -320,5 +324,5 @@ exempt workload admitted with no warning, non-exempt denied, namespace without
 | Phase | Area | Status |
 |---|---|---|
 | 1 | Foundations: format, renderer, CRD, exceptions, first policies | 1a–1e done, e2e green; green CI run pending |
-| 2 | Full catalog, custom policies, enforcement controls | 2a built; e2e run pending |
+| 2 | Full catalog, custom policies, enforcement controls | 2a done, e2e green; 2b built, e2e run pending |
 | 3 | Mutations, reporting, docs, release | not started |

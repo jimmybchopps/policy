@@ -1,0 +1,24 @@
+# An nfs volume.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-nfs
+  labels: { app.kubernetes.io/name: pod-nfs, e2e.test/fixture: "true" }
+spec:
+  automountServiceAccountToken: false
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65532
+    seccompProfile: { type: RuntimeDefault }
+  containers:
+    - name: app
+      image: registry.example.mil/app@sha256:0000000000000000000000000000000000000000000000000000000000000000
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities: { drop: [ALL] }
+      resources:
+        requests: { cpu: 10m, memory: 16Mi }
+        limits: { memory: 16Mi }
+  volumes:
+    - { name: share, nfs: { server: nfs.example.mil, path: /exports } }

@@ -335,6 +335,12 @@
           "properties": {},
           "type": "object"
         },
+        "disallow-host-ports": {
+          "additionalProperties": false,
+          "description": "Baked-in: always on and enforced; takes no settings. Containers may not bind ports on the node (hostPort).",
+          "properties": {},
+          "type": "object"
+        },
         "disallow-pod-exec": {
           "additionalProperties": false,
           "description": "Optional (default: off, inherit). No interactive kubectl exec or attach, except in the namespaces listed.",
@@ -363,9 +369,21 @@
           },
           "type": "object"
         },
+        "disallow-privilege-escalation": {
+          "additionalProperties": false,
+          "description": "Baked-in: always on and enforced; takes no settings. Every container sets allowPrivilegeEscalation to false.",
+          "properties": {},
+          "type": "object"
+        },
         "disallow-privileged-containers": {
           "additionalProperties": false,
           "description": "Baked-in: always on and enforced; takes no settings. Containers may not run privileged or as Windows HostProcess.",
+          "properties": {},
+          "type": "object"
+        },
+        "require-drop-all-capabilities": {
+          "additionalProperties": false,
+          "description": "Baked-in: always on and enforced; takes no settings. Every container drops ALL capabilities and adds back nothing but NET_BIND_SERVICE.",
           "properties": {},
           "type": "object"
         },
@@ -395,6 +413,12 @@
           "properties": {},
           "type": "object"
         },
+        "restrict-apparmor": {
+          "additionalProperties": false,
+          "description": "Baked-in: always on and enforced; takes no settings. AppArmor, where set, uses the runtime default or a node-local profile.",
+          "properties": {},
+          "type": "object"
+        },
         "restrict-external-ips": {
           "additionalProperties": false,
           "description": "Baked-in: always on and enforced; takes no settings. Services may not set externalIPs.",
@@ -414,6 +438,36 @@
               "type": "array"
             }
           },
+          "type": "object"
+        },
+        "restrict-proc-mount": {
+          "additionalProperties": false,
+          "description": "Baked-in: always on and enforced; takes no settings. Containers use the default (masked) /proc mount.",
+          "properties": {},
+          "type": "object"
+        },
+        "restrict-seccomp": {
+          "additionalProperties": false,
+          "description": "Baked-in: always on and enforced; takes no settings. Every container runs under a RuntimeDefault or Localhost seccomp profile.",
+          "properties": {},
+          "type": "object"
+        },
+        "restrict-selinux": {
+          "additionalProperties": false,
+          "description": "Baked-in: always on and enforced; takes no settings. SELinux options use only the container types, and never set a user or role.",
+          "properties": {},
+          "type": "object"
+        },
+        "restrict-sysctls": {
+          "additionalProperties": false,
+          "description": "Baked-in: always on and enforced; takes no settings. Pods set only the Pod Security Standards' safe sysctls.",
+          "properties": {},
+          "type": "object"
+        },
+        "restrict-volume-types": {
+          "additionalProperties": false,
+          "description": "Baked-in: always on and enforced; takes no settings. Volumes are only of the Pod Security restricted types.",
+          "properties": {},
           "type": "object"
         },
         "restrict-wildcard-rbac": {

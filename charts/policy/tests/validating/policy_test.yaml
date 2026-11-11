@@ -141,3 +141,40 @@ tests:
       - notExists: { path: spec.matchConditions }
       - equal: { path: spec.variables, value: [{ name: setting_namespaces, expression: '["debug"]' }] }
       - equal: { path: "spec.validations[0].expression", value: "request.namespace in variables.setting_namespaces" }
+
+  # ---- Fixed values written into baked-in definitions
+  - it: restrict-seccomp keeps its own variable after the shared ones, before exempt
+    documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Every container runs under a RuntimeDefault or Localhost seccomp profile." }
+    asserts:
+      - equal: { path: "spec.variables[4].name", value: podSeccompAllowed }
+      - equal: { path: "spec.variables[5].name", value: exempt }
+
+  - it: require-drop-all-capabilities allows adding back only NET_BIND_SERVICE
+    documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Every container drops ALL capabilities and adds back nothing but NET_BIND_SERVICE." }
+    asserts:
+      - matchRegex: { path: "spec.validations[1].expression", pattern: "add\\.all\\(a, a == 'NET_BIND_SERVICE'\\)" }
+
+  - it: restrict-selinux allows only the container types
+    documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "SELinux options use only the container types, and never set a user or role." }
+    asserts:
+      - matchRegex: { path: "spec.validations[0].expression", pattern: "\\['', 'container_t', 'container_init_t', 'container_kvm_t', 'container_engine_t'\\]" }
+
+  - it: restrict-sysctls allows only the Pod Security safe sysctls
+    documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Pods set only the Pod Security Standards' safe sysctls." }
+    asserts:
+      - matchRegex: { path: "spec.validations[0].expression", pattern: "'kernel\\.shm_rmid_forced'" }
+      - matchRegex: { path: "spec.validations[0].expression", pattern: "'net\\.ipv4\\.tcp_wmem'\\]" }
+      - notMatchRegex: { path: "spec.validations[0].expression", pattern: "kernel\\.msgmax" }
+
+  - it: restrict-volume-types allows only the Pod Security restricted volume types
+    documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Volumes are only of the Pod Security restricted types." }
+    asserts:
+      - matchRegex: { path: "spec.validations[0].expression", pattern: "has\\(v\\.configMap\\)" }
+      - matchRegex: { path: "spec.validations[0].expression", pattern: "has\\(v\\.csi\\)" }
+      - matchRegex: { path: "spec.validations[0].expression", pattern: "has\\(v\\.downwardAPI\\)" }
+      - matchRegex: { path: "spec.validations[0].expression", pattern: "has\\(v\\.emptyDir\\)" }
+      - matchRegex: { path: "spec.validations[0].expression", pattern: "has\\(v\\.ephemeral\\)" }
+      - matchRegex: { path: "spec.validations[0].expression", pattern: "has\\(v\\.persistentVolumeClaim\\)" }
+      - matchRegex: { path: "spec.validations[0].expression", pattern: "has\\(v\\.projected\\)" }
+      - matchRegex: { path: "spec.validations[0].expression", pattern: "has\\(v\\.secret\\)" }
+      - notMatchRegex: { path: "spec.validations[0].expression", pattern: "hostPath|nfs" }

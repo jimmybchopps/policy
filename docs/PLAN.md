@@ -247,15 +247,20 @@ Split like Phase 1; each subphase ends with a green `make e2e`.
       (optional, rbac; `cluster-admin` always allowed), `disallow-pod-exec` (optional, off;
       CONNECT on `pods/exec` and `pods/attach`; `namespaces` setting), with fixtures.
       `make check-fixtures` requires the kinds each `resources` covers.
-- [ ] e2e: catalog with every optional policy on at enforce (Services and RBAC fixtures, the
+- [x] e2e: catalog with every optional policy on at enforce (Services and RBAC fixtures, the
       allowlists, kubectl exec), and the `settings` scenario (`enforcement: audit`, custom
-      `require-team-label`). Written, not yet run.
+      `require-team-label`). Green.
 
 ### 2b. Remaining baked-in workload policies
 
-- [ ] `disallow-host-ports`, `disallow-privilege-escalation`, `require-drop-all-capabilities`,
+- [x] `disallow-host-ports`, `disallow-privilege-escalation`, `require-drop-all-capabilities`,
       `restrict-seccomp`, `restrict-apparmor`, `restrict-selinux`, `restrict-proc-mount`,
-      `restrict-sysctls`, `restrict-volume-types`, each with allow and deny fixtures.
+      `restrict-sysctls`, `restrict-volume-types`, each with allow and deny fixtures. No
+      Windows carve-out: a Windows pod can't set the Linux-only fields, so it needs posture
+      exceptions.
+- [x] The exception-path e2e fixtures use `hostPID` instead of `hostPath` (which
+      restrict-volume-types now also refuses), so each breaks exactly one policy.
+- [ ] e2e: written, not yet run.
 
 ### 2c. Optional workload policies
 

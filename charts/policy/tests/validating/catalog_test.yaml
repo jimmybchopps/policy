@@ -10,9 +10,9 @@ release:
 values:
   - ../../../../examples/minimal.yaml
 tests:
-  - it: renders the policies on by default (6 workloads x 3, 1 services x 2, 1 rbac x 2)
+  - it: renders the policies on by default (15 workloads x 3, 1 services x 2, 1 rbac x 2)
     asserts:
-      - hasDocuments: { count: 22 }
+      - hasDocuments: { count: 49 }
 
   - it: disallow-pod-exec is off by default
     asserts:
@@ -24,7 +24,7 @@ tests:
       policies:
         disallow-pod-exec: { enabled: true }
     asserts:
-      - hasDocuments: { count: 24 }
+      - hasDocuments: { count: 51 }
       - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: disallow-pod-exec, any: true }
 
   - it: require-read-only-root-filesystem
@@ -73,6 +73,60 @@ tests:
       - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: restrict-image-registries, any: true }
       - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: restrict-image-registries-controllers, any: true }
 
+  - it: disallow-host-ports
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: disallow-host-ports, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: disallow-host-ports, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: disallow-host-ports-controllers, any: true }
+
+  - it: disallow-privilege-escalation
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: disallow-privilege-escalation, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: disallow-privilege-escalation, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: disallow-privilege-escalation-controllers, any: true }
+
+  - it: require-drop-all-capabilities
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: require-drop-all-capabilities, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: require-drop-all-capabilities, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: require-drop-all-capabilities-controllers, any: true }
+
+  - it: restrict-seccomp
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: restrict-seccomp, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: restrict-seccomp, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: restrict-seccomp-controllers, any: true }
+
+  - it: restrict-apparmor
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: restrict-apparmor, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: restrict-apparmor, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: restrict-apparmor-controllers, any: true }
+
+  - it: restrict-selinux
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: restrict-selinux, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: restrict-selinux, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: restrict-selinux-controllers, any: true }
+
+  - it: restrict-proc-mount
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: restrict-proc-mount, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: restrict-proc-mount, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: restrict-proc-mount-controllers, any: true }
+
+  - it: restrict-sysctls
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: restrict-sysctls, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: restrict-sysctls, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: restrict-sysctls-controllers, any: true }
+
+  - it: restrict-volume-types
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: restrict-volume-types, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: restrict-volume-types, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: restrict-volume-types-controllers, any: true }
+
   - it: each policy's controls (PSS level, NIST) and validation count follow its definition
     asserts:
       - equal: { path: "metadata.annotations['policy.posture.dev/pss']", value: baseline }
@@ -101,3 +155,57 @@ tests:
     asserts:
       - equal: { path: "spec.variables[4].name", value: podRunAsNonRoot }
       - equal: { path: "spec.variables[5].name", value: exempt }
+      - equal: { path: "metadata.annotations['policy.posture.dev/pss']", value: baseline }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Containers may not bind ports on the node (hostPort)." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/nist']", value: "CM-7, SC-7" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Containers may not bind ports on the node (hostPort)." }
+      - lengthEqual: { path: spec.validations, count: 1 }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Containers may not bind ports on the node (hostPort)." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/pss']", value: restricted }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Every container sets allowPrivilegeEscalation to false." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/nist']", value: "AC-6" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Every container sets allowPrivilegeEscalation to false." }
+      - lengthEqual: { path: spec.validations, count: 1 }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Every container sets allowPrivilegeEscalation to false." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/pss']", value: restricted }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Every container drops ALL capabilities and adds back nothing but NET_BIND_SERVICE." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/nist']", value: "AC-6, CM-7" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Every container drops ALL capabilities and adds back nothing but NET_BIND_SERVICE." }
+      - lengthEqual: { path: spec.validations, count: 2 }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Every container drops ALL capabilities and adds back nothing but NET_BIND_SERVICE." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/pss']", value: restricted }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Every container runs under a RuntimeDefault or Localhost seccomp profile." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/nist']", value: "CM-7, SC-39" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Every container runs under a RuntimeDefault or Localhost seccomp profile." }
+      - lengthEqual: { path: spec.validations, count: 1 }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Every container runs under a RuntimeDefault or Localhost seccomp profile." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/pss']", value: baseline }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "AppArmor, where set, uses the runtime default or a node-local profile." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/nist']", value: "CM-7, SC-39" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "AppArmor, where set, uses the runtime default or a node-local profile." }
+      - lengthEqual: { path: spec.validations, count: 2 }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "AppArmor, where set, uses the runtime default or a node-local profile." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/pss']", value: baseline }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "SELinux options use only the container types, and never set a user or role." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/nist']", value: "AC-3, SC-39" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "SELinux options use only the container types, and never set a user or role." }
+      - lengthEqual: { path: spec.validations, count: 2 }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "SELinux options use only the container types, and never set a user or role." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/pss']", value: baseline }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Containers use the default (masked) /proc mount." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/nist']", value: "SC-39" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Containers use the default (masked) /proc mount." }
+      - lengthEqual: { path: spec.validations, count: 1 }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Containers use the default (masked) /proc mount." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/pss']", value: baseline }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Pods set only the Pod Security Standards' safe sysctls." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/nist']", value: "CM-7, SC-39" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Pods set only the Pod Security Standards' safe sysctls." }
+      - lengthEqual: { path: spec.validations, count: 1 }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Pods set only the Pod Security Standards' safe sysctls." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/pss']", value: restricted }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Volumes are only of the Pod Security restricted types." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/nist']", value: "CM-7" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Volumes are only of the Pod Security restricted types." }
+      - lengthEqual: { path: spec.validations, count: 1 }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Volumes are only of the Pod Security restricted types." }
