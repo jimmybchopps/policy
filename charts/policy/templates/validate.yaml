@@ -1,0 +1,5 @@
+{{- /*
+Builds the model on every render so invalid values and definitions fail the install, whatever
+else is rendered. Renders nothing.
+*/ -}}
+{{- $_ := include "policy.modelFor" . -}}

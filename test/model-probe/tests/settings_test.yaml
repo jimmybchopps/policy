@@ -1,0 +1,72 @@
+suite: model settings
+templates:
+  - templates/model.yaml
+values:
+  - ../values/definitions.yaml
+tests:
+  - it: applies the definition's defaults
+    documentSelector: { path: name, value: opt-on }
+    asserts:
+      - equal: { path: settings, value: { names: [a, b], mode: strict, strict: true } }
+
+  - it: a setting with no default is the empty value of its type
+    documentSelector: { path: name, value: opt-off }
+    asserts:
+      - equal: { path: settings, value: { allowedRoles: [] } }
+
+  - it: values override defaults, setting by setting
+    set:
+      input:
+        policies: { opt-on: { names: [x], strict: false } }
+    documentSelector: { path: name, value: opt-on }
+    asserts:
+      - equal: { path: settings, value: { names: [x], mode: strict, strict: false } }
+
+  - it: an empty list overrides a non-empty default
+    set:
+      input:
+        policies: { opt-on: { names: [] } }
+    documentSelector: { path: name, value: opt-on }
+    asserts:
+      - equal: { path: settings.names, value: [] }
+
+  - it: policies without settings have an empty settings map
+    documentSelector: { path: name, value: baked }
+    asserts:
+      - equal: { path: settings, value: {} }
+
+  - it: settings become setting_<name> variables holding CEL literals, sorted by name
+    set:
+      input:
+        policies:
+          opt-on:
+            names: ["registry.site.mil/", "127.0.0.1:31999/"]
+            mode: 'a<b & "c"'
+    documentSelector: { path: name, value: opt-on }
+    asserts:
+      - contains: { path: variables, content: { name: setting_mode, expression: '"a\u003cb \u0026 \"c\""' } }
+      - contains: { path: variables, content: { name: setting_names, expression: '["registry.site.mil/","127.0.0.1:31999/"]' } }
+      - contains: { path: variables, content: { name: setting_strict, expression: "true" } }
+
+  - it: a list of maps becomes a CEL list of map literals
+    set:
+      definitions:
+        - name: markers
+          source: definitions/validating/markers.yaml
+          tier: optional
+          default: { enabled: true, action: inherit }
+          description: x
+          resources: workloads
+          settings:
+            markers:
+              type: list
+              default:
+                - { kind: label, key: sidecar.istio.io/inject, value: "false" }
+          validations: [{ expression: "true", message: x }]
+    documentSelector: { path: name, value: markers }
+    asserts:
+      - contains:
+          path: variables
+          content:
+            name: setting_markers
+            expression: '[{"key":"sidecar.istio.io/inject","kind":"label","value":"false"}]'

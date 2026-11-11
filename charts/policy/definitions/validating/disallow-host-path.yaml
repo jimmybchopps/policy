@@ -1,0 +1,15 @@
+name: disallow-host-path
+tier: baked-in
+description: Pods may not mount directories from the node (hostPath volumes).
+controls:
+  pss: baseline
+  nist: [AC-6, SC-39]
+resources: workloads
+operations: [CREATE, UPDATE]
+validations:
+  - expression: >-
+      !(has(variables.podSpec.volumes) && variables.podSpec.volumes.exists(v, has(v.hostPath)))
+    message: >-
+      spec.volumes[*].hostPath must be unset; use another volume type (emptyDir, configMap,
+      secret, persistentVolumeClaim, ...). If this workload needs it, add a posture exception
+      for disallow-host-path.

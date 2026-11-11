@@ -1,0 +1,69 @@
+suite: model variables
+templates:
+  - templates/model.yaml
+values:
+  - ../values/definitions.yaml
+tests:
+  - it: workload policies get the shared variables first, then the definition's own
+    documentSelector: { path: name, value: baked }
+    asserts:
+      - lengthEqual: { path: variables, count: 5 }
+      - equal: { path: "variables[0].name", value: podSpec }
+      - equal: { path: "variables[1].name", value: podMeta }
+      - equal: { path: "variables[2].name", value: workloadLabels }
+      - equal: { path: "variables[3].name", value: allContainers }
+      - equal: { path: "variables[4]", value: { name: privileged, expression: "variables.allContainers.exists(c, has(c.securityContext))" } }
+
+  - it: the order is shared variables, then settings, then the definition's own
+    set:
+      definitions:
+        - name: ordered
+          source: definitions/validating/ordered.yaml
+          tier: optional
+          default: { enabled: true, action: inherit }
+          description: x
+          resources: workloads
+          settings: { zeta: { type: bool }, alpha: { type: string } }
+          variables: [{ name: mine, expression: "true" }]
+          validations: [{ expression: "variables.mine", message: x }]
+    documentSelector: { path: name, value: ordered }
+    asserts:
+      - equal: { path: "variables[4].name", value: setting_alpha }
+      - equal: { path: "variables[5].name", value: setting_zeta }
+      - equal: { path: "variables[6].name", value: mine }
+
+  - it: podSpec covers Pods, CronJobs, and every other controller
+    documentSelector: { path: name, value: baked }
+    asserts:
+      - equal:
+          path: "variables[0].expression"
+          value: "object.kind == 'Pod' ? object.spec : (object.kind == 'CronJob' ? object.spec.jobTemplate.spec.template.spec : object.spec.template.spec)"
+
+  - it: podMeta falls back to {} for a template without metadata
+    documentSelector: { path: name, value: baked }
+    asserts:
+      - matchRegex: { path: "variables[1].expression", pattern: "has\\(object.spec.jobTemplate.spec.template.metadata\\)" }
+      - matchRegex: { path: "variables[1].expression", pattern: "has\\(object.spec.template.metadata\\)" }
+      - matchRegex: { path: "variables[1].expression", pattern: "dyn\\(\\{\\}\\)" }
+
+  - it: workloadLabels is {} when the pod has no labels
+    documentSelector: { path: name, value: baked }
+    asserts:
+      - equal: { path: "variables[2].expression", value: "has(variables.podMeta.labels) ? variables.podMeta.labels : {}" }
+
+  - it: allContainers includes init and ephemeral containers
+    documentSelector: { path: name, value: baked }
+    asserts:
+      - matchRegex: { path: "variables[3].expression", pattern: "^variables.podSpec.containers \\+" }
+      - matchRegex: { path: "variables[3].expression", pattern: "has\\(variables.podSpec.initContainers\\)" }
+      - matchRegex: { path: "variables[3].expression", pattern: "dyn\\(has\\(variables.podSpec.ephemeralContainers\\)" }
+
+  - it: services policies get no shared variables
+    documentSelector: { path: name, value: opt-audit }
+    asserts:
+      - equal: { path: variables, value: [] }
+
+  - it: rbac policies get only their settings
+    documentSelector: { path: name, value: opt-off }
+    asserts:
+      - equal: { path: variables, value: [{ name: setting_allowedRoles, expression: "[]" }] }

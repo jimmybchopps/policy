@@ -1,0 +1,30 @@
+# hostPID in a CronJob.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cronjob-host-pid
+spec:
+  schedule: "0 3 * * *"
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels: { app.kubernetes.io/name: cronjob-host-pid, e2e.test/fixture: "true" }
+        spec:
+          restartPolicy: OnFailure
+          automountServiceAccountToken: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            seccompProfile: { type: RuntimeDefault }
+          hostPID: true
+          containers:
+            - name: app
+              image: registry.example.mil/app@sha256:0000000000000000000000000000000000000000000000000000000000000000
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: { drop: [ALL] }
+              resources:
+                requests: { cpu: 10m, memory: 16Mi }
+                limits: { memory: 16Mi }

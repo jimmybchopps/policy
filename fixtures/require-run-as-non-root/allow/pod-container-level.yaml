@@ -1,0 +1,22 @@
+# runAsNonRoot unset on the pod, true on every container: admitted.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-container-level
+  labels: { app.kubernetes.io/name: pod-container-level, e2e.test/fixture: "true" }
+spec:
+  automountServiceAccountToken: false
+  securityContext:
+    runAsUser: 65532
+    seccompProfile: { type: RuntimeDefault }
+  containers:
+    - name: app
+      image: registry.example.mil/app@sha256:0000000000000000000000000000000000000000000000000000000000000000
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities: { drop: [ALL] }
+        runAsNonRoot: true
+      resources:
+        requests: { cpu: 10m, memory: 16Mi }
+        limits: { memory: 16Mi }

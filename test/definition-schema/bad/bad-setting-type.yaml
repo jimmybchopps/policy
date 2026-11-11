@@ -1,0 +1,10 @@
+# Setting types are list, string, or bool.
+name: bad-setting-type
+tier: baked-in
+description: x
+resources: workloads
+operations: [CREATE]
+settings:
+  count: { type: int }
+validations:
+  - { expression: "true", message: "x" }

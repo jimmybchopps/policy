@@ -1,0 +1,8 @@
+# An optional policy must say whether it's on and how it acts by default.
+name: bad-optional-without-default
+tier: optional
+description: x
+resources: workloads
+operations: [CREATE]
+validations:
+  - { expression: "true", message: "x" }

@@ -1,0 +1,25 @@
+# Created for real before the chart is installed (so admitted then), from an unlisted registry.
+# It never runs: no node matches its nodeSelector, so it stays Pending and nothing is pulled.
+# After install, spec-unchanged updates (labels) are still admitted; kubectl debug isn't.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: old-bad
+  labels: { app.kubernetes.io/name: old-bad }
+spec:
+  nodeSelector: { e2e.test/no-such-node: "true" }
+  automountServiceAccountToken: false
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65532
+    seccompProfile: { type: RuntimeDefault }
+  containers:
+    - name: app
+      image: docker.io/library/busybox:1.37
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities: { drop: [ALL] }
+      resources:
+        requests: { cpu: 10m, memory: 16Mi }
+        limits: { memory: 16Mi }

@@ -1,0 +1,31 @@
+# A privileged container in a CronJob.
+# allowPrivilegeEscalation is left unset on the privileged container: the API server rejects
+# privileged: true together with allowPrivilegeEscalation: false.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cronjob-privileged
+spec:
+  schedule: "0 3 * * *"
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels: { app.kubernetes.io/name: cronjob-privileged, e2e.test/fixture: "true" }
+        spec:
+          restartPolicy: OnFailure
+          automountServiceAccountToken: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            seccompProfile: { type: RuntimeDefault }
+          containers:
+            - name: app
+              image: registry.example.mil/app@sha256:0000000000000000000000000000000000000000000000000000000000000000
+              securityContext:
+                readOnlyRootFilesystem: true
+                capabilities: { drop: [ALL] }
+                privileged: true
+              resources:
+                requests: { cpu: 10m, memory: 16Mi }
+                limits: { memory: 16Mi }

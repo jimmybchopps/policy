@@ -1,0 +1,6 @@
+# The smallest complete configuration: the baked-in baseline with the site's registries.
+policies:
+  restrict-image-registries:
+    registries:
+      - registry.example.mil/
+      - 127.0.0.1:31999/

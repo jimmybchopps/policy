@@ -1,0 +1,34 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "policy values",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "policies": {
+      "description": "Settings for each policy, under the policy's name. Only policies that declare settings accept any.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "restrict-image-registries": {
+          "description": "Baked-in. The only setting it accepts is registries.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "registries": {
+              "description": "Image prefixes every container image must start with, e.g. registry.site.mil/.",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "global": {
+      "description": "Helm's global values (set when this chart is a dependency); unused.",
+      "type": "object"
+    }
+  }
+}

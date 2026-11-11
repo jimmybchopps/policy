@@ -1,0 +1,21 @@
+name: disallow-host-namespaces
+tier: baked-in
+description: Pods may not share the node's network, process, or IPC namespaces.
+controls:
+  pss: baseline
+  nist: [AC-6, SC-39]
+resources: workloads
+operations: [CREATE, UPDATE]
+validations:
+  - expression: "!(has(variables.podSpec.hostNetwork) && variables.podSpec.hostNetwork)"
+    message: >-
+      spec.hostNetwork must be false or unset. If this workload needs it, add a posture
+      exception for disallow-host-namespaces.
+  - expression: "!(has(variables.podSpec.hostPID) && variables.podSpec.hostPID)"
+    message: >-
+      spec.hostPID must be false or unset. If this workload needs it, add a posture exception
+      for disallow-host-namespaces.
+  - expression: "!(has(variables.podSpec.hostIPC) && variables.podSpec.hostIPC)"
+    message: >-
+      spec.hostIPC must be false or unset. If this workload needs it, add a posture exception
+      for disallow-host-namespaces.

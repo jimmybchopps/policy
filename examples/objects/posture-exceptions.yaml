@@ -1,0 +1,19 @@
+# A PolicyExceptions object shaped exactly as posture renders it (posture docs/PLAN.md, phase 4):
+# one object per namespace, named posture-exceptions, inverted to policy -> workloads and sorted.
+# Not a values file (hence the subfolder): kubeconform checks it against this chart's CRD, and
+# the e2e tests apply it to a real API server.
+apiVersion: policy.posture.dev/v1alpha1
+kind: PolicyExceptions
+metadata:
+  name: posture-exceptions
+  annotations: { posture.dev/rule: exceptions }
+spec:
+  exceptions:
+    - policy: { kind: MutatingAdmissionPolicy, name: add-default-limits }
+      workloads:
+        - matchLabels: { app.kubernetes.io/name: batch-importer }
+    - policy: { kind: ValidatingAdmissionPolicy, name: disallow-host-path }
+      workloads:
+        - matchLabels: { app.kubernetes.io/name: prometheus }
+          reason: node exporter reads /proc
+          expires: "2027-03-31"

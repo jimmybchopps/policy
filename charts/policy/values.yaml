@@ -1,0 +1,20 @@
+# policy: the cluster's admission policies.
+#
+# Install once per cluster, before anything else. Every key below is documented; keys for
+# features that aren't built yet are not accepted, so the chart never silently ignores a
+# setting. (`enforcement`, optional policies, `custom`, and `mutations` arrive in later
+# phases; see docs/PLAN.md.)
+#
+# The baked-in baseline is fixed: those policies are always on, always enforced, and take no
+# settings, except restrict-image-registries, which needs the site's registry list. A
+# workload that genuinely needs more gets a per-workload exception through the posture chart
+# (reviewed and visible), never a cluster-wide loosening.
+
+# -- Settings for each policy, under the policy's name. Only policies that declare settings
+#    accept any.
+policies:
+  # -- Baked-in. Every container image must start with one of these prefixes.
+  restrict-image-registries:
+    # -- Required: image prefixes, including the trailing "/", e.g.
+    #    ["registry.site.mil/", "127.0.0.1:31999/"].
+    registries: []

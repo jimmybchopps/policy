@@ -1,0 +1,8 @@
+# Every validation tells people what to do.
+name: bad-validation-without-message
+tier: baked-in
+description: x
+resources: workloads
+operations: [CREATE]
+validations:
+  - { expression: "true" }

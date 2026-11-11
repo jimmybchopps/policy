@@ -1,0 +1,12 @@
+# Values for the real chart (a subchart here). Its own validate.yaml builds the model from the
+# real definitions on every render, so they must be valid.
+policy:
+  policies:
+    restrict-image-registries:
+      registries: [registry.example.mil/]
+
+# The model's input under test: what the user would set (enforcement, policies, custom).
+input: {}
+
+# The definitions under test, in the definition format (each with a source path).
+definitions: []

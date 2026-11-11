@@ -1,0 +1,51 @@
+suite: values schema
+templates:
+  - templates/NOTES.txt
+tests:
+  - it: accepts the minimal example
+    values: [../../../examples/minimal.yaml]
+    asserts:
+      - notFailedTemplate: {}
+
+
+  - it: rejects a top-level key that isn't built yet
+    set:
+      enforcement: audit
+    asserts:
+      - failedTemplate:
+          errorPattern: "enforcement"
+
+  - it: rejects an unknown policy
+    set:
+      policies:
+        disallow-everything: {}
+    asserts:
+      - failedTemplate:
+          errorPattern: "disallow-everything"
+
+  - it: rejects enabled on a baked-in policy
+    set:
+      policies:
+        restrict-image-registries:
+          enabled: false
+    asserts:
+      - failedTemplate:
+          errorPattern: "enabled"
+
+  - it: rejects a registry that isn't a string
+    set:
+      policies:
+        restrict-image-registries:
+          registries: [42]
+    asserts:
+      - failedTemplate:
+          errorPattern: "registries"
+
+  - it: rejects an empty registry prefix
+    set:
+      policies:
+        restrict-image-registries:
+          registries: [""]
+    asserts:
+      - failedTemplate:
+          errorPattern: "registries"

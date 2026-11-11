@@ -1,0 +1,9 @@
+# What posture renders in a namespace with no exceptions: the object exists (so policies don't
+# fail closed) but exempts nothing.
+apiVersion: policy.posture.dev/v1alpha1
+kind: PolicyExceptions
+metadata:
+  name: posture-exceptions
+  annotations: { posture.dev/rule: exceptions }
+spec:
+  exceptions: []

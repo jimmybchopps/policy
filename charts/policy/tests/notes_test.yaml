@@ -1,0 +1,14 @@
+suite: NOTES.txt
+templates:
+  - templates/NOTES.txt
+release:
+  name: policy
+values:
+  - ../../../examples/minimal.yaml
+tests:
+  - it: names the chart version, the release, and the Kubernetes floor
+    chart:
+      version: 9.8.7
+    asserts:
+      - matchRegexRaw: { pattern: "policy 9\\.8\\.7 is installed \\(release policy\\)" }
+      - matchRegexRaw: { pattern: "Kubernetes 1\\.30\\+" }

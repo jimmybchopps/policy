@@ -1,0 +1,73 @@
+# The Phase 1 catalog: every baked-in policy renders a policy and its two bindings. Field-level
+# details are in policy_test, bindings_test, and the examples snapshot; the CEL itself is
+# checked by the API server (make e2e).
+suite: catalog
+templates:
+  - templates/validating.yaml
+release:
+  name: policy
+values:
+  - ../../../../examples/minimal.yaml
+tests:
+  - it: renders a policy and two bindings for each of the five baked-in policies
+    asserts:
+      - hasDocuments: { count: 15 }
+
+  - it: disallow-host-namespaces
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: disallow-host-namespaces, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: disallow-host-namespaces, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: disallow-host-namespaces-controllers, any: true }
+
+  - it: disallow-host-path
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: disallow-host-path, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: disallow-host-path, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: disallow-host-path-controllers, any: true }
+
+  - it: disallow-privileged-containers
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: disallow-privileged-containers, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: disallow-privileged-containers, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: disallow-privileged-containers-controllers, any: true }
+
+  - it: require-run-as-non-root
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: require-run-as-non-root, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: require-run-as-non-root, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: require-run-as-non-root-controllers, any: true }
+
+  - it: restrict-image-registries
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: restrict-image-registries, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: restrict-image-registries, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: restrict-image-registries-controllers, any: true }
+
+  - it: each policy's controls (PSS level, NIST) and validation count follow its definition
+    asserts:
+      - equal: { path: "metadata.annotations['policy.posture.dev/pss']", value: baseline }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Containers may not run privileged or as Windows HostProcess." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/nist']", value: "AC-6, CM-7" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Containers may not run privileged or as Windows HostProcess." }
+      - lengthEqual: { path: spec.validations, count: 2 }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Containers may not run privileged or as Windows HostProcess." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/pss']", value: baseline }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Pods may not share the node's network, process, or IPC namespaces." }
+      - lengthEqual: { path: spec.validations, count: 3 }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Pods may not share the node's network, process, or IPC namespaces." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/nist']", value: "AC-6, SC-39" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Pods may not mount directories from the node (hostPath volumes)." }
+      - lengthEqual: { path: spec.validations, count: 1 }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Pods may not mount directories from the node (hostPath volumes)." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/pss']", value: restricted }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Every container runs as a non-root user." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/nist']", value: AC-6 }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Every container runs as a non-root user." }
+      - lengthEqual: { path: spec.validations, count: 2 }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Every container runs as a non-root user." }
+
+  - it: require-run-as-non-root keeps its own variable after the shared ones, before exempt
+    documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Every container runs as a non-root user." }
+    asserts:
+      - equal: { path: "spec.variables[4].name", value: podRunAsNonRoot }
+      - equal: { path: "spec.variables[5].name", value: exempt }

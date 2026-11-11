@@ -1,0 +1,25 @@
+# A Pod that meets the whole baked-in baseline except its image, which comes from a registry no
+# example allows. So only restrict-image-registries refuses it, and its admission in
+# kube-system proves the exclusion rather than compliance.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: bad-registry
+  labels:
+    app.kubernetes.io/name: bad-registry
+spec:
+  automountServiceAccountToken: false
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65532
+    seccompProfile: { type: RuntimeDefault }
+  containers:
+    - name: app
+      image: docker.io/library/busybox:1.37
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities: { drop: [ALL] }
+      resources:
+        requests: { cpu: 10m, memory: 16Mi }
+        limits: { memory: 16Mi }

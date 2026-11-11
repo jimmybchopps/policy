@@ -1,0 +1,29 @@
+# runAsUser 0 at pod level, in a CronJob.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cronjob-uid-zero
+spec:
+  schedule: "0 3 * * *"
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels: { app.kubernetes.io/name: cronjob-uid-zero, e2e.test/fixture: "true" }
+        spec:
+          restartPolicy: OnFailure
+          automountServiceAccountToken: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 0
+            seccompProfile: { type: RuntimeDefault }
+          containers:
+            - name: app
+              image: registry.example.mil/app@sha256:0000000000000000000000000000000000000000000000000000000000000000
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: { drop: [ALL] }
+              resources:
+                requests: { cpu: 10m, memory: 16Mi }
+                limits: { memory: 16Mi }

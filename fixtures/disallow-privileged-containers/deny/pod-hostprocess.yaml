@@ -1,0 +1,24 @@
+# A Windows HostProcess pod (the API requires hostNetwork with it, so this also breaks disallow-host-namespaces; the e2e excepts that one where this is checked).
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-hostprocess
+  labels: { app.kubernetes.io/name: pod-hostprocess, e2e.test/fixture: "true" }
+spec:
+  automountServiceAccountToken: false
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65532
+    seccompProfile: { type: RuntimeDefault }
+    windowsOptions: { hostProcess: true }
+  hostNetwork: true
+  containers:
+    - name: app
+      image: registry.example.mil/app@sha256:0000000000000000000000000000000000000000000000000000000000000000
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities: { drop: [ALL] }
+      resources:
+        requests: { cpu: 10m, memory: 16Mi }
+        limits: { memory: 16Mi }

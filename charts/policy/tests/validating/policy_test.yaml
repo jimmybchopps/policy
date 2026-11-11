@@ -1,0 +1,95 @@
+# The rendered ValidatingAdmissionPolicies. Documents are selected so the suite keeps working as
+# the catalog grows: every policy (kind), or one policy by its description annotation (a policy
+# shares its name with its Pod binding).
+suite: ValidatingAdmissionPolicies
+templates:
+  - templates/validating.yaml
+release:
+  name: policy
+values:
+  - ../../../../examples/minimal.yaml
+tests:
+  # ---- Every policy
+  - it: every policy is admissionregistration.k8s.io/v1 and fails closed
+    documentSelector: { path: kind, value: ValidatingAdmissionPolicy, matchMany: true }
+    asserts:
+      - isAPIVersion: { of: admissionregistration.k8s.io/v1 }
+      - equal: { path: spec.failurePolicy, value: Fail }
+
+  - it: every policy reads exceptions from PolicyExceptions
+    documentSelector: { path: kind, value: ValidatingAdmissionPolicy, matchMany: true }
+    asserts:
+      - equal: { path: spec.paramKind, value: { apiVersion: policy.posture.dev/v1alpha1, kind: PolicyExceptions } }
+
+  - it: every policy carries the chart labels
+    documentSelector: { path: kind, value: ValidatingAdmissionPolicy, matchMany: true }
+    asserts:
+      - equal: { path: "metadata.labels['app.kubernetes.io/name']", value: policy }
+      - equal: { path: "metadata.labels['app.kubernetes.io/instance']", value: policy }
+      - equal: { path: "metadata.annotations['policy.posture.dev/tier']", value: baked-in }
+
+  - it: every policy matches Pods (with ephemeral containers) and the six controllers
+    documentSelector: { path: kind, value: ValidatingAdmissionPolicy, matchMany: true }
+    asserts:
+      - equal:
+          path: spec.matchConstraints.resourceRules
+          value:
+            - { apiGroups: [""], apiVersions: [v1], operations: [CREATE, UPDATE], resources: [pods, pods/ephemeralcontainers] }
+            - { apiGroups: [apps], apiVersions: [v1], operations: [CREATE, UPDATE], resources: [deployments, statefulsets, daemonsets, replicasets] }
+            - { apiGroups: [batch], apiVersions: [v1], operations: [CREATE, UPDATE], resources: [jobs, cronjobs] }
+
+  - it: every policy skips Pod UPDATEs that leave the spec unchanged
+    documentSelector: { path: kind, value: ValidatingAdmissionPolicy, matchMany: true }
+    asserts:
+      - equal:
+          path: spec.matchConditions
+          value:
+            - name: pod-spec-changed
+              expression: "!(request.operation == 'UPDATE' && object.kind == 'Pod' && !(has(request.subResource) && request.subResource == 'ephemeralcontainers') && object.spec == oldObject.spec)"
+
+  - it: every policy starts with the shared variables
+    documentSelector: { path: kind, value: ValidatingAdmissionPolicy, matchMany: true }
+    asserts:
+      - equal: { path: "spec.variables[0].name", value: podSpec }
+      - equal: { path: "spec.variables[1].name", value: podMeta }
+      - equal: { path: "spec.variables[2].name", value: workloadLabels }
+      - equal: { path: "spec.variables[3].name", value: allContainers }
+
+  - it: every policy's first validation is rewritten as exempt || (E)
+    documentSelector: { path: kind, value: ValidatingAdmissionPolicy, matchMany: true }
+    asserts:
+      - matchRegex: { path: "spec.validations[0].expression", pattern: "^variables\\.exempt \\|\\| \\((.|\\n)*\\)$" }
+
+  # ---- restrict-image-registries, selected by its description
+  - it: restrict-image-registries carries its annotations (no pss)
+    documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Every container image comes from one of the site's registries." }
+    asserts:
+      - equal: { path: metadata.name, value: restrict-image-registries }
+      - equal:
+          path: metadata.annotations
+          value:
+            policy.posture.dev/tier: baked-in
+            policy.posture.dev/description: Every container image comes from one of the site's registries.
+            policy.posture.dev/nist: CM-7, SR-3
+
+  - it: restrict-image-registries has the shared variables, its setting, then exempt
+    documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Every container image comes from one of the site's registries." }
+    asserts:
+      - lengthEqual: { path: spec.variables, count: 6 }
+      - equal: { path: "spec.variables[4]", value: { name: setting_registries, expression: '["registry.example.mil/","127.0.0.1:31999/"]' } }
+      - equal: { path: "spec.variables[5].name", value: exempt }
+
+  - it: exempt matches this policy's own exceptions by label
+    documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Every container image comes from one of the site's registries." }
+    asserts:
+      - equal:
+          path: "spec.variables[5].expression"
+          value: "has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'restrict-image-registries' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))"
+
+  - it: restrict-image-registries' validation is rewritten, keeping its message
+    documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Every container image comes from one of the site's registries." }
+    asserts:
+      - lengthEqual: { path: spec.validations, count: 1 }
+      - matchRegex: { path: "spec.validations[0].expression", pattern: "^variables\\.exempt \\|\\| \\(variables\\.allContainers\\.all\\(c,(.|\\n)*\\)\\)$" }
+      - matchRegex: { path: "spec.validations[0].message", pattern: "^containers\\[\\*\\]\\.image must start with one of the registries" }
+      - matchRegex: { path: "spec.validations[0].message", pattern: "add a posture exception for restrict-image-registries\\.$" }

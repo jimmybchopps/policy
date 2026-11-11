@@ -1,0 +1,49 @@
+# Test definitions shared by the probe suites: one of each tier and resources shape.
+definitions:
+  - name: baked
+    source: definitions/validating/baked.yaml
+    tier: baked-in
+    description: A baked-in workload policy.
+    controls: { pss: baseline, nist: [AC-6] }
+    resources: workloads
+    operations: [CREATE, UPDATE]
+    variables:
+      - { name: privileged, expression: "variables.allContainers.exists(c, has(c.securityContext))" }
+    validations:
+      - { expression: "!variables.privileged", message: "baked message" }
+
+  - name: opt-on
+    source: definitions/validating/opt-on.yaml
+    tier: optional
+    default: { enabled: true, action: inherit }
+    description: Optional, on, inherits enforcement.
+    resources: workloads
+    operations: [CREATE, UPDATE]
+    settings:
+      names: { type: list, default: [a, b] }
+      mode: { type: string, default: strict }
+      strict: { type: bool, default: true }
+    validations:
+      - { expression: "true", message: "opt-on message" }
+
+  - name: opt-audit
+    source: definitions/validating/opt-audit.yaml
+    tier: optional
+    default: { enabled: true, action: audit }
+    description: Optional, on, audit by default.
+    resources: services
+    operations: [CREATE, UPDATE]
+    validations:
+      - { expression: "true", message: "opt-audit message" }
+
+  - name: opt-off
+    source: definitions/validating/opt-off.yaml
+    tier: optional
+    default: { enabled: false, action: enforce }
+    description: Optional, off by default.
+    resources: rbac
+    operations: [CREATE, UPDATE]
+    settings:
+      allowedRoles: { type: list }
+    validations:
+      - { expression: "true", message: "opt-off message" }

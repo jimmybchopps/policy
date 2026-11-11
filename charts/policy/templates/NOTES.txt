@@ -1,0 +1,1 @@
+policy {{ .Chart.Version }} is installed (release {{ .Release.Name }}). It requires Kubernetes 1.30+.

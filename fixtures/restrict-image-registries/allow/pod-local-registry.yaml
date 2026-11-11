@@ -1,0 +1,22 @@
+# An image from the local registry 127.0.0.1:31999/: admitted.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-local-registry
+  labels: { app.kubernetes.io/name: pod-local-registry, e2e.test/fixture: "true" }
+spec:
+  automountServiceAccountToken: false
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65532
+    seccompProfile: { type: RuntimeDefault }
+  containers:
+    - name: app
+      image: 127.0.0.1:31999/app:1.0
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities: { drop: [ALL] }
+      resources:
+        requests: { cpu: 10m, memory: 16Mi }
+        limits: { memory: 16Mi }

@@ -1,0 +1,29 @@
+# A lookalike registry: the prefix must match including the trailing /.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cronjob
+spec:
+  schedule: "0 3 * * *"
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels: { app.kubernetes.io/name: cronjob, e2e.test/fixture: "true" }
+        spec:
+          restartPolicy: OnFailure
+          automountServiceAccountToken: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            seccompProfile: { type: RuntimeDefault }
+          containers:
+            - name: app
+              image: registry.example.mil.evil.example/app:1.0
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: { drop: [ALL] }
+              resources:
+                requests: { cpu: 10m, memory: 16Mi }
+                limits: { memory: 16Mi }
