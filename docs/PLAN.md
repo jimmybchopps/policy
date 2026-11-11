@@ -101,7 +101,7 @@ are admitted after mutation. The warning still tells the author to set the field
 ## Phase 1: foundations
 
 Goal: the full path from definition file to an enforced, excepted policy, proven in a real
-cluster, on four baked-in policies.
+cluster, on five baked-in policies.
 
 ### 1a. Repository and tooling
 
@@ -116,21 +116,25 @@ cluster, on four baked-in policies.
 
 ### 1b. Definition format and model
 
-- [ ] `definitions/validating/` files in the format from CLAUDE.md, loaded with `.Files.Glob`
+- [x] `definitions/validating/` files in the format from CLAUDE.md, loaded with `.Files.Glob`
       and checked in CI against a small JSON schema for definitions.
-- [ ] `_model.tpl`: merge definitions, `policies` values, and `custom` into one normalized list
+- [x] `_model.tpl`: merge definitions, `policies` values, and `custom` into one normalized list
       with resolved `enabled` and actions per policy.
-- [ ] Rules enforced in the model, each a render failure naming the policy:
+- [x] Rules enforced in the model, each a render failure naming the policy:
       - any key on a baked-in policy other than `restrict-image-registries.registries`
         (including `enabled` and `action`);
       - a setting a policy's definition doesn't declare;
       - a custom policy whose name matches a built-in one;
       - a required setting left empty (`restrict-image-registries.registries`);
       - a definition that uses `params` or `authorizer` (keeps definitions portable).
-- [ ] `_lib.tpl`: the shared variables (`podSpec`, `podMeta`, `workloadLabels`,
+- [x] `_lib.tpl`: the shared variables (`podSpec`, `podMeta`, `workloadLabels`,
       `allContainers`), the Pod and controller resource rules (Pods include
       `pods/ephemeralcontainers`), policy settings as CEL literals via `toJson`, the action
       table, and the exclusion list (`kube-system`).
+      Done: `restrict-image-registries` is the first definition; the schema lives in
+      `test/definition-schema/` (`make check-definitions`); the model is tested through
+      `test/model-probe/`. `custom`, `enforcement`, and optional-policy keys are handled by the
+      model but still rejected by the values schema until phase 2.
 
 ### 1c. Renderer
 
@@ -145,6 +149,9 @@ cluster, on four baked-in policies.
 - [ ] Both bindings: `paramRef` with `name: posture-exceptions`,
       `parameterNotFoundAction: Deny`.
 - [ ] Annotations from CLAUDE.md on every policy.
+- [ ] `restrict-image-registries` (added in 1b) renders here too.
+- [ ] e2e: every installed policy has no `status.typeChecking.expressionWarnings`; the API
+      server is the only real check of the shared variables' CEL.
 
 ### 1d. The PolicyExceptions CRD
 
@@ -164,7 +171,8 @@ This chart owns the CRD (see CLAUDE.md). Nothing here waits on `posture`.
 ### 1e. First policies, fixtures, e2e
 
 - [ ] Definitions: `disallow-privileged-containers`, `disallow-host-namespaces`,
-      `disallow-host-path`, `require-run-as-non-root`.
+      `disallow-host-path`, `require-run-as-non-root` (plus `restrict-image-registries`, whose
+      definition landed in 1b).
 - [ ] Fixtures: allow and deny cases for each, as a Pod, a Deployment, and a CronJob.
 - [ ] `test/e2e/run.sh`: k3d on Kubernetes 1.36, install the chart, create a test namespace
       with an empty `posture-exceptions`, then `kubectl apply --dry-run=server` every fixture.
@@ -177,7 +185,7 @@ This chart owns the CRD (see CLAUDE.md). Nothing here waits on `posture`.
       - `kube-system` is never evaluated.
 - [ ] Unit tests: model rules, both actions tables, the exclusion list, the exemption rewrite.
 
-**Done when** the four policies pass their fixtures in k3d and every exception case behaves as
+**Done when** the five policies pass their fixtures in k3d and every exception case behaves as
 listed.
 
 ---

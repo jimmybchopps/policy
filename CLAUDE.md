@@ -127,7 +127,8 @@ controls:                        # shown as annotations and in docs/policies.md
 resources: workloads             # workloads | services | rbac | { custom matchConstraints }
 operations: [CREATE, UPDATE]
 settings: {}                     # settings this policy accepts under policies.<name>, e.g.
-                                 #   registries: { type: list, required: true }
+                                 #   registries: { type: list | string | bool, required: true,
+                                 #                 default: ..., description: "shown when missing" }
                                  # baked-in policies declare none, except restrict-image-registries
 variables:
   - name: privileged
@@ -222,6 +223,7 @@ charts/policy/
   templates/
     _lib.tpl                       shared variables, policy settings as CEL literals, actions, exclusions
     _model.tpl                     definitions + values + custom -> one normalized list
+    validate.yaml                  builds the model on every render, so bad values always fail
     crd.yaml
     validating.yaml                policies and their two bindings
     mutating.yaml
@@ -230,6 +232,8 @@ charts/policy/
 fixtures/<policy>/allow/*.yaml     objects each policy must admit
 fixtures/<policy>/deny/*.yaml      objects each policy must refuse (Pods) or warn on (controllers)
 test/e2e/run.sh                    k3d: server-side dry-run every fixture, compare to expected
+test/model-probe/                  test-only chart that renders the model for helm-unittest
+test/definition-schema/            JSON schema for definitions (make check-definitions)
 docs/PLAN.md                       build order
 docs/policies.md                   generated catalog (make docs); CI checks it's current
 ```
@@ -255,6 +259,6 @@ exempt workload admitted with no warning, non-exempt denied, namespace without
 
 | Phase | Area | Status |
 |---|---|---|
-| 1 | Foundations: format, renderer, CRD, exceptions, first policies | in progress (1a done) |
+| 1 | Foundations: format, renderer, CRD, exceptions, first policies | in progress (1a, 1b done) |
 | 2 | Full catalog, custom policies, enforcement controls | not started |
 | 3 | Mutations, reporting, docs, release | not started |

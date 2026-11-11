@@ -1,0 +1,156 @@
+suite: model resolution (tiers, enabled, action, actions)
+templates:
+  - templates/model.yaml
+values:
+  - ../values/definitions.yaml
+tests:
+  - it: lists every policy, sorted by name, with the exclusion list
+    documentSelector: { path: name, value: model }
+    asserts:
+      - equal: { path: names, value: [baked, opt-audit, opt-off, opt-on] }
+      - equal: { path: excludedNamespaces, value: [kube-system] }
+
+  - it: carries the definition's metadata
+    documentSelector: { path: name, value: baked }
+    asserts:
+      - equal: { path: source, value: definitions/validating/baked.yaml }
+      - equal: { path: tier, value: baked-in }
+      - equal: { path: kind, value: ValidatingAdmissionPolicy }
+      - equal: { path: description, value: A baked-in workload policy. }
+      - equal: { path: controls, value: { pss: baseline, nist: [AC-6] } }
+      - equal: { path: resources, value: workloads }
+      - equal: { path: operations, value: [CREATE, UPDATE] }
+      - equal: { path: scope, value: namespaced }
+      - equal: { path: validations, value: [{ expression: "!variables.privileged", message: "baked message" }] }
+
+  - it: a baked-in policy is enabled and enforced
+    documentSelector: { path: name, value: baked }
+    asserts:
+      - equal: { path: enabled, value: true }
+      - equal: { path: action, value: enforce }
+      - equal: { path: actions, value: { pods: [Deny, Audit], controllers: [Warn] } }
+
+  - it: a baked-in policy stays enforced under enforcement audit
+    set:
+      input: { enforcement: audit }
+    documentSelector: { path: name, value: baked }
+    asserts:
+      - equal: { path: action, value: enforce }
+      - equal: { path: actions, value: { pods: [Deny, Audit], controllers: [Warn] } }
+
+  - it: an optional policy with action inherit takes enforcement (default enforce)
+    documentSelector: { path: name, value: opt-on }
+    asserts:
+      - equal: { path: tier, value: optional }
+      - equal: { path: enabled, value: true }
+      - equal: { path: action, value: enforce }
+
+  - it: an optional policy with action inherit takes enforcement audit
+    set:
+      input: { enforcement: audit }
+    documentSelector: { path: name, value: opt-on }
+    asserts:
+      - equal: { path: action, value: audit }
+      - equal: { path: actions, value: { pods: [Audit], controllers: [Warn] } }
+
+  - it: an explicit action beats enforcement
+    set:
+      input:
+        enforcement: audit
+        policies: { opt-on: { action: enforce } }
+    documentSelector: { path: name, value: opt-on }
+    asserts:
+      - equal: { path: action, value: enforce }
+
+  - it: an explicit action inherit overrides the definition's default action
+    set:
+      input:
+        policies: { opt-audit: { action: inherit } }
+    documentSelector: { path: name, value: opt-audit }
+    asserts:
+      - equal: { path: action, value: enforce }
+
+  - it: a default action of audit holds under enforcement enforce
+    documentSelector: { path: name, value: opt-audit }
+    asserts:
+      - equal: { path: action, value: audit }
+      - equal: { path: actions, value: { pods: [Audit], controllers: [Warn] } }
+
+  - it: an optional policy off by default is kept, disabled
+    documentSelector: { path: name, value: opt-off }
+    asserts:
+      - equal: { path: enabled, value: false }
+      - equal: { path: action, value: enforce }
+
+  - it: enabled true turns on a policy that's off by default
+    set:
+      input:
+        policies: { opt-off: { enabled: true } }
+    documentSelector: { path: name, value: opt-off }
+    asserts:
+      - equal: { path: enabled, value: true }
+
+  - it: enabled false turns off a policy that's on by default
+    set:
+      input:
+        policies: { opt-on: { enabled: false } }
+    documentSelector: { path: name, value: opt-on }
+    asserts:
+      - equal: { path: enabled, value: false }
+
+  - it: rbac policies are cluster-scoped (no namespace to read exceptions from)
+    documentSelector: { path: name, value: opt-off }
+    asserts:
+      - equal: { path: resources, value: rbac }
+      - equal: { path: scope, value: cluster }
+
+  - it: services policies are namespaced
+    documentSelector: { path: name, value: opt-audit }
+    asserts:
+      - equal: { path: scope, value: namespaced }
+
+  - it: a custom policy is enabled, tier custom, and inherits enforcement
+    set:
+      input:
+        enforcement: audit
+        custom:
+          require-team-label:
+            description: Every workload carries a team label.
+            resources: workloads
+            operations: [CREATE]
+            validations:
+              - { expression: "'team' in variables.workloadLabels", message: "Add a 'team' label." }
+    documentSelector: { path: name, value: require-team-label }
+    asserts:
+      - equal: { path: tier, value: custom }
+      - equal: { path: source, value: custom.require-team-label }
+      - equal: { path: enabled, value: true }
+      - equal: { path: action, value: audit }
+      - equal: { path: operations, value: [CREATE] }
+      - equal: { path: "variables[2].name", value: workloadLabels }
+
+  - it: custom policies sort in with the built-in ones
+    set:
+      input:
+        custom:
+          a-first: { description: x, validations: [{ expression: "true", message: x }] }
+    documentSelector: { path: name, value: model }
+    asserts:
+      - equal: { path: names, value: [a-first, baked, opt-audit, opt-off, opt-on] }
+
+  - it: a custom policy defaults to workloads and CREATE, UPDATE
+    set:
+      input:
+        custom:
+          minimal: { description: x, validations: [{ expression: "true", message: x }] }
+    documentSelector: { path: name, value: minimal }
+    asserts:
+      - equal: { path: resources, value: workloads }
+      - equal: { path: operations, value: [CREATE, UPDATE] }
+
+  - it: with no definitions, the model is empty
+    set:
+      definitions: []
+    documentSelector: { path: name, value: model }
+    asserts:
+      - equal: { path: names, value: [] }

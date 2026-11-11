@@ -1,0 +1,9 @@
+# Keys outside the format are rejected.
+name: bad-unknown-key
+tier: baked-in
+description: x
+resources: workloads
+operations: [CREATE]
+matchConditions: []
+validations:
+  - { expression: "true", message: "x" }

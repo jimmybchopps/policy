@@ -1,0 +1,13 @@
+apiVersion: v2
+name: model-probe
+description: >-
+  Test-only chart: renders policy's internal model as YAML so helm-unittest can assert on it
+  directly. The model's input comes from `input` (values, not checked by the policy chart's
+  schema, so tests can use keys that aren't public yet) and `definitions` (test definitions).
+  Never published.
+type: application
+version: 0.0.0
+dependencies:
+  - name: policy
+    version: 0.1.0
+    repository: file://../../charts/policy

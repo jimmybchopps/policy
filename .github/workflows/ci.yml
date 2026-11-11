@@ -33,6 +33,9 @@ jobs:
       - name: helm lint --strict
         run: make lint
 
+      - name: definitions schema
+        run: make check-definitions
+
       - name: helm unittest
         run: make unittest
 

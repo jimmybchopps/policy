@@ -1,0 +1,297 @@
+suite: model rules (render failures)
+templates:
+  - templates/model.yaml
+values:
+  - ../values/definitions.yaml
+tests:
+  # A key under policies that names no definition.
+  - it: rejects an unknown policy, listing the known ones
+    set:
+      input:
+        policies: { opt-onn: { enabled: true } }
+    asserts:
+      - failedTemplate:
+          errorPattern: "policy: policies.opt-onn: no such policy; known: baked, opt-audit, opt-off, opt-on"
+
+  # Any key on a baked-in policy other than its declared settings.
+  - it: rejects enabled on a baked-in policy, pointing to posture exceptions
+    set:
+      input:
+        policies: { baked: { enabled: false } }
+    asserts:
+      - failedTemplate:
+          errorPattern: "policy: policies.baked.enabled: baked is baked-in: always on, always enforced, and takes no settings. If a workload needs more, add a posture exception for baked"
+
+  - it: rejects action on a baked-in policy
+    set:
+      input:
+        policies: { baked: { action: audit } }
+    asserts:
+      - failedTemplate:
+          errorPattern: "policy: policies.baked.action: baked is baked-in"
+
+  - it: rejects a key on restrict-image-registries other than registries
+    set:
+      definitions:
+        - name: restrict-image-registries
+          source: definitions/validating/restrict-image-registries.yaml
+          tier: baked-in
+          description: x
+          resources: workloads
+          settings: { registries: { type: list, required: true } }
+          validations: [{ expression: "true", message: x }]
+      input:
+        policies:
+          restrict-image-registries: { registries: [r/], allowLatest: true }
+    asserts:
+      - failedTemplate:
+          errorPattern: "policies.restrict-image-registries.allowLatest: restrict-image-registries is baked-in: always on, always enforced, and takes only registries"
+
+  # A baked-in definition that declares settings (only restrict-image-registries may).
+  - it: rejects settings declared by a baked-in definition
+    set:
+      definitions:
+        - name: baked-settings
+          source: definitions/validating/baked-settings.yaml
+          tier: baked-in
+          description: x
+          resources: workloads
+          settings: { level: { type: string } }
+          validations: [{ expression: "true", message: x }]
+    asserts:
+      - failedTemplate:
+          errorPattern: "definitions/validating/baked-settings.yaml: baked-in policies take no settings"
+
+  # A setting the definition doesn't declare.
+  - it: rejects an undeclared setting on an optional policy, listing what it accepts
+    set:
+      input:
+        policies: { opt-on: { namez: [x] } }
+    asserts:
+      - failedTemplate:
+          errorPattern: "policy: policies.opt-on.namez: unknown setting; opt-on accepts: action, enabled, mode, names, strict"
+
+  # Wrong types.
+  - it: rejects a string where a list is declared
+    set:
+      input:
+        policies: { opt-on: { names: x } }
+    asserts:
+      - failedTemplate:
+          errorPattern: "policy: policies.opt-on.names: must be a list"
+
+  - it: rejects a list where a bool is declared
+    set:
+      input:
+        policies: { opt-on: { strict: [true] } }
+    asserts:
+      - failedTemplate:
+          errorPattern: "policy: policies.opt-on.strict: must be a bool"
+
+  - it: rejects a non-bool enabled
+    set:
+      input:
+        policies: { opt-on: { enabled: "yes" } }
+    asserts:
+      - failedTemplate:
+          errorPattern: "policy: policies.opt-on.enabled: must be true or false"
+
+  - it: rejects an unknown action
+    set:
+      input:
+        policies: { opt-on: { action: warn } }
+    asserts:
+      - failedTemplate:
+          errorPattern: "policy: policies.opt-on.action: must be inherit, enforce, or audit"
+
+  - it: rejects an unknown enforcement
+    set:
+      input: { enforcement: warn }
+    asserts:
+      - failedTemplate:
+          errorPattern: "policy: enforcement: must be enforce or audit"
+
+  # A required setting left empty.
+  - it: rejects a required list left empty, with the setting's description
+    set:
+      definitions:
+        - name: needs-list
+          source: definitions/validating/needs-list.yaml
+          tier: optional
+          default: { enabled: true, action: inherit }
+          description: x
+          resources: workloads
+          settings: { things: { type: list, required: true, description: list the things } }
+          validations: [{ expression: "true", message: x }]
+    asserts:
+      - failedTemplate:
+          errorPattern: "policy: policies.needs-list.things is required: list the things"
+
+  - it: rejects a required string left empty
+    set:
+      definitions:
+        - name: needs-string
+          source: definitions/validating/needs-string.yaml
+          tier: optional
+          default: { enabled: true, action: inherit }
+          description: x
+          resources: workloads
+          settings: { thing: { type: string, required: true } }
+          validations: [{ expression: "true", message: x }]
+      input:
+        policies: { needs-string: { thing: "" } }
+    asserts:
+      - failedTemplate:
+          errorPattern: "policy: policies.needs-string.thing is required$"
+
+  # A custom policy whose name matches a built-in one.
+  - it: rejects a custom policy named like a built-in one
+    set:
+      input:
+        custom:
+          baked: { description: x, validations: [{ expression: "true", message: x }] }
+    asserts:
+      - failedTemplate:
+          errorPattern: "policy: custom.baked: \"baked\" is the name of a built-in policy \\(definitions/validating/baked.yaml\\); choose another name"
+
+  # params and authorizer.
+  - it: rejects params in a validation expression
+    set:
+      definitions:
+        - name: uses-params
+          source: definitions/validating/uses-params.yaml
+          tier: baked-in
+          description: x
+          resources: workloads
+          validations: [{ expression: "params.spec.x == 1", message: x }]
+    asserts:
+      - failedTemplate:
+          errorPattern: "definitions/validating/uses-params.yaml: validations\\[0\\].expression uses params; definitions are portable CEL"
+
+  - it: rejects authorizer in a variable
+    set:
+      definitions:
+        - name: uses-authorizer
+          source: definitions/validating/uses-authorizer.yaml
+          tier: baked-in
+          description: x
+          resources: workloads
+          variables: [{ name: ok, expression: "authorizer.group('').resource('pods').check('get').allowed()" }]
+          validations: [{ expression: "variables.ok", message: x }]
+    asserts:
+      - failedTemplate:
+          errorPattern: "variables.ok uses authorizer"
+
+  - it: rejects params in a messageExpression
+    set:
+      definitions:
+        - name: uses-params-msg
+          source: definitions/validating/uses-params-msg.yaml
+          tier: baked-in
+          description: x
+          resources: workloads
+          validations: [{ expression: "true", messageExpression: "'x' + string(params)" }]
+    asserts:
+      - failedTemplate:
+          errorPattern: "validations\\[0\\].messageExpression uses params"
+
+  - it: rejects params in a custom policy
+    set:
+      input:
+        custom:
+          sneaky: { description: x, validations: [{ expression: "has(params.spec)", message: x }] }
+    asserts:
+      - failedTemplate:
+          errorPattern: "policy: custom.sneaky: validations\\[0\\].expression uses params"
+
+  - it: allows the words inside other identifiers and fields
+    set:
+      definitions:
+        - name: lookalikes
+          source: definitions/validating/lookalikes.yaml
+          tier: baked-in
+          description: x
+          resources: workloads
+          variables: [{ name: params_count, expression: "has(object.spec.params) && object.spec.authorizerName != ''" }]
+          validations: [{ expression: "variables.params_count", message: x }]
+    asserts:
+      - notFailedTemplate: {}
+
+  # Reserved variable names.
+  - it: rejects a variable named like a shared variable
+    set:
+      definitions:
+        - name: shadow
+          source: definitions/validating/shadow.yaml
+          tier: baked-in
+          description: x
+          resources: workloads
+          variables: [{ name: allContainers, expression: "[]" }]
+          validations: [{ expression: "true", message: x }]
+    asserts:
+      - failedTemplate:
+          errorPattern: "definitions/validating/shadow.yaml: variables.allContainers: the name is reserved"
+
+  - it: rejects a variable named exempt
+    set:
+      definitions:
+        - name: shadow
+          source: definitions/validating/shadow.yaml
+          tier: baked-in
+          description: x
+          resources: workloads
+          variables: [{ name: exempt, expression: "true" }]
+          validations: [{ expression: "true", message: x }]
+    asserts:
+      - failedTemplate:
+          errorPattern: "variables.exempt: the name is reserved"
+
+  - it: rejects a variable starting with setting_
+    set:
+      definitions:
+        - name: shadow
+          source: definitions/validating/shadow.yaml
+          tier: baked-in
+          description: x
+          resources: workloads
+          variables: [{ name: setting_x, expression: "true" }]
+          validations: [{ expression: "true", message: x }]
+    asserts:
+      - failedTemplate:
+          errorPattern: "variables.setting_x: the name is reserved"
+
+  # Definition consistency.
+  - it: rejects a definition whose name doesn't match its file
+    set:
+      definitions:
+        - name: renamed
+          source: definitions/validating/original.yaml
+          tier: baked-in
+          description: x
+          resources: workloads
+          validations: [{ expression: "true", message: x }]
+    asserts:
+      - failedTemplate:
+          errorPattern: "definitions/validating/original.yaml: name is \"renamed\"; it must match the file name"
+
+  - it: rejects an optional definition without a default
+    set:
+      definitions:
+        - name: no-default
+          source: definitions/validating/no-default.yaml
+          tier: optional
+          description: x
+          resources: workloads
+          validations: [{ expression: "true", message: x }]
+    asserts:
+      - failedTemplate:
+          errorPattern: "an optional policy needs default.enabled and default.action"
+
+  - it: rejects two definitions with the same name
+    set:
+      definitions:
+        - { name: twin, source: definitions/validating/twin.yaml, tier: baked-in, description: x, validations: [{ expression: "true", message: x }] }
+        - { name: twin, source: definitions/mutating/twin.yaml, tier: baked-in, description: x, validations: [{ expression: "true", message: x }] }
+    asserts:
+      - failedTemplate:
+          errorPattern: "the policy name \"twin\" is already defined in definitions/validating/twin.yaml"

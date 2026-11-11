@@ -1,0 +1,7 @@
+# No description.
+name: bad-missing-description
+tier: baked-in
+resources: workloads
+operations: [CREATE]
+validations:
+  - { expression: "true", message: "x" }

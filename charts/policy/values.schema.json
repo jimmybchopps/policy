@@ -25,6 +25,10 @@
           }
         }
       }
+    },
+    "global": {
+      "description": "Helm's global values (set when this chart is a dependency); unused.",
+      "type": "object"
     }
   }
 }

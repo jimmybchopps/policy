@@ -3,6 +3,8 @@ templates:
   - templates/NOTES.txt
 release:
   name: policy
+values:
+  - ../../../examples/minimal.yaml
 tests:
   - it: names the chart version, the release, and the Kubernetes floor
     chart:

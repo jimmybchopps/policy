@@ -1,0 +1,22 @@
+name: restrict-image-registries
+tier: baked-in
+description: Every container image comes from one of the site's registries.
+controls:
+  nist: [CM-7, SR-3]
+resources: workloads
+operations: [CREATE, UPDATE]
+# The only setting any baked-in policy takes: without the site's registry list this policy
+# can't work at all.
+settings:
+  registries:
+    type: list
+    required: true
+    description: list the image prefixes this cluster may pull from, e.g. registry.site.mil/
+validations:
+  - expression: >-
+      variables.allContainers.all(c,
+        variables.setting_registries.exists(r, c.image.startsWith(r)))
+    message: >-
+      containers[*].image must start with one of the registries in
+      policies.restrict-image-registries.registries. If this workload needs another registry,
+      add a posture exception for restrict-image-registries.

@@ -1,0 +1,24 @@
+# The model with the real definitions. The model's logic is tested in depth through
+# test/model-probe; this suite covers what only the real chart can: its definitions and values.
+suite: model (real definitions)
+templates:
+  - templates/validate.yaml
+tests:
+  - it: fails with the default values, naming what to set
+    asserts:
+      - failedTemplate:
+          errorPattern: "policy: policies.restrict-image-registries.registries is required: list the image prefixes this cluster may pull from, e.g. registry.site.mil/"
+
+  - it: fails with an empty registries list
+    set:
+      policies:
+        restrict-image-registries:
+          registries: []
+    asserts:
+      - failedTemplate:
+          errorPattern: "registries is required"
+
+  - it: succeeds with the minimal example, rendering nothing
+    values: [../../../examples/minimal.yaml]
+    asserts:
+      - hasDocuments: { count: 0 }

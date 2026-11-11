@@ -1,0 +1,9 @@
+# A baked-in policy is always on and enforced; a default makes no sense.
+name: bad-baked-in-with-default
+tier: baked-in
+default: { enabled: false, action: audit }
+description: x
+resources: workloads
+operations: [CREATE]
+validations:
+  - { expression: "true", message: "x" }

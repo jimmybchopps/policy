@@ -7,9 +7,6 @@ tests:
     asserts:
       - notFailedTemplate: {}
 
-  - it: accepts the defaults
-    asserts:
-      - notFailedTemplate: {}
 
   - it: rejects a top-level key that isn't built yet
     set:

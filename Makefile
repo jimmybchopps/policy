@@ -16,11 +16,15 @@ K3S_IMAGE             := rancher/k3s:v1.37.2-k3s1
 HELM_VERSIONS := $(HELM_MIN_VERSION) $(HELM3_LATEST_VERSION) $(HELM_VERSION)
 
 CHART    := charts/policy
-# Test-only chart that renders the chart's internal model so tests can assert on it. It
-# arrives with the model (phase 1b); until then unittest skips it.
+# Test-only chart that renders the chart's internal model so tests can assert on it.
 PROBE    := test/model-probe
 HAS_PROBE := $(wildcard $(PROBE)/Chart.yaml)
 EXAMPLES := $(wildcard examples/*.yaml)
+# Policy definitions, checked against the definition JSON schema (test/definition-schema), and
+# deliberately broken ones the schema must reject.
+DEFINITION_SCHEMA := test/definition-schema
+DEFINITIONS       := $(wildcard $(CHART)/definitions/*/*.yaml)
+BAD_DEFINITIONS   := $(wildcard $(DEFINITION_SCHEMA)/bad/*.yaml)
 # Objects each policy must admit or refuse (phase 1e); validated as plain Kubernetes objects.
 FIXTURES := $(shell find fixtures test/e2e/fixtures -name '*.yaml' 2>/dev/null)
 CRDS_CATALOG := https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json
@@ -53,11 +57,11 @@ UNITTEST_FILES := -f 'tests/*_test.yaml' -f 'tests/*/*_test.yaml'
 
 KUBECONFORM_ARGS := -strict -summary -schema-location default -schema-location '$(CRDS_CATALOG)' $(LOCAL_SCHEMAS)
 
-.PHONY: help tools tools-e2e lint unittest unittest-update validate test test-all-helm e2e clean
+.PHONY: help tools tools-e2e lint check-definitions unittest unittest-update validate test test-all-helm e2e clean
 
 help:
 	@echo "make tools          install helm $(HELM_VERSION), helm-unittest, kubeconform into .bin/"
-	@echo "make test           lint, unittest, validate"
+	@echo "make test           lint, check-definitions, unittest, validate"
 	@echo "make test-all-helm  make test under Helm $(HELM_VERSIONS)"
 	@echo "make e2e            k3d end-to-end tests (E2E_ARGS=<scenario>, E2E_KEEP=1, E2E_REUSE=1)"
 	@echo "make unittest-update  regenerate example snapshots (review the diff)"
@@ -95,14 +99,30 @@ $(KUBECTL):
 	curl -fsSL -o $@ https://dl.k8s.io/release/v$(KUBECTL_VERSION)/bin/$(OS)/$(ARCH)/kubectl
 	chmod +x $@
 
-# The bare chart is linted too for now. From phase 1b an empty
-# policies.restrict-image-registries.registries fails the render by design; then drop the bare
-# lint (a unit test asserts that failure instead) and lint through the examples only.
+# Linted through the examples only: with the default values the render fails by design (an
+# empty policies.restrict-image-registries.registries), which tests/model_test.yaml asserts.
 lint: $(HELM)
-	$(HELM) lint --strict $(CHART)
 	@set -e; for f in $(EXAMPLES); do \
 	  echo "==> helm lint --strict -f $$f"; \
 	  $(HELM) lint --strict $(CHART) -f $$f; \
+	done
+
+# Every definition must pass the definition schema; every file in bad/ must fail it, and for a
+# schema error (not some other lint problem), so the schema is known to reject things.
+check-definitions: $(HELM)
+	@set -e; for f in $(DEFINITIONS); do \
+	  echo "==> definition schema: $$f"; \
+	  $(HELM) lint --strict $(DEFINITION_SCHEMA) -f $$f >/dev/null \
+	    || { $(HELM) lint --strict $(DEFINITION_SCHEMA) -f $$f; exit 1; }; \
+	done
+	@set -e; for f in $(BAD_DEFINITIONS); do \
+	  if out=$$($(HELM) lint --strict $(DEFINITION_SCHEMA) -f $$f 2>&1); then \
+	    echo "FAIL: $$f was accepted by the definition schema"; exit 1; \
+	  fi; \
+	  if ! printf '%s\n' "$$out" | grep -q '\[ERROR\] values.yaml:'; then \
+	    echo "FAIL: $$f was rejected, but not by the schema:"; printf '%s\n' "$$out"; exit 1; \
+	  fi; \
+	  echo "==> rejected as expected: $$f"; \
 	done
 
 unittest: $(UNITTEST_PLUGIN)
@@ -123,7 +143,7 @@ validate: $(HELM) $(KUBECONFORM)
 	  $(KUBECONFORM) $(KUBECONFORM_ARGS) $(FIXTURES); \
 	fi
 
-test: lint unittest validate
+test: lint check-definitions unittest validate
 
 test-all-helm:
 	@set -e; for v in $(HELM_VERSIONS); do \
