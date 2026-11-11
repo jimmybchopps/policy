@@ -28,8 +28,9 @@ checks() {
   expect warn apps "$FIXTURES/bad-registry-deployment.yaml" restrict-image-registries
   # No posture-exceptions: fail closed. A missing param is a binding error, which denies
   # whatever the binding's actions are, so the controller is refused too, not just warned.
-  expect deny bare "$FIXTURES/smoke-pod.yaml" restrict-image-registries
-  expect deny bare "$FIXTURES/smoke-deployment.yaml" restrict-image-registries
+  # The API server names whichever policy it evaluates first, so match the error itself.
+  expect deny bare "$FIXTURES/smoke-pod.yaml" "no params found"
+  expect deny bare "$FIXTURES/smoke-deployment.yaml" "no params found"
   # Excluded.
   expect admit kube-system "$FIXTURES/bad-registry-pod.yaml"
 }

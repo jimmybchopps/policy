@@ -1,5 +1,5 @@
-# The controller counterpart of bad-registry-pod.yaml: an image from a registry no example
-# allows. Admitted with a warning (controllers only warn).
+# The controller counterpart of bad-registry-pod.yaml: compliant except for an image from a
+# registry no example allows. Admitted with a warning (controllers only warn).
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -12,6 +12,18 @@ spec:
     metadata:
       labels: { app.kubernetes.io/name: bad-registry }
     spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        seccompProfile: { type: RuntimeDefault }
       containers:
         - name: app
           image: docker.io/library/busybox:1.37
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { memory: 16Mi }
