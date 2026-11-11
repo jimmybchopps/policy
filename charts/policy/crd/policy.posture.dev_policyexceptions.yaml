@@ -1,0 +1,88 @@
+# The PolicyExceptions CRD: the contract between this chart (which defines and installs it, and
+# whose policies read it as parameters) and posture (which creates one posture-exceptions object
+# per namespace). This file is the only copy; consumers fetch it at a release tag.
+#
+# Compatibility: within an API version, changes are additive only (new optional fields).
+# Anything else is a new version, served alongside this one until posture moves over.
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: policyexceptions.policy.posture.dev
+spec:
+  group: policy.posture.dev
+  scope: Namespaced
+  names:
+    kind: PolicyExceptions
+    listKind: PolicyExceptionsList
+    plural: policyexceptions
+    singular: policyexceptions
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          description: >-
+            Per-namespace exceptions to the cluster's admission policies, read by each policy's
+            bindings as parameters (paramRef name posture-exceptions). Rendered by posture.
+          type: object
+          required: [spec]
+          properties:
+            apiVersion:
+              type: string
+            kind:
+              type: string
+            metadata:
+              type: object
+            spec:
+              type: object
+              properties:
+                exceptions:
+                  description: One entry per excepted policy, with the workloads it doesn't apply to.
+                  type: array
+                  maxItems: 256
+                  default: []
+                  items:
+                    type: object
+                    required: [policy, workloads]
+                    properties:
+                      policy:
+                        description: The policy excepted, by kind and name.
+                        type: object
+                        required: [kind, name]
+                        properties:
+                          kind:
+                            type: string
+                            enum: [ValidatingAdmissionPolicy, MutatingAdmissionPolicy]
+                          name:
+                            type: string
+                            maxLength: 63
+                            pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+                      workloads:
+                        description: Workloads in this namespace the policy doesn't apply to.
+                        type: array
+                        minItems: 1
+                        maxItems: 64
+                        items:
+                          type: object
+                          required: [matchLabels]
+                          properties:
+                            matchLabels:
+                              description: >-
+                                Labels a workload's pods carry (all must match). Never empty: an
+                                empty selector would match every workload in the namespace.
+                              type: object
+                              minProperties: 1
+                              maxProperties: 16
+                              additionalProperties:
+                                type: string
+                            reason:
+                              description: Why the workload needs the exception.
+                              type: string
+                              maxLength: 1024
+                            expires:
+                              description: >-
+                                YYYY-MM-DD. Informational here: posture leaves expired entries
+                                out when it renders.
+                              type: string
+                              pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'

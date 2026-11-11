@@ -1,0 +1,10 @@
+# Empty matchLabels would match every workload in the namespace.
+apiVersion: policy.posture.dev/v1alpha1
+kind: PolicyExceptions
+metadata:
+  name: posture-exceptions
+spec:
+  exceptions:
+    - policy: { kind: ValidatingAdmissionPolicy, name: disallow-host-path }
+      workloads:
+        - matchLabels: {}

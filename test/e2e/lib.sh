@@ -72,6 +72,7 @@ namespace() { # namespace <name>: created fresh, removed after the scenario
 
 RELEASE=${RELEASE:-policy}
 RELEASE_NAMESPACE=${RELEASE_NAMESPACE:-policy}
+CRD=policyexceptions.policy.posture.dev
 
 # install_chart <example file under examples/> [helm args...]
 # Installs the chart cluster-wide (release "policy" in namespace "policy"). Extra arguments go
@@ -81,6 +82,8 @@ install_chart() {
   shift
   quiet "$HELM" install "$RELEASE" "$ROOT/charts/policy" -n "$RELEASE_NAMESPACE" --create-namespace \
     -f "$ROOT/examples/${example}" "$@" --wait
+  # Objects of the chart's own CRD (posture-exceptions) can only be created once it's served.
+  quiet "$KUBECTL" wait --for=condition=Established "crd/$CRD" --timeout=60s
   info "${RELEASE} installed (examples/${example}${*:+ $*})"
 }
 
@@ -94,6 +97,9 @@ cleanup_namespaces() {
   for ns in "${NAMESPACES[@]}" "$RELEASE_NAMESPACE"; do
     "$KUBECTL" wait --for=delete "namespace/$ns" --timeout=120s >/dev/null 2>&1 || true
   done
+  # The CRD is kept on uninstall (helm.sh/resource-policy: keep); delete it so every scenario
+  # starts from a cluster without it.
+  "$KUBECTL" delete crd "$CRD" --ignore-not-found --wait=true >/dev/null 2>&1 || true
   NAMESPACES=()
 }
 
@@ -160,6 +166,50 @@ check_retry() { # check_retry <want> <ns> <fixture> <policy>: retries while poli
     sleep 2
   done
   return 1
+}
+
+# verify <admit|deny|warn> <namespace> <fixture> [substring]: checks one object now (with the
+# same retries) and records the result. For use in a scenario's extra, for objects that can't
+# exist before the chart is installed (PolicyExceptions, whose CRD the chart installs), so the
+# baseline doesn't apply. deny with a substring also covers schema rejections, e.g. the field.
+verify() {
+  local want=$1 ns=$2 fixture=$3 sub=${4:-}
+  [[ -f $ROOT/$fixture ]] || die "verify: no such fixture: $fixture"
+  if check_retry "$want" "$ns" "$fixture" "$sub"; then
+    record PASS "[verify] $want $ns $fixture${sub:+ ($sub)}"
+  else
+    record FAIL "[verify] $want $ns $fixture${sub:+ ($sub)}" "$DRY_OUT"
+  fi
+}
+
+# check_type_checking: every installed ValidatingAdmissionPolicy has been type-checked by the
+# API server (status.observedGeneration caught up) with no expressionWarnings. The API server
+# is the only real check of the policies' CEL against the Kubernetes types.
+check_type_checking() {
+  local vap vaps gen observed warnings _attempt
+  vaps=$("$KUBECTL" get validatingadmissionpolicies -l app.kubernetes.io/name=policy -o name)
+  if [[ -z $vaps ]]; then
+    record FAIL "type checking: no ValidatingAdmissionPolicies from this chart are installed"
+    return 0
+  fi
+  for vap in $vaps; do
+    for _attempt in $(seq 1 30); do
+      gen=$("$KUBECTL" get "$vap" -o jsonpath='{.metadata.generation}')
+      observed=$("$KUBECTL" get "$vap" -o jsonpath='{.status.observedGeneration}')
+      [[ $observed == "$gen" ]] && break
+      sleep 2
+    done
+    if [[ $observed != "$gen" ]]; then
+      record FAIL "$vap type-checked (status.observedGeneration ${observed:-unset}, generation $gen)"
+      continue
+    fi
+    warnings=$("$KUBECTL" get "$vap" -o jsonpath='{range .status.typeChecking.expressionWarnings[*]}{.fieldRef}: {.warning}{"\n"}{end}')
+    if [[ -z $warnings ]]; then
+      record PASS "$vap type-checks with no warnings"
+    else
+      record FAIL "$vap type-checks with no warnings" "$warnings"
+    fi
+  done
 }
 
 run_checks() { # run_checks <baseline|policy>

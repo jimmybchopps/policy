@@ -1,0 +1,9 @@
+# An exception with no workloads exempts nothing; it is a mistake.
+apiVersion: policy.posture.dev/v1alpha1
+kind: PolicyExceptions
+metadata:
+  name: posture-exceptions
+spec:
+  exceptions:
+    - policy: { kind: ValidatingAdmissionPolicy, name: disallow-host-path }
+      workloads: []

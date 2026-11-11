@@ -111,8 +111,8 @@ cluster, on five baked-in policies.
       kubeconform, k3d, kubectl.
 - [ ] CI: lint, unit tests, kubeconform (with this chart's CRD schema), and the e2e job
       (1e).
-      Workflow is in place (Helm matrix + k3d smoke e2e); still to do: a green run on GitHub,
-      and the CRD schema for kubeconform once 1d adds the CRD.
+      Workflow is in place (Helm matrix + k3d smoke e2e), and kubeconform checks PolicyExceptions
+      objects against the CRD's own schema (1d). Still to do: a green run on GitHub.
 
 ### 1b. Definition format and model
 
@@ -164,20 +164,26 @@ cluster, on five baked-in policies.
 
 This chart owns the CRD (see CLAUDE.md). Nothing here waits on `posture`.
 
-- [ ] `crd/policy.posture.dev_policyexceptions.yaml`: group `policy.posture.dev`, version
+- [x] `crd/policy.posture.dev_policyexceptions.yaml`: group `policy.posture.dev`, version
       `v1alpha1`, kind `PolicyExceptions`, namespaced, with an OpenAPI schema for the object
       shape `posture` renders (`spec.exceptions[].policy.{kind,name}` with `kind` limited to
       `ValidatingAdmissionPolicy` and `MutatingAdmissionPolicy`;
       `spec.exceptions[].workloads[].{matchLabels,reason,expires}`).
-- [ ] Schema tests: `examples/posture-exceptions.yaml` (shaped like posture's output) is
-      accepted by kubeconform and by a k3d API server; objects with a missing `policy`, an
-      unknown `kind`, or empty `matchLabels` are rejected.
-- [ ] Publish the CRD file with each release so `posture` can pin to it.
-- [ ] `templates/crd.yaml` renders it with `helm.sh/resource-policy: keep`.
+- [x] Schema tests: `examples/objects/posture-exceptions.yaml` (shaped like posture's output)
+      is accepted by kubeconform; the files in `test/e2e/fixtures/crd/invalid/` (missing
+      `policy`, unknown `kind`, empty `matchLabels` or `workloads`, bad `expires`) are rejected.
+      kubeconform uses a schema generated from the CRD (`make crd-schema`). The CRD object
+      itself is skipped by kubeconform (no public schema exists for CustomResourceDefinition)
+      and covered by `tests/crd_test.yaml` and the API server.
+- [ ] The same accept/reject checks in a k3d API server (smoke scenario): written, not yet run.
+- [x] Publish the CRD file with each release so `posture` can pin to it: the raw file at a tag
+      (URL in CLAUDE.md); release assets come with 3c.
+- [x] `templates/crd.yaml` renders it with `helm.sh/resource-policy: keep`.
 - [ ] e2e (moved from 1c, needs the CRD): every installed policy has no
       `status.typeChecking.expressionWarnings` (the API server is the only real check of the
       shared variables' CEL), and a compliant Pod in a namespace with an empty
       `posture-exceptions` is admitted.
+      Written, not yet run (smoke scenario, with a keep-on-uninstall check).
 
 ### 1e. First policies, fixtures, e2e
 
@@ -190,6 +196,8 @@ This chart owns the CRD (see CLAUDE.md). Nothing here waits on `posture`.
       Deny fixtures: Pods refused; controllers admitted with a `Warning:` naming the policy.
 - [ ] Exception e2e, using hand-written `PolicyExceptions` objects shaped exactly as posture
       renders them:
+      (`examples/objects/posture-exceptions.yaml` is one; `verify` in `test/e2e/lib.sh` checks
+      objects that can only exist after install)
       - an exempt Pod is admitted, and an exempt Deployment produces no warning;
       - a non-exempt Pod is denied;
       - a namespace with no `posture-exceptions` object is denied;

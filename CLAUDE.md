@@ -200,14 +200,19 @@ PolicyException CRD, tenants just create the objects.)
   `templates/crd.yaml` renders it with `.Files.Get` and adds the chart's labels and
   `helm.sh/resource-policy: keep`, so uninstalling this chart never deletes every namespace's
   exceptions. It lives under `templates/`, not Helm's `crds/` folder, so Helm upgrades it.
-- **Consumers fetch the same file** at a release tag (for example from the repo or a release
-  asset); `posture` pins to that tag.
+- **Consumers fetch the same file** at a release tag and pin to it:
+  `https://raw.githubusercontent.com/jimmybchopps/policy/<tag>/charts/policy/crd/policy.posture.dev_policyexceptions.yaml`
+  (release assets come with phase 3c). `posture` pins to that tag.
 - **Compatibility rule:** within an API version (`v1alpha1`, `v1beta1`, ...) changes are
   additive only (new optional fields). Anything else means a new API version, served alongside
   the old one until `posture` moves over.
 - **Tests here:** schema-level checks that the CRD accepts an object shaped exactly like
-  `posture`'s output (`examples/posture-exceptions.yaml`) and rejects bad ones (missing
-  required fields, an unknown `policy.kind`). Deeper rendering tests stay in `posture`.
+  `posture`'s output (`examples/objects/posture-exceptions.yaml`; a subfolder, because every
+  `examples/*.yaml` is a values file) and rejects bad ones (`test/e2e/fixtures/crd/invalid/`:
+  missing `policy`, unknown `policy.kind`, empty `matchLabels` or `workloads`, a malformed
+  `expires`). kubeconform checks both against a JSON schema generated from the CRD
+  (`make crd-schema`, `test/crd-schema/`), and the e2e smoke test checks both in a real API
+  server. Deeper rendering tests stay in `posture`.
 
 ## Naming
 
@@ -242,6 +247,8 @@ fixtures/<policy>/deny/*.yaml      objects each policy must refuse (Pods) or war
 test/e2e/run.sh                    k3d: server-side dry-run every fixture, compare to expected
 test/model-probe/                  test-only chart that renders the model for helm-unittest
 test/definition-schema/            JSON schema for definitions (make check-definitions)
+test/crd-schema/                   CRD -> JSON schema for kubeconform (make crd-schema)
+examples/objects/                  example objects (not values files), e.g. posture-exceptions.yaml
 docs/PLAN.md                       build order
 docs/policies.md                   generated catalog (make docs); CI checks it's current
 ```
@@ -267,6 +274,6 @@ exempt workload admitted with no warning, non-exempt denied, namespace without
 
 | Phase | Area | Status |
 |---|---|---|
-| 1 | Foundations: format, renderer, CRD, exceptions, first policies | in progress (1a–1c done) |
+| 1 | Foundations: format, renderer, CRD, exceptions, first policies | in progress (1a–1d done) |
 | 2 | Full catalog, custom policies, enforcement controls | not started |
 | 3 | Mutations, reporting, docs, release | not started |

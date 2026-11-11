@@ -1,0 +1,10 @@
+# Unknown policy kind.
+apiVersion: policy.posture.dev/v1alpha1
+kind: PolicyExceptions
+metadata:
+  name: posture-exceptions
+spec:
+  exceptions:
+    - policy: { kind: Kyverno, name: disallow-host-path }
+      workloads:
+        - matchLabels: { app.kubernetes.io/name: x }

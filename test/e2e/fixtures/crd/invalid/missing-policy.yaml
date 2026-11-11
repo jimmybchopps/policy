@@ -1,0 +1,9 @@
+# No policy: an exception must name the policy it excepts.
+apiVersion: policy.posture.dev/v1alpha1
+kind: PolicyExceptions
+metadata:
+  name: posture-exceptions
+spec:
+  exceptions:
+    - workloads:
+        - matchLabels: { app.kubernetes.io/name: x }

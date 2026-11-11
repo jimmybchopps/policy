@@ -1,0 +1,11 @@
+# expires is YYYY-MM-DD.
+apiVersion: policy.posture.dev/v1alpha1
+kind: PolicyExceptions
+metadata:
+  name: posture-exceptions
+spec:
+  exceptions:
+    - policy: { kind: ValidatingAdmissionPolicy, name: disallow-host-path }
+      workloads:
+        - matchLabels: { app.kubernetes.io/name: x }
+          expires: "31/03/2027"

@@ -1,0 +1,12 @@
+{{- /*
+The PolicyExceptions CRD, from crd/ (the single source). Under templates/, not crds/, so Helm
+upgrades it; kept on uninstall, so removing this chart never deletes every namespace's
+exceptions.
+*/ -}}
+{{- $crd := .Files.Get "crd/policy.posture.dev_policyexceptions.yaml" | fromYaml -}}
+{{- if hasKey $crd "Error" -}}
+  {{- fail (printf "policy: crd/policy.posture.dev_policyexceptions.yaml: not valid YAML: %s" $crd.Error) -}}
+{{- end -}}
+{{- $_ := set $crd.metadata "labels" (include "policy.labels" . | fromYaml) -}}
+{{- $_ := set $crd.metadata "annotations" (dict "helm.sh/resource-policy" "keep") -}}
+{{ toYaml $crd }}

@@ -1,0 +1,59 @@
+suite: PolicyExceptions CRD
+templates:
+  - templates/crd.yaml
+release:
+  name: policy
+values:
+  - ../../../examples/minimal.yaml
+tests:
+  - it: renders the CRD for policy.posture.dev, namespaced
+    asserts:
+      - hasDocuments: { count: 1 }
+      - isKind: { of: CustomResourceDefinition }
+      - isAPIVersion: { of: apiextensions.k8s.io/v1 }
+      - equal: { path: metadata.name, value: policyexceptions.policy.posture.dev }
+      - equal: { path: spec.group, value: policy.posture.dev }
+      - equal: { path: spec.scope, value: Namespaced }
+      - equal: { path: spec.names, value: { kind: PolicyExceptions, listKind: PolicyExceptionsList, plural: policyexceptions, singular: policyexceptions } }
+
+  - it: serves and stores v1alpha1 only (the version paramKind names)
+    asserts:
+      - lengthEqual: { path: spec.versions, count: 1 }
+      - equal: { path: "spec.versions[0].name", value: v1alpha1 }
+      - equal: { path: "spec.versions[0].served", value: true }
+      - equal: { path: "spec.versions[0].storage", value: true }
+
+  - it: is kept on uninstall, so removing the chart never deletes every namespace's exceptions
+    asserts:
+      - equal: { path: metadata.annotations, value: { helm.sh/resource-policy: keep } }
+
+  - it: carries the chart labels
+    asserts:
+      - equal: { path: "metadata.labels['app.kubernetes.io/name']", value: policy }
+      - equal: { path: "metadata.labels['app.kubernetes.io/instance']", value: policy }
+
+  - it: every exception names a policy and its workloads
+    asserts:
+      - equal: { path: "spec.versions[0].schema.openAPIV3Schema.required", value: [spec] }
+      - equal: { path: "spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.exceptions.items.required", value: [policy, workloads] }
+      - equal: { path: "spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.exceptions.items.properties.policy.required", value: [kind, name] }
+      - equal: { path: "spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.exceptions.default", value: [] }
+
+  - it: a policy is a ValidatingAdmissionPolicy or MutatingAdmissionPolicy, by DNS-label name
+    asserts:
+      - equal: { path: "spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.exceptions.items.properties.policy.properties.kind.enum", value: [ValidatingAdmissionPolicy, MutatingAdmissionPolicy] }
+      - equal: { path: "spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.exceptions.items.properties.policy.properties.name.maxLength", value: 63 }
+
+  - it: a workload selector is never empty (it would match every workload)
+    asserts:
+      - equal: { path: "spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.exceptions.items.properties.workloads.minItems", value: 1 }
+      - equal: { path: "spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.exceptions.items.properties.workloads.items.required", value: [matchLabels] }
+      - equal: { path: "spec.versions[0].schema.openAPIV3Schema.properties.spec.properties.exceptions.items.properties.workloads.items.properties.matchLabels.minProperties", value: 1 }
+
+  - it: doesn't depend on values (any valid values render the same CRD)
+    set:
+      policies:
+        restrict-image-registries:
+          registries: [other.example/]
+    asserts:
+      - equal: { path: metadata.name, value: policyexceptions.policy.posture.dev }

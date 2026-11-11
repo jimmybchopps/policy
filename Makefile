@@ -25,13 +25,18 @@ EXAMPLES := $(wildcard examples/*.yaml)
 DEFINITION_SCHEMA := test/definition-schema
 DEFINITIONS       := $(wildcard $(CHART)/definitions/*/*.yaml)
 BAD_DEFINITIONS   := $(wildcard $(DEFINITION_SCHEMA)/bad/*.yaml)
-# Objects each policy must admit or refuse (phase 1e); validated as plain Kubernetes objects.
-FIXTURES := $(shell find fixtures test/e2e/fixtures -name '*.yaml' 2>/dev/null)
+# Objects each policy must admit or refuse (phase 1e), the e2e fixtures, and example objects
+# (examples/objects/), all validated with kubeconform. Files under an invalid/ folder must be
+# rejected instead.
+FIXTURES := $(shell find fixtures test/e2e/fixtures examples/objects -name '*.yaml' -not -path '*/invalid/*' 2>/dev/null | sort)
+INVALID_FIXTURES := $(shell find fixtures test/e2e/fixtures -path '*/invalid/*.yaml' 2>/dev/null | sort)
 CRDS_CATALOG := https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json
-# Phase 1d: a JSON schema generated from charts/policy/crd/policy.posture.dev_policyexceptions.yaml,
-# so examples/posture-exceptions.yaml and fixtures validate against the CRD this chart installs.
-# LOCAL_SCHEMAS := -schema-location '$(CURDIR)/.bin/schemas/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
-LOCAL_SCHEMAS :=
+# The JSON schema for PolicyExceptions, generated from this chart's own CRD by `make crd-schema`
+# (test/crd-schema), so objects validate against exactly the CRD this chart installs.
+CRD         := $(CHART)/crd/policy.posture.dev_policyexceptions.yaml
+SCHEMAS     := $(CURDIR)/.bin/schemas
+CRD_SCHEMA  := $(SCHEMAS)/policy.posture.dev/policyexceptions_v1alpha1.json
+LOCAL_SCHEMAS := -schema-location '$(SCHEMAS)/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
 
 OS   := $(shell uname -s | tr '[:upper:]' '[:lower:]')
 ARCH := $(shell uname -m | sed -e 's/x86_64/amd64/' -e 's/aarch64/arm64/')
@@ -55,9 +60,9 @@ UNITTEST_VERSION := $(if $(filter 3.14.%,$(HELM_VERSION)),$(HELM_UNITTEST_LEGACY
 # helm-unittest only reads tests/*_test.yaml by default; suites grouped in subfolders need both.
 UNITTEST_FILES := -f 'tests/*_test.yaml' -f 'tests/*/*_test.yaml'
 
-KUBECONFORM_ARGS := -strict -summary -schema-location default -schema-location '$(CRDS_CATALOG)' $(LOCAL_SCHEMAS)
+KUBECONFORM_ARGS := -strict -summary -schema-location default $(LOCAL_SCHEMAS) -schema-location '$(CRDS_CATALOG)'
 
-.PHONY: help tools tools-e2e lint check-definitions unittest unittest-update validate test test-all-helm e2e clean
+.PHONY: help tools tools-e2e lint check-definitions unittest unittest-update crd-schema validate test test-all-helm e2e clean
 
 help:
 	@echo "make tools          install helm $(HELM_VERSION), helm-unittest, kubeconform into .bin/"
@@ -133,15 +138,37 @@ unittest: $(UNITTEST_PLUGIN)
 unittest-update: $(UNITTEST_PLUGIN)
 	$(HELM) unittest -u $(UNITTEST_FILES) $(CHART)
 
-validate: $(HELM) $(KUBECONFORM)
+crd-schema: $(CRD_SCHEMA)
+
+# Rebuilt whenever the CRD or the converter changes. The chart is assembled in .bin/ because a
+# chart can only read its own files.
+$(CRD_SCHEMA): $(CRD) test/crd-schema/Chart.yaml test/crd-schema/templates/schema.yaml $(HELM)
+	rm -rf $(BIN)/crd-schema-chart
+	cp -r test/crd-schema $(BIN)/crd-schema-chart
+	cp $(CRD) $(BIN)/crd-schema-chart/crd.yaml
+	mkdir -p $(dir $@)
+	$(HELM) template x $(BIN)/crd-schema-chart --show-only templates/schema.yaml | sed -e '/^---/d' -e '/^#/d' > $@
+
+# No public catalog publishes a JSON schema for CustomResourceDefinition itself, so the CRD object
+# is skipped here; tests/crd_test.yaml and the API server (make e2e) check it instead.
+validate: $(HELM) $(KUBECONFORM) $(CRD_SCHEMA)
 	@set -e; for f in $(EXAMPLES); do \
 	  echo "==> kubeconform $$f"; \
-	  $(HELM) template policy $(CHART) -f $$f | $(KUBECONFORM) $(KUBECONFORM_ARGS); \
+	  $(HELM) template policy $(CHART) -f $$f | $(KUBECONFORM) $(KUBECONFORM_ARGS) -skip CustomResourceDefinition; \
 	done
 	@if [ -n "$(FIXTURES)" ]; then \
-	  echo "==> kubeconform fixtures"; \
+	  echo "==> kubeconform fixtures and example objects"; \
 	  $(KUBECONFORM) $(KUBECONFORM_ARGS) $(FIXTURES); \
 	fi
+	@set -e; for f in $(INVALID_FIXTURES); do \
+	  if out=$$($(KUBECONFORM) $(KUBECONFORM_ARGS) $$f 2>&1); then \
+	    echo "FAIL: $$f was accepted by kubeconform"; exit 1; \
+	  fi; \
+	  if ! printf '%s\n' "$$out" | grep -q 'jsonschema validation failed'; then \
+	    echo "FAIL: $$f was rejected, but not by its schema:"; printf '%s\n' "$$out"; exit 1; \
+	  fi; \
+	  echo "==> rejected as expected: $$f"; \
+	done
 
 test: lint check-definitions unittest validate
 

@@ -1,0 +1,8 @@
+apiVersion: v2
+name: crd-schema
+description: >-
+  Test-only chart: turns the PolicyExceptions CRD's openAPIV3Schema into the JSON schema
+  kubeconform reads, using only Helm. `make crd-schema` copies this chart and the CRD file into
+  .bin/ and renders it. Never published.
+type: application
+version: 0.0.0

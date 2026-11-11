@@ -2,6 +2,7 @@
 # update with: make unittest-update
 suite: examples
 templates:
+  - templates/crd.yaml
   - templates/validating.yaml
 release:
   name: policy
