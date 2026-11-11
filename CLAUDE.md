@@ -308,7 +308,9 @@ optional ones included: the catalog scenario installs with every optional policy
 `only-<policy>`, a namespace whose `posture-exceptions` excepts every other policy, so it must
 be refused by its own policy alone, and in `exempt`, where every policy is excepted, so it must
 be admitted with no warning. Policies with `exceptions: none` skip both; their deny fixtures
-are denied in `apps`, and their allowlist settings get their own checks.
+are denied in `apps`, and their allowlist settings get their own checks. "No warning" means no
+warning from a ValidatingAdmissionPolicy: the API server adds its own (deprecations such as
+`spec.externalIPs` on 1.37+), and those don't count.
 Every exception path needs an e2e case:
 exempt workload admitted with no warning, non-exempt denied, namespace without
 `posture-exceptions` denied, `kube-system` never evaluated.

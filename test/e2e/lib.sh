@@ -108,15 +108,17 @@ cleanup_namespaces() {
 # Checks
 #
 # Scenarios declare checks with
-#   expect admit <namespace> <fixture>             admitted, no warning
+#   expect admit <namespace> <fixture>             admitted, no policy warning
 #   expect deny  <namespace> <fixture> [policy]    refused, and the message names the policy
-#   expect warn  <namespace> <fixture> [policy]    admitted with a "Warning:" naming the policy
+#   expect warn  <namespace> <fixture> [policy]    admitted with a policy warning naming the policy
+# A policy warning is a "Warning:" line from a ValidatingAdmissionPolicy. Other warnings are the
+# API server's own (deprecations such as spec.externalIPs on 1.37+) and don't count either way.
 # <fixture> is relative to the repo root. [policy] defaults to the <policy> in
 # fixtures/<policy>/<allow|deny>/<file>.yaml.
 #
 # run_checks then runs them:
 #   baseline (before the chart is installed): every fixture, whatever it expects, must be
-#     admitted with no warning, so a deny can't pass for the wrong reason (a malformed fixture,
+#     admitted with no policy warning, so a deny can't pass for the wrong reason (a malformed fixture,
 #     a missing namespace, a typo'd field).
 #   policy (after install): every deny and warn first, each retried until it fires (bindings
 #     take a few seconds to become active), then every admit.
@@ -147,9 +149,12 @@ dry_run() { # dry_run <namespace> <fixture>: sets DRY_OUT (stdout+stderr) and DR
   DRY_OUT=$("$KUBECTL" apply --dry-run=server -n "$1" -f "$ROOT/$2" 2>&1) || DRY_RC=$?
 }
 
-warned() { # warned [policy]: DRY_OUT has a warning (naming the policy, if given)
-  grep -E '^Warning:' <<<"$DRY_OUT" | grep -qF -- "${1:-Warning:}"
+# policy_warned [policy] < output: a ValidatingAdmissionPolicy warned (the named one, if given).
+policy_warned() {
+  grep -E '^Warning:' | grep -F 'ValidatingAdmissionPolicy' | grep -qF -- "${1:-Warning:}"
 }
+
+warned() { policy_warned "$@" <<<"$DRY_OUT"; } # warned [policy]: on DRY_OUT
 
 check_once() { # check_once <admit|deny|warn> <namespace> <fixture> <policy>
   dry_run "$2" "$3"
@@ -287,9 +292,9 @@ policy_exceptions() {
 }
 
 # expect_policy_fixtures: declares every fixture's expectations (CLAUDE.md, "Testing"):
-#   allow/*               admitted, with no warning, in apps (an empty posture-exceptions)
+#   allow/*               admitted, with no policy warning, in apps (an empty posture-exceptions)
 #   deny/* controllers    admitted with a warning naming the policy in only-<policy>; admitted
-#                         with no warning in exempt
+#                         with no policy warning in exempt
 #   deny/* anything else  (Pods, Services, RBAC objects) denied by the policy in only-<policy>;
 #                         admitted in exempt (every policy excepted), and in kube-system
 #                         (never evaluated) unless it's cluster-scoped
@@ -323,7 +328,7 @@ expect_policy_fixtures() {
 
 # check_command <admit|deny|not-denied> <substring> <description> -- <command...>: runs a
 # command that makes an admission request (e.g. a --dry-run=server patch) and records whether
-# it was admitted with no warning, refused with a message containing <substring>, or (not-denied)
+# it was admitted with no policy warning, refused with a message containing <substring>, or (not-denied)
 # not refused by <substring>, whether or not it fails afterwards for another reason (kubectl
 # exec on a pod whose container never started). Retried like the other checks.
 check_command() {
@@ -334,7 +339,7 @@ check_command() {
     out=$("$@" 2>&1) || rc=$?
     ok=0
     case $want in
-      admit) [[ $rc -eq 0 ]] && ! grep -q '^Warning:' <<<"$out" && ok=1 ;;
+      admit) [[ $rc -eq 0 ]] && ! policy_warned <<<"$out" && ok=1 ;;
       deny) [[ $rc -ne 0 ]] && grep -qF -- "$sub" <<<"$out" && ok=1 ;;
       not-denied) ! grep -qF -- "$sub" <<<"$out" && ok=1 ;;
     esac
