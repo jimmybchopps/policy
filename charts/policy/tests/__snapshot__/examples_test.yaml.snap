@@ -3561,7 +3561,7 @@ minimal:
               - clusterrolebindings
       validations:
         - expression: |-
-            !variables.bindsClusterAdmin || !has(object.subjects) || object.subjects.all(s, variables.allowedSubjects.exists(a,
+            !variables.bindsClusterAdmin || variables.subjects.all(s, variables.allowedSubjects.exists(a,
               a.kind == s.kind && a.name == s.name &&
               (s.kind != 'ServiceAccount' || ('namespace' in a && a.namespace == s.namespace))))
           message: Only the subjects in policies.restrict-cluster-admin-binding.allowedSubjects may be bound to cluster-admin; bind a narrower role instead. To allow a subject, add it there ({kind, name}, plus namespace for a ServiceAccount).
@@ -3572,6 +3572,8 @@ minimal:
           name: bindsClusterAdmin
         - expression: '[{''kind'': ''Group'', ''name'': ''system:masters''}] + variables.setting_allowedSubjects'
           name: allowedSubjects
+        - expression: 'has(object.subjects) ? object.subjects : []'
+          name: subjects
   67: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding

@@ -35,10 +35,14 @@ variables:
   - name: allowedSubjects
     expression: >-
       [{'kind': 'Group', 'name': 'system:masters'}] + variables.setting_allowedSubjects
+  # Read through a variable: the type checker checks validations against every kind matched,
+  # and Roles and ClusterRoles have no subjects field.
+  - name: subjects
+    expression: "has(object.subjects) ? object.subjects : []"
 validations:
   - expression: >-
-      !variables.bindsClusterAdmin || !has(object.subjects) ||
-      object.subjects.all(s, variables.allowedSubjects.exists(a,
+      !variables.bindsClusterAdmin ||
+      variables.subjects.all(s, variables.allowedSubjects.exists(a,
         a.kind == s.kind && a.name == s.name &&
         (s.kind != 'ServiceAccount' || ('namespace' in a && a.namespace == s.namespace))))
     message: >-
