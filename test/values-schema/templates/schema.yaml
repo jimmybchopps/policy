@@ -62,6 +62,20 @@ The values schema for charts/policy. Reads, as copied in by `make values-schema`
     "apiVersion" (dict "type" "string" "enum" (list "admissionregistration.k8s.io/v1" "admissionregistration.k8s.io/v1beta1") "description" "MutatingAdmissionPolicy's API version: v1 on Kubernetes 1.36+, v1beta1 on 1.34-1.35 (default: v1).")
     "policies" (dict "type" "object" "additionalProperties" false "properties" $mutationPolicies "description" "Each mutation's enabled and settings, under its name.")) -}}
 
+{{- /* reporting: fixed (not from definitions). */ -}}
+{{- $stringMap := dict "type" "object" "additionalProperties" (dict "type" "string") -}}
+{{- $reporting := dict
+  "type" "object" "additionalProperties" false
+  "description" "Reporting on what the policies do."
+  "properties" (dict
+    "grafanaDashboard" (dict
+      "type" "object" "additionalProperties" false
+      "description" "A Grafana dashboard (a ConfigMap the Grafana sidecar loads) built on the API server's admission-policy metrics. Always in the release namespace (Grafana's may not exist yet); point the sidecar at it."
+      "properties" (dict
+        "enabled" (dict "type" "boolean" "description" "Render the dashboard ConfigMap (default: false).")
+        "labels" (merge (dict "description" "Labels the Grafana sidecar selects on (default: grafana_dashboard: \"1\").") $stringMap)
+        "annotations" (merge (dict "description" "Annotations, e.g. grafana_folder: Security.") $stringMap)))) -}}
+
 {{- /* custom.<name>: the definition format, without what only built-in definitions have
        (name comes from the key; tier is custom; no since, default, or settings), plus enabled and
        action. resources and operations default to workloads and CREATE, UPDATE. */ -}}
@@ -83,6 +97,7 @@ The values schema for charts/policy. Reads, as copied in by `make values-schema`
     "enforcement" (dict "type" "string" "enum" (list "enforce" "audit") "description" "How optional and custom policies with action inherit act: enforce (deny and audit Pods) or audit (audit only). Baked-in policies always enforce.")
     "policies" (dict "type" "object" "additionalProperties" false "properties" $policies "description" "Each policy's settings, under its name. Baked-in policies take only their own settings; optional ones also take enabled and action.")
     "mutations" $mutations
+    "reporting" $reporting
     "custom" (dict "type" "object" "additionalProperties" $custom "propertyNames" (dict "maxLength" 63 "pattern" "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$") "description" "Your own policies, in the definition format (CLAUDE.md). Names must not collide with built-in policies.")
     "global" (dict "type" "object" "description" "Helm's global values (set when this chart is a dependency); unused.")) -}}
 {{ toPrettyJson $schema }}

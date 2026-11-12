@@ -72,4 +72,6 @@ extra() {
   fi
   check_type_checking
   check_mutation_type_checking
+  # The dashboard's mutating-policy metrics exist (the fixtures above were mutated).
+  check_metrics apiserver_mutating_admission_policy
 }

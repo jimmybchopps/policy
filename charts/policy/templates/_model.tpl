@@ -28,7 +28,7 @@ Shape:
       variables: [{ name, expression }]   # shared (workloads), setting_*, the definition's own
       validations: [{ expression, message | messageExpression, reason? }]
 
-The model also carries release: the chart's MAJOR.MINOR ("0.1"), against which since is read,
+The model also carries enforcement (enforce | audit), release: the chart's MAJOR.MINOR ("0.1"), against which since is read,
 and the mutations (definitions/mutating/), each normalized the same way:
 
   mutationApiVersion: admissionregistration.k8s.io/v1 | v1beta1   # mutations.apiVersion
@@ -189,7 +189,7 @@ Usage: include "policy.modelFor" . | fromJson
   {{- $mutations = append $mutations (get $mutationsByName $name) -}}
 {{- end -}}
 
-{{- dict "policies" $policies "mutations" $mutations "mutationApiVersion" $mutationApiVersion "release" $release "excludedNamespaces" (include "policy.excludedNamespaces" . | fromJsonArray) | toJson -}}
+{{- dict "policies" $policies "mutations" $mutations "mutationApiVersion" $mutationApiVersion "enforcement" $enforcement "release" $release "excludedNamespaces" (include "policy.excludedNamespaces" . | fromJsonArray) | toJson -}}
 {{- end -}}
 
 {{/*

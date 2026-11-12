@@ -55,3 +55,21 @@ mutations:
   #      disable-service-account-token-automount: { enabled: true }    # off by default
   #      add-default-resources: { enabled: true, cpuRequest: 100m, memoryRequest: 128Mi, memoryLimit: 128Mi }
   policies: {}
+
+# -- Reporting on what the policies do.
+reporting:
+  # -- A Grafana dashboard built on the API server's admission-policy metrics (denials,
+  #    warnings, audits, and errors per policy and binding; mutations), as a ConfigMap the
+  #    Grafana sidecar (e.g. kube-prometheus-stack's) loads. Needs Prometheus scraping the API
+  #    server. Only this release's enabled policies and mutations are shown.
+  #    The ConfigMap is always in this release's namespace: this chart installs before
+  #    anything else, so Grafana's namespace may not exist yet. Point Grafana's dashboard
+  #    sidecar at it instead, e.g. kube-prometheus-stack's
+  #    grafana.sidecar.dashboards.searchNamespace: ALL (or a list including this namespace).
+  grafanaDashboard:
+    enabled: false
+    # -- Labels the Grafana sidecar selects dashboards by.
+    labels:
+      grafana_dashboard: "1"
+    # -- Annotations, e.g. grafana_folder: Security.
+    annotations: {}

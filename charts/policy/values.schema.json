@@ -1016,6 +1016,38 @@
         }
       },
       "type": "object"
+    },
+    "reporting": {
+      "additionalProperties": false,
+      "description": "Reporting on what the policies do.",
+      "properties": {
+        "grafanaDashboard": {
+          "additionalProperties": false,
+          "description": "A Grafana dashboard (a ConfigMap the Grafana sidecar loads) built on the API server's admission-policy metrics. Always in the release namespace (Grafana's may not exist yet); point the sidecar at it.",
+          "properties": {
+            "annotations": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "description": "Annotations, e.g. grafana_folder: Security.",
+              "type": "object"
+            },
+            "enabled": {
+              "description": "Render the dashboard ConfigMap (default: false).",
+              "type": "boolean"
+            },
+            "labels": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "description": "Labels the Grafana sidecar selects on (default: grafana_dashboard: \"1\").",
+              "type": "object"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "type": "object"
     }
   },
   "title": "policy values",

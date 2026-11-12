@@ -5,6 +5,7 @@ templates:
   - templates/crd.yaml
   - templates/validating.yaml
   - templates/mutating.yaml
+  - templates/dashboard.yaml
 release:
   name: policy
 tests:
@@ -15,5 +16,10 @@ tests:
 
   - it: mutations
     values: [../../../examples/mutations.yaml]
+    asserts:
+      - matchSnapshot: {}
+
+  - it: reporting
+    values: [../../../examples/reporting.yaml]
     asserts:
       - matchSnapshot: {}

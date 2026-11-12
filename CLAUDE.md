@@ -113,7 +113,17 @@ mutations:
     add-default-security-context: { enabled: true }
     disable-service-account-token-automount: { enabled: false }
     add-default-resources: { enabled: false, cpuRequest: 100m, memoryRequest: 128Mi, memoryLimit: 128Mi }
+
+reporting:
+  grafanaDashboard:              # a ConfigMap the Grafana sidecar loads (dashboards/admission-policies.json),
+    enabled: false               # always in the release namespace: Grafana's may not exist yet when this
+    labels: { grafana_dashboard: "1" }   # chart installs, so the sidecar searches this one
+    annotations: {}              # e.g. grafana_folder: Security
 ```
+
+NOTES.txt summarizes what the release turned on (`policy.summary`: enforcement, the
+baked-in count, optional policies by action and off, custom policies, mutations, the
+namespaces never evaluated), then any policies new in this minor (`policy.releaseNotes`).
 
 ### Actions
 
@@ -307,6 +317,7 @@ PolicyException CRD, tenants just create the objects.)
 ```
 charts/policy/
   Chart.yaml  values.yaml  values.schema.json (generated: make values-schema)
+  dashboards/admission-policies.json   the Grafana dashboard; __POLICIES__ becomes this release's names
   definitions/
     validating/<name>.yaml        one file per policy (read with .Files.Glob)
     mutating/<name>.yaml          one file per mutation
@@ -319,6 +330,7 @@ charts/policy/
     crd.yaml
     validating.yaml                policies and their bindings
     mutating.yaml                  mutations and their bindings (when mutations.enabled)
+    dashboard.yaml                 the Grafana dashboard ConfigMap (when reporting.grafanaDashboard.enabled)
     NOTES.txt
   tests/                           helm-unittest suites
 fixtures/<policy>/allow/*.yaml     objects each policy must admit
@@ -378,6 +390,9 @@ and `exempt/` (a Pod excepted from the mutation isn't touched). Each fixture's h
 unset), checked against the object the API server would store (`expect mutated` in
 `test/e2e/scenarios/mutations.sh`); `# namespace: <ns>` picks a namespace other than `apps`
 (or `exempt` for `exempt/`).
+The dashboard's queries are checked against the API server under test: `check_metrics` (in
+the smoke scenario for the validating metrics, in mutations for the mutating ones) fails if
+any `apiserver_*` metric the dashboard uses isn't in `/metrics`, and lists the ones that are.
 Every exception path needs an e2e case:
 exempt workload admitted with no warning, non-exempt denied, namespace without
 `posture-exceptions` denied, `kube-system` never evaluated.
@@ -388,4 +403,4 @@ exempt workload admitted with no warning, non-exempt denied, namespace without
 |---|---|---|
 | 1 | Foundations: format, renderer, CRD, exceptions, first policies | 1a–1e done, e2e green; green CI run pending |
 | 2 | Full catalog, custom policies, enforcement controls | done, e2e green |
-| 3 | Mutations, reporting, docs, release | 3a built; e2e run pending |
+| 3 | Mutations, reporting, docs, release | 3a done, e2e green; 3b built, e2e run pending |

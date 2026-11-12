@@ -5,3 +5,4 @@ definitions, as one document with the text in notes:, so tests can check it.
 {{- $model := include "policy.model" (dict "Values" .Values.input "definitions" .Values.definitions "mutationDefinitions" .Values.mutationDefinitions "chartVersion" .Values.chartVersion) | fromJson -}}
 probe: Notes
 notes: {{ include "policy.releaseNotes" $model | toJson }}
+summary: {{ include "policy.summary" $model | trim | toJson }}

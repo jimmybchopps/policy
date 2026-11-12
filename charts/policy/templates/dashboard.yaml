@@ -1,0 +1,31 @@
+{{- /*
+The Grafana dashboard (reporting.grafanaDashboard): a ConfigMap the Grafana sidecar picks up
+by its labels. It's always in the release namespace: this chart installs before anything else,
+so Grafana's own namespace may not exist yet; Grafana's dashboard sidecar is pointed at this
+namespace instead (kube-prometheus-stack: grafana.sidecar.dashboards.searchNamespace). The JSON is dashboards/admission-policies.json with __POLICIES__ replaced by a
+regex of this release's enabled policies and mutations, so other admission policies on the
+cluster never show up. It's parsed here, so a malformed file fails every render.
+*/ -}}
+{{- $cfg := (.Values.reporting | default dict).grafanaDashboard | default dict -}}
+{{- if $cfg.enabled -}}
+{{- $model := include "policy.modelFor" . | fromJson -}}
+{{- $names := list -}}
+{{- range concat $model.policies $model.mutations -}}
+  {{- if .enabled -}}{{- $names = append $names .name -}}{{- end -}}
+{{- end -}}
+{{- $raw := .Files.Get "dashboards/admission-policies.json" | replace "__POLICIES__" (join "|" (sortAlpha $names)) -}}
+{{- $dashboard := $raw | fromJson -}}
+{{- if or (not $dashboard) (hasKey $dashboard "Error") -}}
+  {{- fail (printf "policy: dashboards/admission-policies.json: not valid JSON: %v" ($dashboard.Error | default "empty")) -}}
+{{- end -}}
+{{- $labels := merge (include "policy.labels" . | fromYaml) ($cfg.labels | default dict) -}}
+{{- $metadata := dict "name" (printf "%s-dashboard" .Release.Name) "namespace" .Release.Namespace "labels" $labels -}}
+{{- with $cfg.annotations -}}{{- $_ := set $metadata "annotations" . -}}{{- end }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+{{ toYaml $metadata | indent 2 }}
+data:
+  admission-policies.json: |
+{{ toPrettyJson $dashboard | indent 4 }}
+{{- end -}}

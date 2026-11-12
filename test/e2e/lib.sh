@@ -463,6 +463,38 @@ check_mutation_type_checking() {
   done
 }
 
+# check_metrics <prefix>: every metric the Grafana dashboard (charts/policy/dashboards/) queries
+# whose name starts with <prefix> is exposed by the API server (kubectl get --raw /metrics),
+# confirming the dashboard against the Kubernetes version under test. Call it after the
+# scenario's checks, so the policies have been evaluated (a counter appears once it counts).
+# On a failure, lists the admission-policy metrics the API server does expose.
+DASHBOARD=charts/policy/dashboards/admission-policies.json
+check_metrics() {
+  local prefix=$1 name names metrics="" _attempt missing
+  names=$(grep -o 'apiserver_[a-z_]*' "$ROOT/$DASHBOARD" | sort -u | grep "^${prefix}" || true)
+  if [[ -z $names ]]; then
+    record FAIL "metrics: the dashboard queries nothing starting with ${prefix}"
+    return 0
+  fi
+  for _attempt in $(seq 1 15); do
+    metrics=$("$KUBECTL" get --raw /metrics 2>/dev/null | grep -v '^#' || true)
+    missing=""
+    for name in $names; do
+      grep -q "^${name}[{ ]" <<<"$metrics" || missing+=" $name"
+    done
+    [[ -z $missing ]] && break
+    sleep 2
+  done
+  for name in $names; do
+    if grep -q "^${name}[{ ]" <<<"$metrics"; then
+      record PASS "metrics: the API server exposes ${name} (dashboard)"
+    else
+      record FAIL "metrics: the API server exposes ${name} (dashboard)" \
+        "admission-policy metrics it does expose: $(grep -o '^apiserver_[a-z_]*admission_polic[a-z_]*' <<<"$metrics" | sort -u | tr '\n' ' ')"
+    fi
+  done
+}
+
 run_checks() { # run_checks <baseline|policy>
   local phase=$1 check want w ns fixture policy ok
   if [[ $phase == baseline ]]; then

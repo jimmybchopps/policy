@@ -327,15 +327,27 @@ Split like Phase 1; each subphase ends with a green `make e2e`.
       show the mutated Pod passes the validators, an already-set value is left alone, and an
       excepted workload isn't mutated; the `mutations` e2e scenario also checks kube-system, a
       Deployment's template, and a namespace without `posture-exceptions`.
-- [ ] e2e: written, not yet run.
+- [x] e2e: green.
 
 ### 3b. Reporting
 
-- [ ] An optional Grafana dashboard (ConfigMap) built on the API server's admission-policy
-      metrics (evaluations and denials per policy and binding). Confirm the metric names
-      against Kubernetes 1.36 before building panels.
-- [ ] NOTES.txt lists enforcement, enabled optional policies, mutations, and the excluded
-      namespaces.
+- [x] An optional Grafana dashboard (`reporting.grafanaDashboard`: a ConfigMap the Grafana
+      sidecar loads) built on the API server's admission-policy metrics: denials, warnings,
+      audits, and errors per policy and binding, evaluation latency, and the mutations. Every
+      query is limited to this release's enabled policies and mutations. The ConfigMap is
+      always in the release namespace (this chart installs first, so Grafana's may not exist
+      yet); Grafana's sidecar is pointed at it (`searchNamespace`). The metric names
+      are confirmed against the Kubernetes version under test by e2e (`check_metrics`):
+
+      | Metric | Labels used |
+      |---|---|
+      | `apiserver_validating_admission_policy_check_total` | `policy`, `policy_binding`, `enforcement_action`, `error_type` |
+      | `apiserver_validating_admission_policy_check_duration_seconds` | `policy`, `policy_binding` |
+      | `apiserver_mutating_admission_policy_check_total` | `policy`, `error_type` |
+      | `apiserver_mutating_admission_policy_check_duration_seconds` | `policy` |
+- [x] NOTES.txt lists enforcement, the baked-in count, optional policies by action and the
+      ones off, custom policies, mutations, the excluded namespaces, and the dashboard.
+- [ ] e2e: written, not yet run.
 
 ### 3c. Documentation and release
 

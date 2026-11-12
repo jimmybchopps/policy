@@ -1,0 +1,13 @@
+# The minimal configuration with the Grafana dashboard on, in a Grafana folder. The ConfigMap is
+# in the release namespace; Grafana's dashboard sidecar must search it (searchNamespace).
+policies:
+  restrict-image-registries:
+    registries:
+      - registry.example.mil/
+      - 127.0.0.1:31999/
+
+reporting:
+  grafanaDashboard:
+    enabled: true
+    annotations:
+      grafana_folder: Security

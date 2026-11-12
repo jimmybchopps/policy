@@ -1,2 +1,9 @@
 policy {{ .Chart.Version }} is installed (release {{ .Release.Name }}). It requires Kubernetes 1.30+.
-{{- include "policy.releaseNotes" (include "policy.modelFor" . | fromJson) }}
+{{- $model := include "policy.modelFor" . | fromJson }}
+
+{{ include "policy.summary" $model | trim }}
+{{- $dashboard := (.Values.reporting | default dict).grafanaDashboard | default dict }}
+{{- if $dashboard.enabled }}
+Grafana dashboard: ConfigMap {{ .Release.Name }}-dashboard in {{ .Release.Namespace }}; Grafana's dashboard sidecar must search this namespace (e.g. searchNamespace: ALL).
+{{- end }}
+{{- include "policy.releaseNotes" $model }}

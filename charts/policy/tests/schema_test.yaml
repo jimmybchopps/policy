@@ -266,3 +266,30 @@ tests:
     asserts:
       - failedTemplate:
           errorPattern: "action"
+
+  # ---- reporting
+  - it: accepts the reporting example
+    values: [../../../examples/minimal.yaml, ../../../examples/reporting.yaml]
+    asserts:
+      - notFailedTemplate: {}
+
+  - it: rejects an unknown key under reporting.grafanaDashboard
+    set:
+      reporting: { grafanaDashboard: { folder: Security } }
+    asserts:
+      - failedTemplate:
+          errorPattern: "folder"
+
+  - it: rejects a label that isn't a string
+    set:
+      reporting: { grafanaDashboard: { labels: { grafana_dashboard: 1 } } }
+    asserts:
+      - failedTemplate:
+          errorPattern: "grafana_dashboard"
+
+  - it: rejects a namespace for the dashboard (Grafana's may not exist when this chart installs)
+    set:
+      reporting: { grafanaDashboard: { enabled: true, namespace: monitoring } }
+    asserts:
+      - failedTemplate:
+          errorPattern: "namespace"
