@@ -1,0 +1,20 @@
+# No security context: mutated in a namespace with posture-exceptions, never in kube-system.
+# expect: {.spec.securityContext.runAsNonRoot} = 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-unset
+  labels: { app.kubernetes.io/name: pod-unset, e2e.test/fixture: "true" }
+spec:
+  automountServiceAccountToken: false
+  serviceAccountName: app
+  containers:
+    - name: app
+      image: registry.example.mil/app@sha256:0000000000000000000000000000000000000000000000000000000000000000
+      readinessProbe: { tcpSocket: { port: 8080 } }
+      livenessProbe: { tcpSocket: { port: 8080 } }
+      securityContext:
+        readOnlyRootFilesystem: true
+      resources:
+        requests: { cpu: 10m, memory: 16Mi }
+        limits: { memory: 16Mi }

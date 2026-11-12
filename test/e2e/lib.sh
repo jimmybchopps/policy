@@ -119,6 +119,9 @@ cleanup_namespaces() {
 #   expect admit <namespace> <fixture>             admitted, no policy warning
 #   expect deny  <namespace> <fixture> [policy]    refused, and the message names the policy
 #   expect warn  <namespace> <fixture> [policy]    admitted with a policy warning naming the policy
+#   expect mutated <namespace> <fixture>           admitted, no policy warning, and every
+#                                                  "# expect:" line in the fixture holds
+#                                                  (mutations; see check_expectations)
 # A policy warning is a "Warning:" line from a ValidatingAdmissionPolicy. Other warnings are the
 # API server's own (deprecations such as spec.externalIPs on 1.37+) and don't count either way.
 # <fixture> is relative to the repo root. [policy] defaults to the <policy> in
@@ -133,10 +136,10 @@ cleanup_namespaces() {
 
 CHECKS=()
 
-expect() { # expect <admit|deny|warn> <namespace> <fixture> [policy]
+expect() { # expect <admit|deny|warn|mutated> <namespace> <fixture> [policy]
   local want=$1 ns=$2 fixture=$3 policy=${4:-}
   case $want in
-    admit) ;;
+    admit | mutated) ;;
     deny | warn)
       if [[ -z $policy ]]; then
         [[ $fixture =~ ^fixtures/([^/]+)/ ]] || die "expect $want $fixture: name the policy (not under fixtures/<policy>/)"
@@ -168,9 +171,29 @@ check_once() { # check_once <admit|deny|warn> <namespace> <fixture> <policy>
   dry_run "$2" "$3"
   case $1 in
     admit) [[ $DRY_RC -eq 0 ]] && ! warned ;;
+    mutated) [[ $DRY_RC -eq 0 ]] && ! warned && check_expectations "$2" "$3" ;;
     deny) [[ $DRY_RC -ne 0 ]] && grep -qF -- "$4" <<<"$DRY_OUT" ;;
     warn) [[ $DRY_RC -eq 0 ]] && warned "$4" ;;
   esac
+}
+
+# check_expectations <namespace> <fixture>: every "# expect: <jsonpath> <op> <value>" line in the
+# fixture holds for the object the API server would store (a server-side dry-run, so after
+# mutation). <op> is = (the jsonpath prints exactly <value>; an empty value means unset),
+# ~ (contains <value>), or !~ (doesn't). Sets DRY_OUT to what failed.
+check_expectations() {
+  local ns=$1 fixture=$2 line jsonpath op value got
+  while IFS= read -r line; do
+    [[ $line =~ ^\#\ expect:\ (\{[^}]*\})\ (=|~|!~)\ ?(.*)$ ]] || continue
+    jsonpath=${BASH_REMATCH[1]} op=${BASH_REMATCH[2]} value=${BASH_REMATCH[3]}
+    got=$("$KUBECTL" apply --dry-run=server -n "$ns" -f "$ROOT/$fixture" -o "jsonpath=$jsonpath" 2>&1) || {
+      DRY_OUT="$jsonpath: $got"; return 1; }
+    case $op in
+      =) [[ $got == "$value" ]] ;;
+      '~') [[ $got == *"$value"* ]] ;;
+      '!~') [[ $got != *"$value"* ]] ;;
+    esac || { DRY_OUT="$jsonpath $op '$value', got '$got'"; return 1; }
+  done <"$ROOT/$fixture"
 }
 
 check_retry() { # check_retry <want> <ns> <fixture> <policy>: retries while policies activate
@@ -251,15 +274,18 @@ require_exempt_covers() {
 }
 
 # exceptions_object <namespace> [policy...]: applies a posture-exceptions in exactly the shape
-# posture renders (one entry per policy, sorted), excepting each listed ValidatingAdmissionPolicy
-# for the fixtures (e2e.test/fixture=true). With no policies it is empty, as posture renders it
-# for a namespace without exceptions.
+# posture renders (one entry per policy, sorted), excepting each listed policy for the fixtures
+# (e2e.test/fixture=true). A policy is a ValidatingAdmissionPolicy's name, or Kind:name (e.g.
+# MutatingAdmissionPolicy:add-default-resources). With no policies it is empty, as posture
+# renders it for a namespace without exceptions.
 exceptions_object() {
   local ns=$1 p entries=""
   shift
+  local kind name
   for p in $(printf '%s\n' "$@" | sort); do
+    if [[ $p == *:* ]]; then kind=${p%%:*} name=${p#*:}; else kind=ValidatingAdmissionPolicy name=$p; fi
     entries+="
-    - policy: { kind: ValidatingAdmissionPolicy, name: ${p} }
+    - policy: { kind: ${kind}, name: ${name} }
       workloads:
         - matchLabels: { e2e.test/fixture: \"true\" }
           reason: e2e fixture"
@@ -400,6 +426,37 @@ check_type_checking() {
   done
 }
 
+# check_mutation_type_checking: like check_type_checking, for this chart's
+# MutatingAdmissionPolicies. If the API server reports no type checking for them (no
+# status.observedGeneration), that's noted, not failed: the mutation fixtures exercise every
+# expression anyway.
+check_mutation_type_checking() {
+  local map maps gen observed warnings _attempt
+  maps=$("$KUBECTL" get mutatingadmissionpolicies -l app.kubernetes.io/name=policy -o name)
+  if [[ -z $maps ]]; then
+    record FAIL "type checking: no MutatingAdmissionPolicies from this chart are installed"
+    return 0
+  fi
+  for map in $maps; do
+    for _attempt in $(seq 1 10); do
+      gen=$("$KUBECTL" get "$map" -o jsonpath='{.metadata.generation}')
+      observed=$("$KUBECTL" get "$map" -o jsonpath='{.status.observedGeneration}')
+      [[ $observed == "$gen" ]] && break
+      sleep 2
+    done
+    if [[ $observed != "$gen" ]]; then
+      info "$map: the API server reports no type checking (status.observedGeneration unset)"
+      continue
+    fi
+    warnings=$("$KUBECTL" get "$map" -o jsonpath='{range .status.typeChecking.expressionWarnings[*]}{.fieldRef}: {.warning}{"\n"}{end}')
+    if [[ -z $warnings ]]; then
+      record PASS "$map type-checks with no warnings"
+    else
+      record FAIL "$map type-checks with no warnings" "$warnings"
+    fi
+  done
+}
+
 run_checks() { # run_checks <baseline|policy>
   local phase=$1 check want w ns fixture policy
   if [[ $phase == baseline ]]; then
@@ -413,14 +470,20 @@ run_checks() { # run_checks <baseline|policy>
     done
     return 0
   fi
-  for want in deny warn admit; do
+  for want in deny warn admit mutated; do
     for check in "${CHECKS[@]}"; do
       read -r w ns fixture policy <<<"$check"
       [[ $w == "$want" ]] || continue
-      if [[ $want == admit ]] && check_once admit "$ns" "$fixture" ""; then
-        record PASS "[policy] admit $ns $fixture"
-      elif [[ $want != admit ]] && check_retry "$want" "$ns" "$fixture" "$policy"; then
-        record PASS "[policy] $want $ns $fixture ($policy)"
+      case $want in
+        # Admits run last, once every policy is active, so they aren't retried.
+        admit) check_once admit "$ns" "$fixture" "" ;;
+        # Mutations are retried like denies: until a mutating binding is active, the Pod is
+        # admitted but not mutated.
+        mutated) check_retry mutated "$ns" "$fixture" "" ;;
+        *) check_retry "$want" "$ns" "$fixture" "$policy" ;;
+      esac
+      if [[ $? -eq 0 ]]; then
+        record PASS "[policy] $want $ns $fixture${policy:+ ($policy)}"
       else
         record FAIL "[policy] $want $ns $fixture${policy:+ ($policy)}" "$DRY_OUT"
       fi

@@ -1,0 +1,6 @@
+# Mutations have no action: they mutate or they don't.
+name: action
+default: { enabled: true, action: enforce }
+description: x
+mutations:
+  - { patchType: ApplyConfiguration, expression: "Object{}" }

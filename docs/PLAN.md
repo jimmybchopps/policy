@@ -87,10 +87,13 @@ by operators at runtime, which render-time hardening can't reach.
 
 | Mutation | Default | Sets, only when unset |
 |---|---|---|
-| `add-default-security-context` | on | `runAsNonRoot: true`, seccomp `RuntimeDefault`, `allowPrivilegeEscalation: false`, `capabilities.drop: [ALL]` |
-| `set-image-pull-policy` | on | `imagePullPolicy: IfNotPresent` for digest-pinned images |
-| `disable-service-account-token-automount` | off | pod `automountServiceAccountToken: false` |
-| `add-default-resources` | off | requests and limits from values |
+| `add-default-security-context` | on | pod `runAsNonRoot: true` and seccomp `RuntimeDefault`; each container's and init container's `allowPrivilegeEscalation: false` and `capabilities.drop: [ALL]` |
+| `disable-service-account-token-automount` | off | pod `automountServiceAccountToken: false`; also removes the token volume (`kube-api-access-*`) and mounts the ServiceAccount admission plugin already added, which runs before any mutating policy |
+| `add-default-resources` | off | each container's and init container's `requests.cpu`, `requests.memory`, `limits.memory` from its settings (`cpuRequest` 100m, `memoryRequest` 128Mi, `memoryLimit` 128Mi); a memory limit is never set below the container's request |
+
+There's no `set-image-pull-policy`: the API server's defaulting, which runs before any mutating
+policy, already sets `IfNotPresent` on a digest-pinned image without a tag, and a mutation may
+not overwrite the `Always` it sets for `:latest`, so it could never do anything.
 
 Because controllers get only warnings, a Deployment that relies on a mutation to pass (for
 example, it leaves `allowPrivilegeEscalation` unset) is admitted with a warning and its Pods
@@ -310,14 +313,20 @@ Split like Phase 1; each subphase ends with a green `make e2e`.
 
 ### 3a. Mutations
 
-- [ ] `definitions/mutating/` for the four mutations, using ApplyConfiguration where it can
-      express "only when unset" and JSONPatch where it can't.
-- [ ] `MutatingAdmissionPolicy` and binding per mutation (`mutations.apiVersion`), Pods only,
-      `reinvocationPolicy: IfNeeded`, the same exclusion list, exceptions via `paramRef`.
-      Verify which parts of a mutating policy can read `params`; if match conditions can't,
-      put the exemption check in the mutation expressions themselves.
-- [ ] Fixtures show the mutated Pod passes the validators, an already-set value is left alone,
-      and an excepted workload isn't mutated.
+- [x] `definitions/mutating/` for the three mutations (`set-image-pull-policy` dropped; see
+      the table), using ApplyConfiguration where it can express "only when unset" (one
+      mutation per field, returning `Object{}` when it's set) and JSONPatch where it can't
+      (removing the service account token volume). Their own schema, `test/mutation-schema/`.
+- [x] `MutatingAdmissionPolicy` and binding per mutation (`mutations.apiVersion`), Pods on
+      CREATE only, `reinvocationPolicy: IfNeeded`, the same exclusion list, exceptions via
+      `paramRef` (`parameterNotFoundAction: Deny`). The exemption check is a variable, and each
+      mutation is wrapped to do nothing for an excepted Pod, so match conditions never need
+      `params`. `mutations.*` in the values schema, generated from the definitions.
+- [x] Fixtures (`fixtures/mutations/<name>/{mutated,kept,exempt}/`, with `# expect:` lines)
+      show the mutated Pod passes the validators, an already-set value is left alone, and an
+      excepted workload isn't mutated; the `mutations` e2e scenario also checks kube-system, a
+      Deployment's template, and a namespace without `posture-exceptions`.
+- [ ] e2e: written, not yet run.
 
 ### 3b. Reporting
 

@@ -1,0 +1,27 @@
+# runAsNonRoot false and allowPrivilegeEscalation true, set: never overwritten.
+# namespace: kept (excepts require-run-as-non-root and disallow-privilege-escalation)
+# expect: {.spec.securityContext.runAsNonRoot} = false
+# expect: {.spec.containers[0].securityContext.allowPrivilegeEscalation} = true
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-set-noncompliant
+  labels: { app.kubernetes.io/name: pod-set-noncompliant, e2e.test/fixture: "true" }
+spec:
+  automountServiceAccountToken: false
+  serviceAccountName: app
+  securityContext:
+    runAsNonRoot: false
+    seccompProfile: { type: RuntimeDefault }
+  containers:
+    - name: app
+      image: registry.example.mil/app@sha256:0000000000000000000000000000000000000000000000000000000000000000
+      readinessProbe: { tcpSocket: { port: 8080 } }
+      livenessProbe: { tcpSocket: { port: 8080 } }
+      securityContext:
+        allowPrivilegeEscalation: true
+        readOnlyRootFilesystem: true
+        capabilities: { drop: [ALL] }
+      resources:
+        requests: { cpu: 10m, memory: 16Mi }
+        limits: { memory: 16Mi }

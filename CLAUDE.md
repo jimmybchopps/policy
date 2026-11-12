@@ -109,9 +109,10 @@ custom:                          # user-defined policies, same format as definit
 mutations:
   enabled: false
   apiVersion: admissionregistration.k8s.io/v1   # v1 on Kubernetes 1.36+; v1beta1 on 1.34-1.35
-  policies:
+  policies:                      # each mutation's enabled (default from its definition) and settings
     add-default-security-context: { enabled: true }
-    set-image-pull-policy: { enabled: true }
+    disable-service-account-token-automount: { enabled: false }
+    add-default-resources: { enabled: false, cpuRequest: 100m, memoryRequest: 128Mi, memoryLimit: 128Mi }
 ```
 
 ### Actions
@@ -171,6 +172,36 @@ a `namespaceSelector` or `objectSelector` (exclusions are the chart's decision);
 `test/values-schema/`), so every policy's settings, `enabled`, and `action` are checked and
 documented; `make check-values-schema` fails if it's stale. Regenerate it after changing any
 definition.
+
+### Mutation format (`definitions/mutating/<name>.yaml`)
+
+```yaml
+name: add-default-security-context
+default: { enabled: true }       # on when mutations.enabled; no tier, no action
+description: Sets ... where a Pod leaves it unset. A value that's already set is never changed.
+controls: { nist: [AC-6, CM-7] }
+settings: {}                     # as for policies, under mutations.policies.<name>
+variables: []
+mutations:                       # applied in order, each seeing the result of the ones before
+  - patchType: ApplyConfiguration   # or JSONPatch (for what an apply configuration can't do: removing)
+    expression: >-
+      !has(object.spec.securityContext) || !has(object.spec.securityContext.runAsNonRoot)
+        ? Object{spec: Object.spec{securityContext: Object.spec.securityContext{runAsNonRoot: true}}}
+        : Object{}
+```
+
+Every mutation is a MutatingAdmissionPolicy on **Pods, CREATE only** (a pod spec is mostly
+immutable; a controller's template would fight with Helm or Flux), `failurePolicy: Fail`,
+`reinvocationPolicy: IfNeeded`, at `mutations.apiVersion`. It **never overwrites a set value**:
+an apply configuration sets whatever it names, so each expression builds only the fields that
+are unset (one mutation per field, containers filtered and merged by `name`) and returns
+`Object{}` otherwise. It gets one shared variable, `workloadLabels` (the Pod's own labels), and
+its settings as `setting_<name>`; the same portability rules apply (no `params`, no
+`authorizer`). Exceptions work like a policy's, with kind `MutatingAdmissionPolicy`: the binding
+reads `posture-exceptions` (`parameterNotFoundAction: Deny`, so it fails closed too), and the
+renderer wraps each mutation so it does nothing for an excepted Pod
+(`variables.exempt ? Object{} : (E)`, `(E).filter(p, !variables.exempt)` for a JSON patch).
+Mutation names must not collide with policy names. `test/mutation-schema/` is its JSON schema.
 
 ### Shared variables (injected for `resources: workloads`)
 
@@ -264,6 +295,9 @@ PolicyException CRD, tenants just create the objects.)
 - Annotations on every binding: `policy.posture.dev/tier` and `policy.posture.dev/binding`
   (`pods`, `controllers`, `services`, `rbac`, or `custom`; the first binding shares its name
   with the policy, so this tells them apart).
+- A mutation's MutatingAdmissionPolicy and its one binding share its name; the policy carries
+  `policy.posture.dev/description` (and `nist`), the binding `policy.posture.dev/binding: pods`
+  and `policy.posture.dev/kind: mutating`.
 - Custom policy names must not collide with built-in ones; collisions fail the render.
 
 ## Layout
@@ -273,25 +307,27 @@ charts/policy/
   Chart.yaml  values.yaml  values.schema.json (generated: make values-schema)
   definitions/
     validating/<name>.yaml        one file per policy (read with .Files.Glob)
-    mutating/<name>.yaml
+    mutating/<name>.yaml          one file per mutation
   crd/policy.posture.dev_policyexceptions.yaml   the PolicyExceptions CRD (owned here)
   templates/
     _lib.tpl                       shared variables, policy settings as CEL literals, actions, exclusions
     _model.tpl                     definitions + values + custom -> one normalized list
     validate.yaml                  builds the model on every render, so bad values always fail
-    _render.tpl                    the model -> policies and bindings (validating.yaml calls it)
+    _render.tpl                    the model -> policies and bindings (validating.yaml, mutating.yaml)
     crd.yaml
     validating.yaml                policies and their bindings
-    mutating.yaml
+    mutating.yaml                  mutations and their bindings (when mutations.enabled)
     NOTES.txt
   tests/                           helm-unittest suites
 fixtures/<policy>/allow/*.yaml     objects each policy must admit
 fixtures/<policy>/deny/*.yaml      objects each policy must refuse (Pods, Services, RBAC) or warn on (controllers)
+fixtures/mutations/<mutation>/     mutated/, kept/, exempt/ Pods, each with "# expect:" lines
 test/e2e/run.sh                    k3d: server-side dry-run every fixture, compare to expected
-test/e2e/scenarios/                smoke, catalog, settings (enforcement audit, a custom policy)
+test/e2e/scenarios/                smoke, catalog, settings (enforcement audit, a custom policy), mutations
 test/e2e/values/                   values files for scenarios (also checked by tests/schema_test)
 test/model-probe/                  test-only chart that renders the model for helm-unittest
 test/definition-schema/            JSON schema for definitions (make check-definitions)
+test/mutation-schema/              JSON schema for mutation definitions (make check-definitions)
 test/crd-schema/                   CRD -> JSON schema for kubeconform (make crd-schema)
 test/values-schema/                definitions -> charts/policy/values.schema.json (make values-schema)
 test/release/                      check-release.sh (new baked-in policies announced) and its cases
@@ -333,6 +369,13 @@ be admitted with no warning. Policies with `exceptions: none` skip both; their d
 are denied in `apps`, and their allowlist settings get their own checks. "No warning" means no
 warning from a ValidatingAdmissionPolicy: the API server adds its own (deprecations such as
 `spec.externalIPs` on 1.37+), and those don't count.
+Every mutation has fixtures in `fixtures/mutations/<name>/`: `mutated/` (unset fields are
+filled in, and the Pod then passes every policy), `kept/` (set values are never overwritten),
+and `exempt/` (a Pod excepted from the mutation isn't touched). Each fixture's header has
+`# expect: <jsonpath> = <value>` lines (`~` contains, `!~` doesn't; an empty value means
+unset), checked against the object the API server would store (`expect mutated` in
+`test/e2e/scenarios/mutations.sh`); `# namespace: <ns>` picks a namespace other than `apps`
+(or `exempt` for `exempt/`).
 Every exception path needs an e2e case:
 exempt workload admitted with no warning, non-exempt denied, namespace without
 `posture-exceptions` denied, `kube-system` never evaluated.
@@ -342,5 +385,5 @@ exempt workload admitted with no warning, non-exempt denied, namespace without
 | Phase | Area | Status |
 |---|---|---|
 | 1 | Foundations: format, renderer, CRD, exceptions, first policies | 1a–1e done, e2e green; green CI run pending |
-| 2 | Full catalog, custom policies, enforcement controls | 2a–2d done, e2e green; 2e built, e2e run pending |
-| 3 | Mutations, reporting, docs, release | not started |
+| 2 | Full catalog, custom policies, enforcement controls | done, e2e green |
+| 3 | Mutations, reporting, docs, release | 3a built; e2e run pending |

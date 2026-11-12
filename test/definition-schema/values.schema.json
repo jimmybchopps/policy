@@ -292,6 +292,11 @@
           "items": {
             "description": "For list settings: a JSON schema for each item, used in the values schema (default: a non-empty string).",
             "type": "object"
+          },
+          "pattern": {
+            "description": "For string settings: a regular expression the value must match, used in the values schema.",
+            "type": "string",
+            "minLength": 1
           }
         }
       }

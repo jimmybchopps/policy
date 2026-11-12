@@ -1,0 +1,43 @@
+# The mutation renderer over the test definitions: the exempt rewrite for both patch types.
+suite: renderer (mutations)
+templates:
+  - templates/rendered-mutating.yaml
+values:
+  - ../values/mutating.yaml
+set:
+  input:
+    mutations: { enabled: true, policies: { mut-off: { enabled: true } } }
+tests:
+  - it: renders a policy and a binding per enabled mutation
+    asserts:
+      - hasDocuments: { count: 4 }
+
+  - it: an apply configuration becomes an empty one for an excepted Pod
+    documentSelector: { path: "spec.mutations[0].patchType", value: ApplyConfiguration }
+    asserts:
+      - equal: { path: metadata.name, value: mut-on }
+      - equal:
+          path: "spec.mutations[0].applyConfiguration.expression"
+          value: "variables.exempt ? Object{} : (variables.unset ? Object{metadata: Object.metadata{labels: {'example': variables.setting_value}}} : Object{})"
+      - equal: { path: "spec.variables[3].name", value: exempt }
+      - matchRegex: { path: "spec.variables[3].expression", pattern: "e.policy.kind == 'MutatingAdmissionPolicy' && e.policy.name == 'mut-on'" }
+
+  - it: a JSON patch is filtered to nothing for an excepted Pod
+    documentSelector: { path: "spec.mutations[0].patchType", value: JSONPatch }
+    asserts:
+      - equal: { path: metadata.name, value: mut-off }
+      - equal:
+          path: "spec.mutations[0].jsonPatch.expression"
+          value: "(has(object.spec.tolerations) ? [JSONPatch{op: 'remove', path: '/spec/tolerations/0'}] : []).filter(p, !variables.exempt)"
+
+  - it: a disabled mutation renders nothing
+    set:
+      input:
+        mutations: { policies: { mut-off: { enabled: false } } }
+    asserts:
+      - hasDocuments: { count: 2 }
+
+  - it: the policy carries its description and controls
+    documentSelector: { path: kind, value: MutatingAdmissionPolicy, matchMany: true }
+    asserts:
+      - exists: { path: "metadata.annotations['policy.posture.dev/description']" }

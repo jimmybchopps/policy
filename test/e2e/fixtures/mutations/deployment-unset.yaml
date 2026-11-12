@@ -1,0 +1,28 @@
+# A Deployment with no security context: mutations apply to Pods only, so its template is left
+# alone (and the policies warn about it).
+# expect: {.spec.template.spec.securityContext.runAsNonRoot} =
+# expect: {.spec.template.spec.containers[0].securityContext.allowPrivilegeEscalation} =
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deployment-unset
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app.kubernetes.io/name: deployment-unset }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: deployment-unset, e2e.test/fixture: "true" }
+    spec:
+      automountServiceAccountToken: false
+      serviceAccountName: app
+      containers:
+        - name: app
+          image: registry.example.mil/app@sha256:0000000000000000000000000000000000000000000000000000000000000000
+          readinessProbe: { tcpSocket: { port: 8080 } }
+          livenessProbe: { tcpSocket: { port: 8080 } }
+          securityContext:
+            readOnlyRootFilesystem: true
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { memory: 16Mi }

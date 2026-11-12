@@ -4,10 +4,16 @@ suite: examples
 templates:
   - templates/crd.yaml
   - templates/validating.yaml
+  - templates/mutating.yaml
 release:
   name: policy
 tests:
   - it: minimal
     values: [../../../examples/minimal.yaml]
+    asserts:
+      - matchSnapshot: {}
+
+  - it: mutations
+    values: [../../../examples/mutations.yaml]
     asserts:
       - matchSnapshot: {}

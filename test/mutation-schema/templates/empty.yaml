@@ -1,0 +1,1 @@
+{{- /* Renders nothing; this chart exists only for its values.schema.json. */ -}}

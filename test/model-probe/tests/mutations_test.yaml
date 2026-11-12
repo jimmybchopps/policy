@@ -1,0 +1,138 @@
+# The model's mutations (definitions/mutating/), and their rendering, over the test definitions
+# in values/mutating.yaml.
+suite: model mutations
+templates:
+  - templates/model.yaml
+values:
+  - ../values/mutating.yaml
+tests:
+  - it: lists every mutation, sorted, at v1 by default
+    documentSelector: { path: name, value: model }
+    asserts:
+      - equal: { path: mutationNames, value: [mut-off, mut-on] }
+      - equal: { path: mutationApiVersion, value: admissionregistration.k8s.io/v1 }
+
+  - it: every mutation is off while mutations.enabled is unset
+    documentSelector: { path: name, value: mut-on }
+    asserts:
+      - equal: { path: enabled, value: false }
+      - equal: { path: kind, value: MutatingAdmissionPolicy }
+
+  - it: mutations.enabled turns on the mutations on by default
+    set:
+      input:
+        mutations: { enabled: true }
+    documentSelector: { path: probe, value: Mutation, matchMany: true }
+    asserts:
+      - equal: { path: enabled, value: true }
+        documentSelector: { path: name, value: mut-on }
+      - equal: { path: enabled, value: false }
+        documentSelector: { path: name, value: mut-off }
+
+  - it: a mutation's own enabled overrides its default
+    set:
+      input:
+        mutations: { enabled: true, policies: { mut-off: { enabled: true }, mut-on: { enabled: false } } }
+    documentSelector: { path: probe, value: Mutation, matchMany: true }
+    asserts:
+      - equal: { path: enabled, value: true }
+        documentSelector: { path: name, value: mut-off }
+      - equal: { path: enabled, value: false }
+        documentSelector: { path: name, value: mut-on }
+
+  - it: settings resolve like a policy's, as setting_ variables after workloadLabels
+    set:
+      input:
+        mutations: { policies: { mut-on: { value: y } } }
+    documentSelector: { path: name, value: mut-on }
+    asserts:
+      - equal: { path: settings, value: { value: y } }
+      - equal:
+          path: variables
+          value:
+            - { name: workloadLabels, expression: "has(object.metadata.labels) ? object.metadata.labels : {}" }
+            - { name: setting_value, expression: '"y"' }
+            - { name: unset, expression: "!('example' in variables.workloadLabels)" }
+
+  - it: takes mutations.apiVersion
+    set:
+      input:
+        mutations: { apiVersion: admissionregistration.k8s.io/v1beta1 }
+    documentSelector: { path: name, value: model }
+    asserts:
+      - equal: { path: mutationApiVersion, value: admissionregistration.k8s.io/v1beta1 }
+
+  # ---- failures
+  - it: rejects an unknown mutation
+    set:
+      input:
+        mutations: { policies: { mut-onn: { enabled: true } } }
+    asserts:
+      - failedTemplate:
+          errorPattern: "policy: mutations.policies.mut-onn: no such mutation; known: mut-off, mut-on"
+
+  - it: rejects an undeclared key on a mutation
+    set:
+      input:
+        mutations: { policies: { mut-on: { action: enforce } } }
+    asserts:
+      - failedTemplate:
+          errorPattern: "policy: mutations.policies.mut-on.action: unknown setting; mut-on accepts: enabled, value"
+
+  - it: rejects a setting that doesn't match its pattern
+    set:
+      input:
+        mutations: { policies: { mut-on: { value: "Not-Lower" } } }
+    asserts:
+      - failedTemplate:
+          errorPattern: "policy: mutations.policies.mut-on.value: \"Not-Lower\" doesn't match"
+
+  - it: rejects an unknown apiVersion
+    set:
+      input:
+        mutations: { apiVersion: admissionregistration.k8s.io/v1alpha1 }
+    asserts:
+      - failedTemplate:
+          errorPattern: "policy: mutations.apiVersion: must be admissionregistration.k8s.io/v1"
+
+  - it: rejects an unknown key under mutations
+    set:
+      input:
+        mutations: { enabld: true }
+    asserts:
+      - failedTemplate:
+          errorPattern: "policy: mutations.enabld: unknown key"
+
+  - it: rejects params in a mutation (exceptions are injected)
+    set:
+      mutationDefinitions:
+        - { name: bad, source: definitions/mutating/bad.yaml, default: { enabled: true }, description: x, mutations: [{ patchType: JSONPatch, expression: "params.x" }] }
+    asserts:
+      - failedTemplate:
+          errorPattern: "policy: definitions/mutating/bad.yaml: mutations\\[0\\].expression uses params"
+
+  - it: rejects a reserved variable name
+    set:
+      mutationDefinitions:
+        - { name: bad, source: definitions/mutating/bad.yaml, default: { enabled: true }, description: x, variables: [{ name: exempt, expression: "true" }], mutations: [{ patchType: JSONPatch, expression: "[]" }] }
+    asserts:
+      - failedTemplate:
+          errorPattern: "policy: definitions/mutating/bad.yaml: variables.exempt: the name is reserved"
+
+  - it: rejects a mutation named like a validating policy
+    set:
+      definitions:
+        - { name: same, source: definitions/validating/same.yaml, tier: baked-in, description: x, validations: [{ expression: "true", message: x }] }
+      mutationDefinitions:
+        - { name: same, source: definitions/mutating/same.yaml, default: { enabled: true }, description: x, mutations: [{ patchType: JSONPatch, expression: "[]" }] }
+    asserts:
+      - failedTemplate:
+          errorPattern: "policy: definitions/mutating/same.yaml: \"same\" is already the name of a validating policy"
+
+  - it: rejects a file whose name doesn't match
+    set:
+      mutationDefinitions:
+        - { name: other, source: definitions/mutating/bad.yaml, default: { enabled: true }, description: x, mutations: [{ patchType: JSONPatch, expression: "[]" }] }
+    asserts:
+      - failedTemplate:
+          errorPattern: "name is \"other\"; it must match the file name"

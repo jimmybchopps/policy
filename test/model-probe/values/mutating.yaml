@@ -1,0 +1,23 @@
+# Test mutation definitions: one on by default with a setting, one off by default with a JSON
+# patch. The probe suites set input.mutations to turn them on.
+mutationDefinitions:
+  - name: mut-on
+    source: definitions/mutating/mut-on.yaml
+    default: { enabled: true }
+    description: Sets a label where it's unset.
+    controls: { nist: [CM-7] }
+    settings:
+      value: { type: string, default: x, pattern: "^[a-z]+$" }
+    variables:
+      - { name: unset, expression: "!('example' in variables.workloadLabels)" }
+    mutations:
+      - patchType: ApplyConfiguration
+        expression: "variables.unset ? Object{metadata: Object.metadata{labels: {'example': variables.setting_value}}} : Object{}"
+
+  - name: mut-off
+    source: definitions/mutating/mut-off.yaml
+    default: { enabled: false }
+    description: Removes the first toleration.
+    mutations:
+      - patchType: JSONPatch
+        expression: "has(object.spec.tolerations) ? [JSONPatch{op: 'remove', path: '/spec/tolerations/0'}] : []"

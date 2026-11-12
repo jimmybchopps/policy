@@ -1,0 +1,8 @@
+apiVersion: v2
+name: mutation-schema
+description: >-
+  Test-only chart: its values.schema.json is the JSON schema for mutation definitions
+  (charts/policy/definitions/mutating/*.yaml). `make check-definitions` runs
+  `helm lint --strict test/mutation-schema -f <definition>` on each. Never published.
+type: application
+version: 0.0.0

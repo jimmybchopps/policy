@@ -319,6 +319,80 @@
       "description": "Helm's global values (set when this chart is a dependency); unused.",
       "type": "object"
     },
+    "mutations": {
+      "additionalProperties": false,
+      "description": "Mutations: MutatingAdmissionPolicies that fill in safe defaults on Pods that leave them unset. Off unless enabled.",
+      "properties": {
+        "apiVersion": {
+          "description": "MutatingAdmissionPolicy's API version: v1 on Kubernetes 1.36+, v1beta1 on 1.34-1.35 (default: v1).",
+          "enum": [
+            "admissionregistration.k8s.io/v1",
+            "admissionregistration.k8s.io/v1beta1"
+          ],
+          "type": "string"
+        },
+        "enabled": {
+          "description": "Install the mutations at all (default: false).",
+          "type": "boolean"
+        },
+        "policies": {
+          "additionalProperties": false,
+          "description": "Each mutation's enabled and settings, under its name.",
+          "properties": {
+            "add-default-resources": {
+              "additionalProperties": false,
+              "description": "Mutation (default: off). Sets a CPU request, a memory request, and a memory limit on each container and init container that leaves them unset, from this mutation's settings. A memory limit is never set below the container's memory request. Values that are already set are never changed.",
+              "properties": {
+                "cpuRequest": {
+                  "description": "The CPU request set where a container has none (a Kubernetes quantity) (default: 100m).",
+                  "pattern": "^[0-9]+(\\.[0-9]+)?(m|[kMGTPE]i?)?$",
+                  "type": "string"
+                },
+                "enabled": {
+                  "description": "Whether the mutation is installed when mutations.enabled is true (default: false).",
+                  "type": "boolean"
+                },
+                "memoryLimit": {
+                  "description": "The memory limit set where a container has none; a container whose memory request is higher gets its request as its limit (a Kubernetes quantity) (default: 128Mi).",
+                  "pattern": "^[0-9]+(\\.[0-9]+)?([kMGTPE]i?)?$",
+                  "type": "string"
+                },
+                "memoryRequest": {
+                  "description": "The memory request set where a container has none (a Kubernetes quantity) (default: 128Mi).",
+                  "pattern": "^[0-9]+(\\.[0-9]+)?([kMGTPE]i?)?$",
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "add-default-security-context": {
+              "additionalProperties": false,
+              "description": "Mutation (default: on). Sets the restricted security context where a Pod leaves it unset: runAsNonRoot true and seccomp RuntimeDefault on the pod, allowPrivilegeEscalation false and capabilities.drop [ALL] on each container and init container. A value that's already set is never changed.",
+              "properties": {
+                "enabled": {
+                  "description": "Whether the mutation is installed when mutations.enabled is true (default: true).",
+                  "type": "boolean"
+                }
+              },
+              "type": "object"
+            },
+            "disable-service-account-token-automount": {
+              "additionalProperties": false,
+              "description": "Mutation (default: off). Sets automountServiceAccountToken false where a Pod leaves it unset, and removes the token volume (kube-api-access-*) and its mounts that the ServiceAccount admission plugin already added. A Pod that sets automountServiceAccountToken true keeps its token.",
+              "properties": {
+                "enabled": {
+                  "description": "Whether the mutation is installed when mutations.enabled is true (default: false).",
+                  "type": "boolean"
+                }
+              },
+              "type": "object"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "type": "object"
+    },
     "policies": {
       "additionalProperties": false,
       "description": "Each policy's settings, under its name. Baked-in policies take only their own settings; optional ones also take enabled and action.",

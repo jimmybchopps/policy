@@ -1,0 +1,72 @@
+name: add-default-security-context
+default: { enabled: true }
+description: >-
+  Sets the restricted security context where a Pod leaves it unset: runAsNonRoot true and
+  seccomp RuntimeDefault on the pod, allowPrivilegeEscalation false and capabilities.drop
+  [ALL] on each container and init container. A value that's already set is never changed.
+controls:
+  nist: [AC-6, CM-7]
+variables:
+  - name: initContainers
+    expression: "has(object.spec.initContainers) ? object.spec.initContainers : []"
+  # Containers (and init containers) that leave each field unset.
+  - name: containersWithoutEscalation
+    expression: >-
+      object.spec.containers.filter(c,
+        !has(c.securityContext) || !has(c.securityContext.allowPrivilegeEscalation))
+  - name: initContainersWithoutEscalation
+    expression: >-
+      variables.initContainers.filter(c,
+        !has(c.securityContext) || !has(c.securityContext.allowPrivilegeEscalation))
+  - name: containersWithoutDrop
+    expression: >-
+      object.spec.containers.filter(c, !has(c.securityContext) ||
+        !has(c.securityContext.capabilities) || !has(c.securityContext.capabilities.drop))
+  - name: initContainersWithoutDrop
+    expression: >-
+      variables.initContainers.filter(c, !has(c.securityContext) ||
+        !has(c.securityContext.capabilities) || !has(c.securityContext.capabilities.drop))
+# Each mutation sets one field, and only where it's unset (an apply configuration would
+# overwrite a set value). Containers merge by name.
+mutations:
+  - patchType: ApplyConfiguration
+    expression: >-
+      !has(object.spec.securityContext) || !has(object.spec.securityContext.runAsNonRoot)
+        ? Object{spec: Object.spec{securityContext: Object.spec.securityContext{runAsNonRoot: true}}}
+        : Object{}
+  - patchType: ApplyConfiguration
+    expression: >-
+      !has(object.spec.securityContext) || !has(object.spec.securityContext.seccompProfile)
+        ? Object{spec: Object.spec{securityContext: Object.spec.securityContext{
+            seccompProfile: Object.spec.securityContext.seccompProfile{type: 'RuntimeDefault'}}}}
+        : Object{}
+  - patchType: ApplyConfiguration
+    expression: >-
+      size(variables.containersWithoutEscalation) > 0
+        ? Object{spec: Object.spec{containers: variables.containersWithoutEscalation.map(c,
+            Object.spec.containers{name: c.name,
+              securityContext: Object.spec.containers.securityContext{allowPrivilegeEscalation: false}})}}
+        : Object{}
+  - patchType: ApplyConfiguration
+    expression: >-
+      size(variables.initContainersWithoutEscalation) > 0
+        ? Object{spec: Object.spec{initContainers: variables.initContainersWithoutEscalation.map(c,
+            Object.spec.initContainers{name: c.name,
+              securityContext: Object.spec.initContainers.securityContext{allowPrivilegeEscalation: false}})}}
+        : Object{}
+  - patchType: ApplyConfiguration
+    expression: >-
+      size(variables.containersWithoutDrop) > 0
+        ? Object{spec: Object.spec{containers: variables.containersWithoutDrop.map(c,
+            Object.spec.containers{name: c.name,
+              securityContext: Object.spec.containers.securityContext{
+                capabilities: Object.spec.containers.securityContext.capabilities{drop: ['ALL']}}})}}
+        : Object{}
+  - patchType: ApplyConfiguration
+    expression: >-
+      size(variables.initContainersWithoutDrop) > 0
+        ? Object{spec: Object.spec{initContainers: variables.initContainersWithoutDrop.map(c,
+            Object.spec.initContainers{name: c.name,
+              securityContext: Object.spec.initContainers.securityContext{
+                capabilities: Object.spec.initContainers.securityContext.capabilities{drop: ['ALL']}}})}}
+        : Object{}

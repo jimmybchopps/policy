@@ -1,0 +1,6 @@
+{{- /*
+The mutation renderer over the model built from the test definitions (a template of its own, so
+the validating render's document indexes don't move).
+*/ -}}
+{{- $model := include "policy.model" (dict "Values" .Values.input "definitions" .Values.definitions "mutationDefinitions" .Values.mutationDefinitions "chartVersion" .Values.chartVersion) | fromJson -}}
+{{- include "policy.renderMutating" (dict "model" $model "root" .) -}}

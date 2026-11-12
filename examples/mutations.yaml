@@ -1,0 +1,13 @@
+# The minimal configuration with every mutation on: Pods that leave the security context, the
+# service account token, or resources unset get safe defaults before the policies check them.
+policies:
+  restrict-image-registries:
+    registries:
+      - registry.example.mil/
+      - 127.0.0.1:31999/
+
+mutations:
+  enabled: true
+  policies:
+    disable-service-account-token-automount: { enabled: true }
+    add-default-resources: { enabled: true }
