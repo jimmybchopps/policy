@@ -461,7 +461,7 @@ check_mutation_type_checking() {
 }
 
 run_checks() { # run_checks <baseline|policy>
-  local phase=$1 check want w ns fixture policy
+  local phase=$1 check want w ns fixture policy ok
   if [[ $phase == baseline ]]; then
     for check in "${CHECKS[@]}"; do
       read -r want ns fixture policy <<<"$check"
@@ -477,15 +477,18 @@ run_checks() { # run_checks <baseline|policy>
     for check in "${CHECKS[@]}"; do
       read -r w ns fixture policy <<<"$check"
       [[ $w == "$want" ]] || continue
+      # Each check runs on the left of || so a failure is recorded, not fatal (run.sh uses
+      # set -e, which ignores a failing command only in a condition like this one).
+      ok=1
       case $want in
         # Admits run last, once every policy is active, so they aren't retried.
-        admit) check_once admit "$ns" "$fixture" "" ;;
+        admit) check_once admit "$ns" "$fixture" "" || ok=0 ;;
         # Mutations are retried like denies: until a mutating binding is active, the Pod is
         # admitted but not mutated.
-        mutated) check_retry mutated "$ns" "$fixture" "" ;;
-        *) check_retry "$want" "$ns" "$fixture" "$policy" ;;
+        mutated) check_retry mutated "$ns" "$fixture" "" || ok=0 ;;
+        *) check_retry "$want" "$ns" "$fixture" "$policy" || ok=0 ;;
       esac
-      if [[ $? -eq 0 ]]; then
+      if [[ $ok == 1 ]]; then
         record PASS "[policy] $want $ns $fixture${policy:+ ($policy)}"
       else
         record FAIL "[policy] $want $ns $fixture${policy:+ ($policy)}" "$DRY_OUT"
