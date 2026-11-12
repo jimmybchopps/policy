@@ -423,4 +423,5 @@ exempt workload admitted with no warning, non-exempt denied, namespace without
 |---|---|---|
 | 1 | Foundations: format, renderer, CRD, exceptions, first policies | 1a–1e done, e2e green; green CI run pending |
 | 2 | Full catalog, custom policies, enforcement controls | done, e2e green |
-| 3 | Mutations, reporting, docs, release | 3a, 3b done, e2e green; 3c built (1.0.0 waits on posture's CRD v1beta1) |
+| 3 | Mutations, reporting, docs, release | done, e2e green |
+| 4 | posture integration, CRD v1beta1, 1.0.0 | not started (0.1.0 released first) |

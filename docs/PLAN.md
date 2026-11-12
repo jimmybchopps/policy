@@ -303,7 +303,7 @@ Split like Phase 1; each subphase ends with a green `make e2e`.
       Unit tests for both (`test/model-probe/tests/since_test.yaml`, `notes_test.yaml`;
       `test/release/cases/`).
 - [x] `CHANGELOG.md`, starting with 0.1.0.
-- [ ] e2e: a regression run (nothing sets `since` yet, so nothing should change).
+- [x] e2e: green (a regression run; nothing sets `since` yet).
 
 **Done when** every policy in the catalog passes its fixtures in k3d.
 
@@ -347,7 +347,7 @@ Split like Phase 1; each subphase ends with a green `make e2e`.
       | `apiserver_mutating_admission_policy_check_duration_seconds` | `policy` |
 - [x] NOTES.txt lists enforcement, the baked-in count, optional policies by action and the
       ones off, custom policies, mutations, the excluded namespaces, and the dashboard.
-- [ ] e2e: written, not yet run.
+- [x] e2e: green.
 
 ### 3c. Documentation and release
 
@@ -363,12 +363,31 @@ Split like Phase 1; each subphase ends with a green `make e2e`.
       `Chart.yaml` and `CHANGELOG.md` (no longer `(unreleased)`), runs `make test`, and creates
       the GitHub release with the chart package, the CRD, the dashboard JSON, and `SHA256SUMS`
       (`test/release/build-dist.sh`, rehearsed locally with `make release-check TAG=...`).
-- [ ] Chart version 1.0.0 once the CRD contract with `posture` is at `v1beta1` or later
-      (depends on `posture`; 0.1.0 is the first release).
-- [ ] e2e: a regression run (3c changes nothing deployed).
+- [x] e2e: green (a regression run; 3c changes nothing deployed).
 
 **Done when** mutations pass their fixtures and the docs and examples are generated and
 current.
+
+---
+
+## Phase 4: posture integration and 1.0.0
+
+1.0.0 means the contract with `posture` (the PolicyExceptions CRD and the policy names its
+exceptions refer to) is stable. It depends on work in `posture`, so it's its own phase.
+
+- [ ] 0.1.0 released: tag `v0.1.0`, a GitHub release with the CRD asset.
+- [ ] `posture` pins to `v0.1.0`'s CRD, and its e2e runs against this chart's policies:
+      its `posture-exceptions` objects are accepted by the CRD and exempt the workloads they
+      name.
+- [ ] Fixes from that integration ship as 0.x releases. Within `v1alpha1` they're additive
+      only (the CRD compatibility rule).
+- [ ] CRD `v1beta1` is served alongside `v1alpha1`, and the policies' `paramKind` moves to
+      it, released in a 0.x minor.
+- [ ] `posture` moves to `v1beta1`.
+- [ ] Chart 1.0.0. From then on, a breaking change to the CRD or a policy name needs a major
+      version.
+
+**Done when** posture's integration is green on `v1beta1` and 1.0.0 is released.
 
 ---
 

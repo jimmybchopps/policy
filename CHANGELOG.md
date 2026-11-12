@@ -7,7 +7,7 @@ optional policies audit for their first minor instead (CLAUDE.md, "New policies 
 audit"). A version's section stays marked `(unreleased)` until the release commit; the release
 workflow refuses a tag whose section still is.
 
-## 0.1.0 (unreleased)
+## 0.1.0
 
 First release.
 
