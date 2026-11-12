@@ -29,6 +29,7 @@ The values schema for charts/policy. Reads, as copied in by `make values-schema`
     {{- $_ := set $props "enabled" (dict "type" "boolean" "description" (printf "Whether the policy is installed (default: %v)." $def.default.enabled)) -}}
     {{- $_ := set $props "action" (dict "type" "string" "enum" $actionEnum "description" (printf "inherit (take enforcement), enforce, or audit (default: %s)." $def.default.action)) -}}
     {{- $summary = printf "Optional (default: %s, %s). %s" (ternary "on" "off" $def.default.enabled) $def.default.action $def.description -}}
+    {{- with $def.since -}}{{- $summary = printf "%s New in %s: audits by default while the chart is %s.x." $summary . . -}}{{- end -}}
   {{- else -}}
     {{- $summary = printf "Baked-in: always on and enforced; %s. %s" (ternary (printf "takes only %s" (keys $props | sortAlpha | join ", ")) "takes no settings" (gt (len $props) 0)) $def.description -}}
   {{- end -}}
@@ -36,9 +37,9 @@ The values schema for charts/policy. Reads, as copied in by `make values-schema`
 {{- end -}}
 
 {{- /* custom.<name>: the definition format, without what only built-in definitions have
-       (name comes from the key; tier is custom; no default or settings), plus enabled and
+       (name comes from the key; tier is custom; no since, default, or settings), plus enabled and
        action. resources and operations default to workloads and CREATE, UPDATE. */ -}}
-{{- $customProps := omit $defSchema.properties "name" "tier" "default" "settings" -}}
+{{- $customProps := omit $defSchema.properties "name" "tier" "since" "default" "settings" -}}
 {{- $_ := set $customProps "enabled" (dict "type" "boolean" "description" "Whether the policy is installed (default: true).") -}}
 {{- $_ := set $customProps "action" (dict "type" "string" "enum" $actionEnum "description" "inherit (take enforcement), enforce, or audit (default: inherit).") -}}
 {{- $custom := dict

@@ -1,0 +1,4 @@
+name: new-b
+tier: baked-in
+since: "1.0"
+description: test

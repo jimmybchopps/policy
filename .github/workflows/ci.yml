@@ -42,6 +42,9 @@ jobs:
       - name: values schema is current
         run: make check-values-schema
 
+      - name: new baked-in policies are announced (CHANGELOG.md)
+        run: make check-release
+
       - name: helm unittest
         run: make unittest
 

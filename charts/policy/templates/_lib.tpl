@@ -172,3 +172,36 @@ Usage: include "policy.exemptExpression" (dict "kind" "ValidatingAdmissionPolicy
 {{- define "policy.exemptExpression" -}}
 {{- printf "has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == '%s' && e.policy.name == '%s' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))" .kind .name -}}
 {{- end -}}
+
+{{/*
+What a site upgrading to this chart's minor should know, from the model: policies introduced
+in it (since equals the chart's MAJOR.MINOR). Optional ones that are on audit only because
+they're new are listed with how to enforce them now; baked-in ones are enforced at once (the
+release check makes sure CHANGELOG.md announced them a minor ahead). Prints nothing when
+nothing is new.
+Usage: include "policy.releaseNotes" $model
+*/}}
+{{- define "policy.releaseNotes" -}}
+{{- $release := .release -}}
+{{- $s := splitList "." $release -}}
+{{- $next := printf "%s.%d" (index $s 0) (add1 (atoi (index $s 1))) -}}
+{{- $auditing := list -}}
+{{- $baked := list -}}
+{{- range .policies -}}
+  {{- if and .enabled .newAudit -}}{{- $auditing = append $auditing .name -}}{{- end -}}
+  {{- if and .introducing (eq .tier "baked-in") -}}{{- $baked = append $baked .name -}}{{- end -}}
+{{- end -}}
+{{- if $auditing }}
+New in {{ $release }}, auditing (not denying) until {{ $next }}:
+{{- range $auditing }}
+  - {{ . }} (to enforce it now, set policies.{{ . }}.action: enforce)
+{{- end }}
+Check the audit log for what they would deny, and fix or except it before {{ $next }}.
+{{- end }}
+{{- if $baked }}
+New baked-in policies in {{ $release }}, enforced now (see CHANGELOG.md):
+{{- range $baked }}
+  - {{ . }}
+{{- end }}
+{{- end }}
+{{- end -}}

@@ -1,0 +1,36 @@
+# The release notes (NOTES.txt): what's new in this chart's minor.
+suite: release notes (new policies)
+templates:
+  - templates/notes.yaml
+values:
+  - ../values/since.yaml
+tests:
+  - it: lists optional policies auditing only because they're new, and new baked-in ones
+    set:
+      chartVersion: 0.2.0
+    asserts:
+      - matchRegex: { path: notes, pattern: "New in 0\\.2, auditing \\(not denying\\) until 0\\.3:\\n  - opt-new \\(to enforce it now, set policies\\.opt-new\\.action: enforce\\)\\n" }
+      - notMatchRegex: { path: notes, pattern: "opt-new-audit|opt-new-off|opt-old" }
+      - matchRegex: { path: notes, pattern: "New baked-in policies in 0\\.2, enforced now \\(see CHANGELOG\\.md\\):\\n  - baked-new" }
+
+  - it: lists a new policy that's off once it's turned on without an action
+    set:
+      chartVersion: 0.2.0
+      input:
+        policies: { opt-new-off: { enabled: true } }
+    asserts:
+      - matchRegex: { path: notes, pattern: "  - opt-new-off \\(to enforce" }
+
+  - it: doesn't list a new optional policy the user set an action on
+    set:
+      chartVersion: 0.2.0
+      input:
+        policies: { opt-new: { action: enforce } }
+    asserts:
+      - notMatchRegex: { path: notes, pattern: "auditing" }
+
+  - it: is empty in the next minor
+    set:
+      chartVersion: 0.3.0
+    asserts:
+      - equal: { path: notes, value: "" }

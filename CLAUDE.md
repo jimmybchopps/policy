@@ -56,6 +56,13 @@ The build order is in `docs/PLAN.md`. Work through it phase by phase.
 - **Policy names are a contract.** `posture` exceptions refer to policies by name and kind. A
   rename is a breaking change: keep the old name working for one minor version (or longer)
   and document it.
+- **New policies arrive in audit.** An upgrade never starts denying workloads that already
+  run. A definition added after the first release carries `since: "MAJOR.MINOR"`, the chart
+  minor that introduced it. An optional policy whose `since` is the chart's own minor
+  defaults to `audit` for that whole minor (unless the user sets `action`), and NOTES.txt
+  lists it; from the next minor its definition's default applies. A baked-in policy can't
+  audit, so it's announced instead: `make check-release` fails unless every baked-in policy
+  whose `since` is the chart's minor is named in `CHANGELOG.md` under the previous minor.
 - **No workloads.** This chart renders policies, bindings, the CRD, and configuration only. It
   never runs a pod, so it can install before anything else exists and is never blocked by its
   own policies.
@@ -129,6 +136,7 @@ object should still see the problem).
 ```yaml
 name: disallow-privileged-containers
 tier: baked-in                   # baked-in | optional (custom policies are tier custom automatically)
+since: "0.2"                     # the chart minor that introduced it; absent for the original catalog
 default: { enabled: true, action: inherit }   # optional tier only
 description: Containers may not run privileged or as Windows HostProcess.
 controls:                        # shown as annotations and in docs/policies.md
@@ -251,7 +259,8 @@ PolicyException CRD, tenants just create the objects.)
 - Its bindings: `disallow-host-path` (Pods) and `disallow-host-path-controllers` (warnings)
   for workload policies; a single `restrict-external-ips` for every other shape.
 - Annotations on every policy: `policy.posture.dev/tier`, `policy.posture.dev/description`,
-  `policy.posture.dev/pss`, `policy.posture.dev/nist`.
+  `policy.posture.dev/pss`, `policy.posture.dev/nist`, and `policy.posture.dev/since` when
+  the definition sets it.
 - Annotations on every binding: `policy.posture.dev/tier` and `policy.posture.dev/binding`
   (`pods`, `controllers`, `services`, `rbac`, or `custom`; the first binding shares its name
   with the policy, so this tells them apart).
@@ -285,15 +294,17 @@ test/model-probe/                  test-only chart that renders the model for he
 test/definition-schema/            JSON schema for definitions (make check-definitions)
 test/crd-schema/                   CRD -> JSON schema for kubeconform (make crd-schema)
 test/values-schema/                definitions -> charts/policy/values.schema.json (make values-schema)
+test/release/                      check-release.sh (new baked-in policies announced) and its cases
 examples/objects/                  example objects (not values files), e.g. posture-exceptions.yaml
 docs/PLAN.md                       build order
+CHANGELOG.md                       one section per release; announces baked-in policies a minor ahead
 docs/policies.md                   generated catalog (make docs); CI checks it's current
 ```
 
 ## Testing
 
-    make test           # lint, check-definitions, check-fixtures, check-values-schema, unittest,
-                        # validate (kubeconform)
+    make test           # lint, check-definitions, check-fixtures, check-values-schema,
+                        # check-release, unittest, validate (kubeconform)
     make test-all-helm  # the same under every supported Helm version
     make e2e            # k3d, Kubernetes 1.36+ (MutatingAdmissionPolicy is v1 there)
 
@@ -331,5 +342,5 @@ exempt workload admitted with no warning, non-exempt denied, namespace without
 | Phase | Area | Status |
 |---|---|---|
 | 1 | Foundations: format, renderer, CRD, exceptions, first policies | 1a–1e done, e2e green; green CI run pending |
-| 2 | Full catalog, custom policies, enforcement controls | 2a–2c done, e2e green; 2d built, e2e run pending |
+| 2 | Full catalog, custom policies, enforcement controls | 2a–2d done, e2e green; 2e built, e2e run pending |
 | 3 | Mutations, reporting, docs, release | not started |

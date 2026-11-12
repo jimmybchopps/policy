@@ -1,0 +1,19 @@
+# The since annotation on rendered policies.
+suite: renderer (since)
+templates:
+  - templates/rendered.yaml
+values:
+  - ../values/since.yaml
+set:
+  chartVersion: 0.2.0
+tests:
+  - it: a policy with since carries policy.posture.dev/since
+    documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: An optional policy from 0.1. }
+    asserts:
+      - isKind: { of: ValidatingAdmissionPolicy }
+      - equal: { path: "metadata.annotations['policy.posture.dev/since']", value: "0.1" }
+
+  - it: bindings don't carry it
+    documentSelector: { path: metadata.name, value: opt-old-controllers }
+    asserts:
+      - notExists: { path: "metadata.annotations['policy.posture.dev/since']" }

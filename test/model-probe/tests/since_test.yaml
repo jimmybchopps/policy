@@ -1,0 +1,123 @@
+# Upgrade safety: since (CLAUDE.md, "New policies arrive in audit"). The chart version is
+# chartVersion; every test definition is new in 0.2 except opt-old (0.1).
+suite: model since (new policies arrive in audit)
+templates:
+  - templates/model.yaml
+values:
+  - ../values/since.yaml
+set:
+  chartVersion: 0.2.0
+tests:
+  - it: carries the chart's MAJOR.MINOR as release
+    documentSelector: { path: name, value: model }
+    asserts:
+      - equal: { path: release, value: "0.2" }
+
+  - it: an optional policy new in this minor audits by default
+    documentSelector: { path: name, value: opt-new }
+    asserts:
+      - equal: { path: since, value: "0.2" }
+      - equal: { path: introducing, value: true }
+      - equal: { path: newAudit, value: true }
+      - equal: { path: action, value: audit }
+      - equal: { path: actions, value: { pods: [Audit], controllers: [Warn] } }
+
+  - it: a patch release of that minor still audits
+    set:
+      chartVersion: 0.2.5
+    documentSelector: { path: name, value: opt-new }
+    asserts:
+      - equal: { path: action, value: audit }
+
+  - it: the next minor falls back to the definition's default
+    set:
+      chartVersion: 0.3.0
+    documentSelector: { path: name, value: opt-new }
+    asserts:
+      - equal: { path: since, value: "0.2" }
+      - notExists: { path: introducing }
+      - notExists: { path: newAudit }
+      - equal: { path: action, value: enforce }
+
+  - it: an explicit action wins (enforce)
+    set:
+      input:
+        policies: { opt-new: { action: enforce } }
+    documentSelector: { path: name, value: opt-new }
+    asserts:
+      - equal: { path: action, value: enforce }
+      - notExists: { path: newAudit }
+
+  - it: an explicit action wins (inherit takes enforcement)
+    set:
+      input:
+        enforcement: enforce
+        policies: { opt-new: { action: inherit } }
+    documentSelector: { path: name, value: opt-new }
+    asserts:
+      - equal: { path: action, value: enforce }
+
+  - it: a policy that audits by default anyway isn't marked as auditing because it's new
+    documentSelector: { path: name, value: opt-new-audit }
+    asserts:
+      - equal: { path: introducing, value: true }
+      - notExists: { path: newAudit }
+      - equal: { path: action, value: audit }
+
+  - it: a new policy that's off stays off, and audits when turned on without an action
+    set:
+      input:
+        policies: { opt-new-off: { enabled: true } }
+    documentSelector: { path: name, value: opt-new-off }
+    asserts:
+      - equal: { path: enabled, value: true }
+      - equal: { path: action, value: audit }
+
+  - it: an older since is just recorded
+    documentSelector: { path: name, value: opt-old }
+    asserts:
+      - equal: { path: since, value: "0.1" }
+      - notExists: { path: introducing }
+      - equal: { path: action, value: enforce }
+
+  - it: a baked-in policy new in this minor is still enforced
+    documentSelector: { path: name, value: baked-new }
+    asserts:
+      - equal: { path: introducing, value: true }
+      - notExists: { path: newAudit }
+      - equal: { path: action, value: enforce }
+      - equal: { path: actions, value: { pods: [Deny, Audit], controllers: [Warn] } }
+
+  # ---- failures
+  - it: rejects a since later than the chart
+    set:
+      chartVersion: 0.1.4
+    asserts:
+      - failedTemplate:
+          errorPattern: "policy: definitions/validating/baked-new.yaml: since 0.2 is later than this chart \\(0.1.4\\); bump Chart.yaml's version in the same change"
+
+  - it: rejects a since that isn't MAJOR.MINOR
+    set:
+      definitions:
+        - { name: bad, source: definitions/validating/bad.yaml, tier: baked-in, since: "v0.2", description: x, validations: [{ expression: "true", message: x }] }
+    asserts:
+      - failedTemplate:
+          errorPattern: "policy: definitions/validating/bad.yaml: since: must be \"MAJOR.MINOR\""
+
+  - it: rejects since on a custom policy
+    set:
+      input:
+        custom:
+          mine: { description: x, since: "0.2", validations: [{ expression: "true", message: x }] }
+    asserts:
+      - failedTemplate:
+          errorPattern: "policy: custom.mine: since: only built-in policies have since"
+
+  - it: a major version counts too (1.0 is later than 0.9)
+    set:
+      chartVersion: 0.9.0
+      definitions:
+        - { name: future, source: definitions/validating/future.yaml, tier: baked-in, since: "1.0", description: x, validations: [{ expression: "true", message: x }] }
+    asserts:
+      - failedTemplate:
+          errorPattern: "since 1.0 is later than this chart \\(0.9.0\\)"

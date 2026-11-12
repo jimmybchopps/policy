@@ -31,6 +31,7 @@ The root (Chart, Release) is only used for labels; the probe chart passes its ow
 {{- $annotations := dict "policy.posture.dev/tier" $p.tier "policy.posture.dev/description" $p.description -}}
 {{- with $p.controls.pss -}}{{- $_ := set $annotations "policy.posture.dev/pss" . -}}{{- end -}}
 {{- with $p.controls.nist -}}{{- $_ := set $annotations "policy.posture.dev/nist" (join ", " .) -}}{{- end -}}
+{{- with $p.since -}}{{- $_ := set $annotations "policy.posture.dev/since" . -}}{{- end -}}
 
 {{- $variables := $p.variables -}}
 {{- $validations := list -}}

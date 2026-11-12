@@ -1,0 +1,46 @@
+# Test definitions for since (upgrade safety), all introduced in 0.2: an optional policy that
+# would enforce, one that defaults to audit anyway, one that's off, and a baked-in one.
+definitions:
+  - name: baked-new
+    source: definitions/validating/baked-new.yaml
+    tier: baked-in
+    since: "0.2"
+    description: A baked-in policy new in 0.2.
+    validations:
+      - { expression: "true", message: "baked-new message" }
+
+  - name: opt-new
+    source: definitions/validating/opt-new.yaml
+    tier: optional
+    since: "0.2"
+    default: { enabled: true, action: inherit }
+    description: An optional policy new in 0.2 that would enforce.
+    validations:
+      - { expression: "true", message: "opt-new message" }
+
+  - name: opt-new-audit
+    source: definitions/validating/opt-new-audit.yaml
+    tier: optional
+    since: "0.2"
+    default: { enabled: true, action: audit }
+    description: An optional policy new in 0.2 that audits anyway.
+    validations:
+      - { expression: "true", message: "opt-new-audit message" }
+
+  - name: opt-new-off
+    source: definitions/validating/opt-new-off.yaml
+    tier: optional
+    since: "0.2"
+    default: { enabled: false, action: inherit }
+    description: An optional policy new in 0.2 that's off by default.
+    validations:
+      - { expression: "true", message: "opt-new-off message" }
+
+  - name: opt-old
+    source: definitions/validating/opt-old.yaml
+    tier: optional
+    since: "0.1"
+    default: { enabled: true, action: inherit }
+    description: An optional policy from 0.1.
+    validations:
+      - { expression: "true", message: "opt-old message" }

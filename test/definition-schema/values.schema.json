@@ -26,6 +26,11 @@
         "optional"
       ]
     },
+    "since": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$",
+      "description": "The chart MAJOR.MINOR that introduced this policy (absent: the original catalog). An optional policy audits by default while the chart is that minor; a baked-in one must be announced in CHANGELOG.md under the previous minor (make check-release)."
+    },
     "default": {
       "description": "Optional tier only: whether the policy is on and how it acts when values don't say.",
       "type": "object",

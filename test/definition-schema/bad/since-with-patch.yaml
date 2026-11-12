@@ -1,0 +1,11 @@
+# since names a minor ("0.2"), not a full version.
+name: since-with-patch
+tier: optional
+since: "0.2.1"
+default: { enabled: true, action: inherit }
+description: x
+resources: workloads
+operations: [CREATE, UPDATE]
+validations:
+  - expression: "true"
+    message: "x. If this workload needs it, add a posture exception for since-with-patch."

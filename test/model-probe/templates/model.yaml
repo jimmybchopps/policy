@@ -2,7 +2,7 @@
 One document for the model's top-level fields (probe: Model), then one per policy (probe: Policy),
 so tests can pick a policy with documentSelector on its name.
 */ -}}
-{{- $model := include "policy.model" (dict "Values" .Values.input "definitions" .Values.definitions) | fromJson -}}
+{{- $model := include "policy.model" (dict "Values" .Values.input "definitions" .Values.definitions "chartVersion" .Values.chartVersion) | fromJson -}}
 probe: Model
 name: model
 {{ omit $model "policies" | toYaml }}

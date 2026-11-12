@@ -66,7 +66,7 @@ UNITTEST_FILES := -f 'tests/*_test.yaml' -f 'tests/*/*_test.yaml'
 
 KUBECONFORM_ARGS := -strict -summary -schema-location default $(LOCAL_SCHEMAS) -schema-location '$(CRDS_CATALOG)'
 
-.PHONY: help tools tools-e2e lint check-definitions check-fixtures check-values-schema values-schema unittest unittest-update crd-schema validate test test-all-helm e2e clean
+.PHONY: help tools tools-e2e lint check-definitions check-fixtures check-values-schema check-release values-schema unittest unittest-update crd-schema validate test test-all-helm e2e clean
 
 help:
 	@echo "make tools          install helm $(HELM_VERSION), helm-unittest, kubeconform into .bin/"
@@ -233,7 +233,14 @@ check-fixtures:
 	done; \
 	[ $$fail -eq 0 ] && echo "==> fixtures cover every policy (the kinds it applies to; allow and deny)"
 
-test: lint check-definitions check-fixtures check-values-schema unittest validate
+# Upgrade safety (CLAUDE.md, "New policies arrive in audit"): every baked-in policy new in this
+# chart's minor (since:) is announced in CHANGELOG.md under the previous minor. Also runs the
+# check's own cases (test/release/cases/).
+check-release:
+	@test/release/run-cases.sh
+	@test/release/check-release.sh $(CHART) CHANGELOG.md
+
+test: lint check-definitions check-fixtures check-values-schema check-release unittest validate
 
 test-all-helm:
 	@set -e; for v in $(HELM_VERSIONS); do \

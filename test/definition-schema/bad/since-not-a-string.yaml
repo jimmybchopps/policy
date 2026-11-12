@@ -1,0 +1,11 @@
+# since is the chart MAJOR.MINOR as a string ("0.2"), not a number.
+name: since-not-a-string
+tier: optional
+since: 2
+default: { enabled: true, action: inherit }
+description: x
+resources: workloads
+operations: [CREATE, UPDATE]
+validations:
+  - expression: "true"
+    message: "x. If this workload needs it, add a posture exception for since-not-a-string."

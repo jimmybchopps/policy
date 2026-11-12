@@ -286,16 +286,21 @@ Split like Phase 1; each subphase ends with a green `make e2e`.
       each allowlist (`lb-allowed`, `allowedSubjects`, `system:masters`, `allowedRoles`).
 - [x] `make check-fixtures` takes a binding as an RBAC policy's fixture: one cluster-scoped
       (ClusterRole or ClusterRoleBinding) and one namespaced (Role or RoleBinding).
-- [ ] e2e: written, not yet run.
+- [x] e2e: green.
 
 ### 2e. Upgrade safety
 
-- [ ] Definitions may carry `since: "0.N"`, the chart minor version that introduced them
+- [x] Definitions may carry `since: "0.N"`, the chart minor version that introduced them
       (absent: the original catalog). While the chart's minor equals `since`, an optional
       policy's default action is `audit` unless the user sets `action`, so an upgrade can't
-      suddenly deny workloads already running. Baked-in policies can't be audit: `make
-      check-release` fails if one with `since` set to the next minor isn't named in
-      `CHANGELOG.md` for the version before. Unit tests for both.
+      suddenly deny workloads already running; NOTES.txt lists them, and the policy carries
+      `policy.posture.dev/since`. Baked-in policies can't be audit: `make check-release`
+      (`test/release/`, in `make test` and CI) fails unless every baked-in policy whose
+      `since` is the chart's minor is named in `CHANGELOG.md` under the previous minor.
+      Unit tests for both (`test/model-probe/tests/since_test.yaml`, `notes_test.yaml`;
+      `test/release/cases/`).
+- [x] `CHANGELOG.md`, starting with 0.1.0.
+- [ ] e2e: a regression run (nothing sets `since` yet, so nothing should change).
 
 **Done when** every policy in the catalog passes its fixtures in k3d.
 

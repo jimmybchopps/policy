@@ -268,3 +268,8 @@ tests:
       - equal: { path: "spec.variables[0]", value: { name: setting_allowedRoles, expression: "[]" } }
       - matchRegex: { path: "spec.variables[2].expression", pattern: "\\['cluster-admin', 'admin', 'edit'\\] \\+ variables\\.setting_allowedRoles" }
       - matchRegex: { path: "spec.validations[0].expression", pattern: "\\['escalate', 'bind', 'impersonate'\\]" }
+
+  - it: no policy carries a since annotation yet (the original catalog)
+    documentSelector: { path: kind, value: ValidatingAdmissionPolicy, matchMany: true }
+    asserts:
+      - notExists: { path: "metadata.annotations['policy.posture.dev/since']" }
