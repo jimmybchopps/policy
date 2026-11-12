@@ -1,0 +1,7 @@
+# A ClusterRole has no roleRef: admitted.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: e2e-cluster-admin-lookalike
+rules:
+  - { apiGroups: [""], resources: [configmaps], verbs: [get] }

@@ -489,6 +489,26 @@
           },
           "type": "object"
         },
+        "disallow-nodeport-services": {
+          "additionalProperties": false,
+          "description": "Optional (default: on, inherit). Services are not of type NodePort.",
+          "properties": {
+            "action": {
+              "description": "inherit (take enforcement), enforce, or audit (default: inherit).",
+              "enum": [
+                "inherit",
+                "enforce",
+                "audit"
+              ],
+              "type": "string"
+            },
+            "enabled": {
+              "description": "Whether the policy is installed (default: true).",
+              "type": "boolean"
+            }
+          },
+          "type": "object"
+        },
         "disallow-pod-exec": {
           "additionalProperties": false,
           "description": "Optional (default: off, inherit). No interactive kubectl exec or attach, except in the namespaces listed.",
@@ -527,6 +547,34 @@
           "additionalProperties": false,
           "description": "Baked-in: always on and enforced; takes no settings. Containers may not run privileged or as Windows HostProcess.",
           "properties": {},
+          "type": "object"
+        },
+        "disallow-rbac-escalation-verbs": {
+          "additionalProperties": false,
+          "description": "Optional (default: on, audit). Roles and ClusterRoles don't grant the escalate, bind, or impersonate verbs.",
+          "properties": {
+            "action": {
+              "description": "inherit (take enforcement), enforce, or audit (default: audit).",
+              "enum": [
+                "inherit",
+                "enforce",
+                "audit"
+              ],
+              "type": "string"
+            },
+            "allowedRoles": {
+              "description": "Role and ClusterRole names allowed to grant escalate, bind, or impersonate.",
+              "items": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "enabled": {
+              "description": "Whether the policy is installed (default: true).",
+              "type": "boolean"
+            }
+          },
           "type": "object"
         },
         "disallow-secrets-in-env": {
@@ -687,10 +735,108 @@
           "properties": {},
           "type": "object"
         },
+        "restrict-cluster-admin-binding": {
+          "additionalProperties": false,
+          "description": "Optional (default: on, inherit). Only the subjects listed are bound to cluster-admin.",
+          "properties": {
+            "action": {
+              "description": "inherit (take enforcement), enforce, or audit (default: inherit).",
+              "enum": [
+                "inherit",
+                "enforce",
+                "audit"
+              ],
+              "type": "string"
+            },
+            "allowedSubjects": {
+              "description": "Subjects allowed to be bound to cluster-admin.",
+              "items": {
+                "additionalProperties": false,
+                "oneOf": [
+                  {
+                    "not": {
+                      "required": [
+                        "namespace"
+                      ]
+                    },
+                    "properties": {
+                      "kind": {
+                        "enum": [
+                          "User",
+                          "Group"
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "properties": {
+                      "kind": {
+                        "enum": [
+                          "ServiceAccount"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "namespace"
+                    ]
+                  }
+                ],
+                "properties": {
+                  "kind": {
+                    "enum": [
+                      "User",
+                      "Group",
+                      "ServiceAccount"
+                    ]
+                  },
+                  "name": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "namespace": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "name"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "enabled": {
+              "description": "Whether the policy is installed (default: true).",
+              "type": "boolean"
+            }
+          },
+          "type": "object"
+        },
         "restrict-external-ips": {
           "additionalProperties": false,
           "description": "Baked-in: always on and enforced; takes no settings. Services may not set externalIPs.",
           "properties": {},
+          "type": "object"
+        },
+        "restrict-externalname-services": {
+          "additionalProperties": false,
+          "description": "Optional (default: on, inherit). Services are not of type ExternalName.",
+          "properties": {
+            "action": {
+              "description": "inherit (take enforcement), enforce, or audit (default: inherit).",
+              "enum": [
+                "inherit",
+                "enforce",
+                "audit"
+              ],
+              "type": "string"
+            },
+            "enabled": {
+              "description": "Whether the policy is installed (default: true).",
+              "type": "boolean"
+            }
+          },
           "type": "object"
         },
         "restrict-image-registries": {
@@ -699,6 +845,34 @@
           "properties": {
             "registries": {
               "description": "List the image prefixes this cluster may pull from, e.g. registry.site.mil/.",
+              "items": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          "type": "object"
+        },
+        "restrict-loadbalancer-services": {
+          "additionalProperties": false,
+          "description": "Optional (default: on, inherit). Services of type LoadBalancer only in the namespaces listed.",
+          "properties": {
+            "action": {
+              "description": "inherit (take enforcement), enforce, or audit (default: inherit).",
+              "enum": [
+                "inherit",
+                "enforce",
+                "audit"
+              ],
+              "type": "string"
+            },
+            "enabled": {
+              "description": "Whether the policy is installed (default: true).",
+              "type": "boolean"
+            },
+            "namespaces": {
+              "description": "Namespaces where Services may be of type LoadBalancer, e.g. the ingress gateway's.",
               "items": {
                 "minLength": 1,
                 "type": "string"

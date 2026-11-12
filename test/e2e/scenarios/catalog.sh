@@ -10,15 +10,17 @@
 #                    (+ the cases below)         exception cases in test/e2e/fixtures/exceptions
 #   kube-system      none                        deny Pods admitted (never evaluated)
 #   exec-allowed     none                        listed in disallow-pod-exec.namespaces
+#   lb-allowed       empty posture-exceptions    listed in restrict-loadbalancer-services.namespaces
 #   debug-allowed    disallow-ephemeral-         kubectl debug on the smoke pod (the other
 #                    containers excepted         policies still judge the debug container)
 #   default          every other policy excepted disallow-default-namespace's deny fixtures
 #                                                (only-<policy> doesn't apply: the namespace
 #                                                is what it refuses)
 #
-# Policies without exceptions (restrict-wildcard-rbac, disallow-pod-exec) have no only-<policy>
-# or exempt case: their deny fixtures are denied in apps, and their allowlist settings are
-# checked instead (allowedRoles, a system: name, the exec namespaces).
+# Policies without exceptions (the RBAC policies, disallow-pod-exec) have no only-<policy> or
+# exempt case: their deny fixtures are denied in apps (so each breaks only its own policy), and
+# their allowlist settings are checked instead (allowedRoles, allowedSubjects, a system: name,
+# the exec namespaces).
 #
 # A namespace with no posture-exceptions at all is covered by the smoke scenario (bare).
 #
@@ -34,6 +36,7 @@ setup() {
   namespace exempt
   namespace exec-allowed
   namespace debug-allowed
+  namespace lb-allowed
   policy_namespaces
   # A pod that predates the policies: created for real now, never scheduled.
   quiet "$KUBECTL" apply -n apps -f "$ROOT/test/e2e/fixtures/old-bad-pod.yaml"
@@ -55,6 +58,13 @@ checks() {
   # restrict-wildcard-rbac's allowlists: a name in allowedRoles, and Kubernetes' own system: names.
   expect admit apps "$RBAC/allowed-wildcard-clusterrole.yaml"
   expect admit apps "$RBAC/system-wildcard-clusterrole.yaml"
+  # The other RBAC allowlists: allowedSubjects and system:masters for cluster-admin bindings,
+  # allowedRoles for the escalation verbs.
+  expect admit apps "$RBAC/allowed-cluster-admin-binding.yaml"
+  expect admit apps "$RBAC/masters-cluster-admin-binding.yaml"
+  expect admit apps "$RBAC/allowed-escalation-clusterrole.yaml"
+  # A LoadBalancer Service in a namespace listed in restrict-loadbalancer-services.namespaces.
+  expect admit lb-allowed test/e2e/fixtures/services/loadbalancer.yaml
   # disallow-latest-tag admits a tag (also after a registry port) when require-image-digest is
   # excepted; in apps both apply, so these can't be allow fixtures.
   expect admit only-disallow-latest-tag test/e2e/fixtures/optional/pod-tag-only.yaml
@@ -65,12 +75,16 @@ install() {
   # shellcheck disable=SC2046 # one flag per word
   install_chart minimal.yaml $(optional_policy_flags enforce) \
     --set-json 'policies.restrict-wildcard-rbac.allowedRoles=["e2e-allowed-wildcard"]' \
-    --set-json 'policies.disallow-pod-exec.namespaces=["exec-allowed"]'
+    --set-json 'policies.disallow-pod-exec.namespaces=["exec-allowed"]' \
+    --set-json 'policies.restrict-loadbalancer-services.namespaces=["lb-allowed"]' \
+    --set-json 'policies.restrict-cluster-admin-binding.allowedSubjects=[{"kind":"Group","name":"e2e-admins"}]' \
+    --set-json 'policies.disallow-rbac-escalation-verbs.allowedRoles=["e2e-allowed-escalation"]'
   exceptions_object apps
   exceptions_object debug-allowed disallow-ephemeral-containers
+  exceptions_object lb-allowed
   policy_exceptions
   quiet "$KUBECTL" apply -n exempt -f "$ROOT/$EXC/posture-exceptions-exempt.yaml"
-  info "posture-exceptions applied in apps (empty), debug-allowed, only-<policy> and default (all but one), exempt"
+  info "posture-exceptions applied in apps and lb-allowed (empty), debug-allowed, only-<policy> and default (all but one), exempt"
 }
 
 extra() {

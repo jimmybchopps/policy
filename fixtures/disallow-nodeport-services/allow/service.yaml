@@ -1,0 +1,9 @@
+# A ClusterIP Service: admitted.
+apiVersion: v1
+kind: Service
+metadata:
+  name: service
+  labels: { app.kubernetes.io/name: service, e2e.test/fixture: "true" }
+spec:
+  selector: { app.kubernetes.io/name: app }
+  ports: [{ name: http, port: 80, targetPort: 8080 }]

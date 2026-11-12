@@ -83,11 +83,11 @@ policies:
       - { kind: label, key: sidecar.istio.io/inject, value: "false" }
       - { kind: annotation, key: linkerd.io/inject, value: disabled }
   restrict-loadbalancer-services:
-    namespaces: [ingress-gateway]   # only the ingress gateway needs an external address
+    namespaces: [ingress-gateway]   # e.g.; default [], so nothing gets an external address until listed
   restrict-wildcard-rbac:        # RBAC is cluster-scoped, so it can't use namespace exceptions
     allowedRoles: []             # Role/ClusterRole names allowed to use "*"
   restrict-cluster-admin-binding:
-    allowedSubjects: []          # subjects allowed to be bound to cluster-admin
+    allowedSubjects: []          # { kind: User | Group | ServiceAccount, name, namespace (ServiceAccount only) }
   disallow-rbac-escalation-verbs:
     allowedRoles: []
 
@@ -303,8 +303,10 @@ fixture, a Pod must be refused, and a controller must be admitted with a `Warnin
 policy.
 
 Every policy needs allow and deny fixtures covering the kinds it applies to: a Pod, a
-Deployment, and a CronJob for workloads; a Service for services; a ClusterRole and a Role for
-rbac (`make check-fixtures` enforces it). A `matchConstraints` policy is covered by e2e
+Deployment, and a CronJob for workloads; a Service for services; a cluster-scoped and a namespaced
+object for rbac (ClusterRole or ClusterRoleBinding, Role or RoleBinding; `make check-fixtures`
+enforces it). RBAC deny fixtures are checked in `apps`, with no other policy excepted, so each
+breaks only its own policy. A `matchConstraints` policy is covered by e2e
 commands instead (`check_command`). Every fixture is compliant with every other policy (a deny fixture breaks as few as it can;
 the e2e exception-path fixtures break exactly one, so a denial always names the same policy),
 optional ones included: the catalog scenario installs with every optional policy on at
@@ -329,5 +331,5 @@ exempt workload admitted with no warning, non-exempt denied, namespace without
 | Phase | Area | Status |
 |---|---|---|
 | 1 | Foundations: format, renderer, CRD, exceptions, first policies | 1a–1e done, e2e green; green CI run pending |
-| 2 | Full catalog, custom policies, enforcement controls | 2a, 2b done, e2e green; 2c built, e2e run pending |
+| 2 | Full catalog, custom policies, enforcement controls | 2a–2c done, e2e green; 2d built, e2e run pending |
 | 3 | Mutations, reporting, docs, release | not started |

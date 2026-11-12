@@ -1,0 +1,9 @@
+# One allowed subject (e2e-admins, set by the catalog scenario) and one that isn't.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: e2e-cluster-admin-mixed
+roleRef: { apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: cluster-admin }
+subjects:
+  - { kind: Group, apiGroup: rbac.authorization.k8s.io, name: e2e-admins }
+  - { kind: Group, apiGroup: rbac.authorization.k8s.io, name: e2e-others }

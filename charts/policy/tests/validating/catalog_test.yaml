@@ -10,9 +10,9 @@ release:
 values:
   - ../../../../examples/minimal.yaml
 tests:
-  - it: renders the policies on by default (26 workloads x 3, 1 services x 2, 1 rbac x 2)
+  - it: renders the policies on by default (26 workloads x 3, 4 services x 2, 3 rbac x 2)
     asserts:
-      - hasDocuments: { count: 82 }
+      - hasDocuments: { count: 92 }
 
   - it: disallow-pod-exec is off by default
     asserts:
@@ -24,7 +24,7 @@ tests:
       policies:
         disallow-pod-exec: { enabled: true }
     asserts:
-      - hasDocuments: { count: 84 }
+      - hasDocuments: { count: 94 }
       - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: disallow-pod-exec, any: true }
 
   - it: require-read-only-root-filesystem
@@ -137,7 +137,7 @@ tests:
       policies:
         disallow-ephemeral-containers: { enabled: true }
     asserts:
-      - hasDocuments: { count: 84 }
+      - hasDocuments: { count: 94 }
       - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: disallow-ephemeral-containers, any: true }
       - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: disallow-ephemeral-containers-controllers, any: true }
         not: true
@@ -207,6 +207,41 @@ tests:
       - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: require-probes, any: true }
       - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: require-probes, any: true }
       - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: require-probes-controllers, any: true }
+
+  - it: disallow-nodeport-services
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: disallow-nodeport-services, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: disallow-nodeport-services, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: disallow-nodeport-services-controllers, any: true }
+        not: true
+
+  - it: restrict-externalname-services
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: restrict-externalname-services, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: restrict-externalname-services, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: restrict-externalname-services-controllers, any: true }
+        not: true
+
+  - it: restrict-loadbalancer-services
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: restrict-loadbalancer-services, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: restrict-loadbalancer-services, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: restrict-loadbalancer-services-controllers, any: true }
+        not: true
+
+  - it: restrict-cluster-admin-binding
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: restrict-cluster-admin-binding, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: restrict-cluster-admin-binding, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: restrict-cluster-admin-binding-controllers, any: true }
+        not: true
+
+  - it: disallow-rbac-escalation-verbs
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: disallow-rbac-escalation-verbs, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: disallow-rbac-escalation-verbs, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: disallow-rbac-escalation-verbs-controllers, any: true }
+        not: true
 
   - it: each policy's controls (PSS level, NIST) and validation count follow its definition
     asserts:
@@ -354,3 +389,23 @@ tests:
         documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Long-running containers have readiness and liveness probes." }
       - lengthEqual: { path: spec.validations, count: 2 }
         documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Long-running containers have readiness and liveness probes." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/nist']", value: "SC-7" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Services are not of type NodePort." }
+      - lengthEqual: { path: spec.validations, count: 1 }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Services are not of type NodePort." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/nist']", value: "SC-7" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Services are not of type ExternalName." }
+      - lengthEqual: { path: spec.validations, count: 1 }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Services are not of type ExternalName." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/nist']", value: "SC-7" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Services of type LoadBalancer only in the namespaces listed." }
+      - lengthEqual: { path: spec.validations, count: 1 }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Services of type LoadBalancer only in the namespaces listed." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/nist']", value: "AC-2, AC-6" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Only the subjects listed are bound to cluster-admin." }
+      - lengthEqual: { path: spec.validations, count: 1 }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Only the subjects listed are bound to cluster-admin." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/nist']", value: "AC-6" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Roles and ClusterRoles don't grant the escalate, bind, or impersonate verbs." }
+      - lengthEqual: { path: spec.validations, count: 1 }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Roles and ClusterRoles don't grant the escalate, bind, or impersonate verbs." }

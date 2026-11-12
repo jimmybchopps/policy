@@ -181,3 +181,38 @@ tests:
     asserts:
       - failedTemplate:
           errorPattern: "markers"
+
+  - it: accepts cluster-admin subjects (a ServiceAccount with its namespace, a group)
+    set:
+      policies:
+        restrict-cluster-admin-binding:
+          allowedSubjects: [{ kind: ServiceAccount, name: deployer, namespace: ci }, { kind: Group, name: platform-admins }]
+    asserts:
+      - notFailedTemplate: {}
+
+  - it: rejects a cluster-admin subject with an unknown kind
+    set:
+      policies:
+        restrict-cluster-admin-binding:
+          allowedSubjects: [{ kind: Robot, name: x }]
+    asserts:
+      - failedTemplate:
+          errorPattern: "allowedSubjects"
+
+  - it: rejects a ServiceAccount subject without a namespace
+    set:
+      policies:
+        restrict-cluster-admin-binding:
+          allowedSubjects: [{ kind: ServiceAccount, name: deployer }]
+    asserts:
+      - failedTemplate:
+          errorPattern: "allowedSubjects"
+
+  - it: rejects a namespace on a User subject
+    set:
+      policies:
+        restrict-cluster-admin-binding:
+          allowedSubjects: [{ kind: User, name: alice, namespace: ci }]
+    asserts:
+      - failedTemplate:
+          errorPattern: "allowedSubjects"

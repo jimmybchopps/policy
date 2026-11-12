@@ -61,11 +61,11 @@ authoritative mapping; confirm them with your ISSM before citing them.
 | `disallow-default-namespace` | enforce | workloads | nothing runs in `default` (Services there are already refused: `default` has no `posture-exceptions`, so every Services policy fails closed) | CM-7 |
 | `disallow-mesh-opt-out` | enforce | workloads | none of the policy's `markers` present | SC-7, SC-8 |
 | `disallow-nodeport-services` | enforce | services | no `type: NodePort` | SC-7 |
-| `restrict-loadbalancer-services` | enforce | services | `type: LoadBalancer` only in the policy's `namespaces` | SC-7 |
+| `restrict-loadbalancer-services` | enforce | services | `type: LoadBalancer` only in the policy's `namespaces` (none by default) | SC-7 |
 | `restrict-externalname-services` | enforce | services | no `type: ExternalName` | SC-7 |
 | `restrict-wildcard-rbac` | enforce | rbac | Roles and ClusterRoles don't use `*` in verbs, resources, or apiGroups (allowlist: `allowedRoles`) | AC-6 |
-| `restrict-cluster-admin-binding` | enforce | rbac | bindings to `cluster-admin` only for the policy's `allowedSubjects` | AC-2, AC-6 |
-| `disallow-rbac-escalation-verbs` | audit | rbac | no `escalate`, `bind`, or `impersonate` verbs outside `allowedRoles` | AC-6 |
+| `restrict-cluster-admin-binding` | enforce | rbac | bindings to `cluster-admin` only for the policy's `allowedSubjects` (`{kind, name}`, plus `namespace` for a ServiceAccount); Group `system:masters` always allowed (the API server's own binding) | AC-2, AC-6 |
+| `disallow-rbac-escalation-verbs` | audit | rbac | no `escalate`, `bind`, or `impersonate` verbs outside `allowedRoles`; `cluster-admin`, `admin`, and `edit` always allowed (built in, rewritten by the API server); `*` is left to `restrict-wildcard-rbac` | AC-6 |
 | `disallow-automount-service-account-token` | audit | workloads | `automountServiceAccountToken: false` unless excepted | AC-6 |
 | `disallow-default-service-account` | audit | workloads | pods don't run as the `default` service account | AC-6 |
 | `disallow-secrets-in-env` | audit | workloads | no `secretKeyRef` in env; mount secrets as files instead | SC-28 |
@@ -276,13 +276,17 @@ Split like Phase 1; each subphase ends with a green `make e2e`.
       the kubectl debug checks move to `debug-allowed`, which excepts
       `disallow-ephemeral-containers`. disallow-default-namespace's deny fixtures are checked
       in `default`.
-- [ ] e2e: written, not yet run.
+- [x] e2e: green.
 
 ### 2d. Optional Services and RBAC policies
 
-- [ ] `disallow-nodeport-services`, `restrict-loadbalancer-services`,
+- [x] `disallow-nodeport-services`, `restrict-loadbalancer-services`,
       `restrict-externalname-services`, `restrict-cluster-admin-binding`,
-      `disallow-rbac-escalation-verbs`, each with allow and deny fixtures.
+      `disallow-rbac-escalation-verbs`, each with allow and deny fixtures; e2e checks for
+      each allowlist (`lb-allowed`, `allowedSubjects`, `system:masters`, `allowedRoles`).
+- [x] `make check-fixtures` takes a binding as an RBAC policy's fixture: one cluster-scoped
+      (ClusterRole or ClusterRoleBinding) and one namespaced (Role or RoleBinding).
+- [ ] e2e: written, not yet run.
 
 ### 2e. Upgrade safety
 

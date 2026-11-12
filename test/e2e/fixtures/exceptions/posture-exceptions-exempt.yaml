@@ -55,6 +55,10 @@ spec:
       workloads:
         - matchLabels: { e2e.test/fixture: "true" }
           reason: e2e fixture
+    - policy: { kind: ValidatingAdmissionPolicy, name: disallow-nodeport-services }
+      workloads:
+        - matchLabels: { e2e.test/fixture: "true" }
+          reason: e2e fixture
     - policy: { kind: ValidatingAdmissionPolicy, name: disallow-privilege-escalation }
       workloads:
         - matchLabels: { e2e.test/fixture: "true" }
@@ -107,7 +111,15 @@ spec:
       workloads:
         - matchLabels: { e2e.test/fixture: "true" }
           reason: e2e fixture
+    - policy: { kind: ValidatingAdmissionPolicy, name: restrict-externalname-services }
+      workloads:
+        - matchLabels: { e2e.test/fixture: "true" }
+          reason: e2e fixture
     - policy: { kind: ValidatingAdmissionPolicy, name: restrict-image-registries }
+      workloads:
+        - matchLabels: { e2e.test/fixture: "true" }
+          reason: e2e fixture
+    - policy: { kind: ValidatingAdmissionPolicy, name: restrict-loadbalancer-services }
       workloads:
         - matchLabels: { e2e.test/fixture: "true" }
           reason: e2e fixture

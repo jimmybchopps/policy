@@ -1,0 +1,21 @@
+name: restrict-loadbalancer-services
+tier: optional
+default: { enabled: true, action: inherit }
+description: Services of type LoadBalancer only in the namespaces listed.
+controls:
+  nist: [SC-7]
+resources: services
+operations: [CREATE, UPDATE]
+settings:
+  namespaces:
+    type: list
+    default: []
+    description: namespaces where Services may be of type LoadBalancer, e.g. the ingress gateway's
+validations:
+  - expression: >-
+      !has(object.spec.type) || object.spec.type != 'LoadBalancer' ||
+      request.namespace in variables.setting_namespaces
+    message: >-
+      spec.type must not be LoadBalancer in this namespace; only the namespaces in
+      policies.restrict-loadbalancer-services.namespaces get an external address. If this
+      Service needs one, add a posture exception for restrict-loadbalancer-services.

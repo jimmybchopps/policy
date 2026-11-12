@@ -1,0 +1,30 @@
+name: disallow-rbac-escalation-verbs
+tier: optional
+default: { enabled: true, action: audit }
+description: Roles and ClusterRoles don't grant the escalate, bind, or impersonate verbs.
+controls:
+  nist: [AC-6]
+resources: rbac
+operations: [CREATE, UPDATE]
+settings:
+  allowedRoles:
+    type: list
+    description: Role and ClusterRole names allowed to grant escalate, bind, or impersonate
+variables:
+  # Bindings have no rules, so they always pass. "*" (which includes these verbs) is
+  # restrict-wildcard-rbac's to refuse.
+  - name: rules
+    expression: "has(object.rules) ? object.rules : []"
+  # Kubernetes' own user-facing roles hold these verbs and are rewritten by the API server and
+  # its aggregation controller, so they're always allowed.
+  - name: allowed
+    expression: >-
+      object.metadata.name in ['cluster-admin', 'admin', 'edit'] + variables.setting_allowedRoles
+validations:
+  - expression: >-
+      variables.allowed || variables.rules.all(r,
+        !r.verbs.exists(v, v in ['escalate', 'bind', 'impersonate']))
+    message: >-
+      rules[*].verbs must not contain escalate, bind, or impersonate: they let the holder grant
+      itself more than this role. To allow this role, add its name to
+      policies.disallow-rbac-escalation-verbs.allowedRoles.

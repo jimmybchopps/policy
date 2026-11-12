@@ -1,0 +1,7 @@
+# escalate on roles.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: e2e-escalate
+rules:
+  - { apiGroups: [rbac.authorization.k8s.io], resources: [roles], verbs: [get, escalate] }

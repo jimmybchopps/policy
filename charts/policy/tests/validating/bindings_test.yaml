@@ -65,6 +65,9 @@ tests:
             - { apiGroups: [""], apiVersions: [v1], operations: [CREATE, UPDATE], resources: [services] }
 
   - it: an rbac policy has one binding, without params (cluster-scoped objects)
+    set:
+      policies:
+        disallow-rbac-escalation-verbs: { action: enforce }
     documentSelector: { path: "metadata.annotations['policy.posture.dev/binding']", value: rbac, matchMany: true }
     asserts:
       - equal: { path: spec.validationActions, value: [Deny, Audit] }
@@ -74,7 +77,7 @@ tests:
     set:
       policies:
         restrict-wildcard-rbac: { action: audit }
-    documentSelector: { path: "metadata.annotations['policy.posture.dev/binding']", value: rbac }
+    documentSelector: { path: spec.policyName, value: restrict-wildcard-rbac }
     asserts:
       - equal: { path: spec.validationActions, value: [Audit, Warn] }
 
@@ -102,3 +105,9 @@ tests:
     documentSelector: { path: metadata.name, value: require-read-only-root-filesystem-controllers }
     asserts:
       - equal: { path: "metadata.annotations['policy.posture.dev/tier']", value: optional }
+
+  - it: an audit-default rbac policy's single binding audits and warns
+    documentSelector: { path: spec.policyName, value: disallow-rbac-escalation-verbs }
+    asserts:
+      - equal: { path: "metadata.annotations['policy.posture.dev/binding']", value: rbac }
+      - equal: { path: spec.validationActions, value: [Audit, Warn] }

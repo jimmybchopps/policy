@@ -232,3 +232,39 @@ tests:
     documentSelector: { path: metadata.name, value: require-probes-controllers }
     asserts:
       - equal: { path: spec.validationActions, value: [Warn] }
+
+  # ---- Optional Services and RBAC policies
+  - it: restrict-loadbalancer-services lists no namespaces by default
+    documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Services of type LoadBalancer only in the namespaces listed." }
+    asserts:
+      - equal: { path: "spec.variables[0]", value: { name: workloadLabels, expression: "has(object.metadata.labels) ? object.metadata.labels : {}" } }
+      - equal: { path: "spec.variables[1]", value: { name: setting_namespaces, expression: "[]" } }
+      - equal: { path: "spec.variables[2].name", value: exempt }
+
+  - it: restrict-loadbalancer-services renders its namespaces as a CEL list
+    set:
+      policies:
+        restrict-loadbalancer-services: { namespaces: [ingress-gateway] }
+    documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Services of type LoadBalancer only in the namespaces listed." }
+    asserts:
+      - equal: { path: "spec.variables[1].expression", value: '["ingress-gateway"]' }
+
+  - it: restrict-cluster-admin-binding (rbac) has no params, skips system names, and always allows system:masters
+    set:
+      policies:
+        restrict-cluster-admin-binding:
+          allowedSubjects: [{ kind: ServiceAccount, name: deployer, namespace: ci }]
+    documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Only the subjects listed are bound to cluster-admin." }
+    asserts:
+      - notExists: { path: spec.paramKind }
+      - equal: { path: spec.matchConditions, value: [{ name: not-system, expression: "!object.metadata.name.startsWith('system:')" }] }
+      - equal: { path: "spec.variables[0]", value: { name: setting_allowedSubjects, expression: '[{"kind":"ServiceAccount","name":"deployer","namespace":"ci"}]' } }
+      - matchRegex: { path: "spec.variables[2].expression", pattern: "\\[\\{'kind': 'Group', 'name': 'system:masters'\\}\\] \\+ variables\\.setting_allowedSubjects" }
+
+  - it: disallow-rbac-escalation-verbs (rbac) always allows Kubernetes' own user-facing roles
+    documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Roles and ClusterRoles don't grant the escalate, bind, or impersonate verbs." }
+    asserts:
+      - notExists: { path: spec.paramKind }
+      - equal: { path: "spec.variables[0]", value: { name: setting_allowedRoles, expression: "[]" } }
+      - matchRegex: { path: "spec.variables[2].expression", pattern: "\\['cluster-admin', 'admin', 'edit'\\] \\+ variables\\.setting_allowedRoles" }
+      - matchRegex: { path: "spec.validations[0].expression", pattern: "\\['escalate', 'bind', 'impersonate'\\]" }

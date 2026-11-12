@@ -1384,6 +1384,82 @@ minimal:
     kind: ValidatingAdmissionPolicy
     metadata:
       annotations:
+        policy.posture.dev/description: Services are not of type NodePort.
+        policy.posture.dev/nist: SC-7
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: disallow-nodeport-services
+    spec:
+      failurePolicy: Fail
+      matchConstraints:
+        resourceRules:
+          - apiGroups:
+              - ""
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - services
+      paramKind:
+        apiVersion: policy.posture.dev/v1alpha1
+        kind: PolicyExceptions
+      validations:
+        - expression: variables.exempt || (!has(object.spec.type) || object.spec.type != 'NodePort')
+          message: 'spec.type must not be NodePort: it opens the port on every node. Use a ClusterIP Service behind the ingress gateway. If this Service needs it, add a posture exception for disallow-nodeport-services.'
+      variables:
+        - expression: 'has(object.metadata.labels) ? object.metadata.labels : {}'
+          name: workloadLabels
+        - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'disallow-nodeport-services' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
+          name: exempt
+  27: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicyBinding
+    metadata:
+      annotations:
+        policy.posture.dev/binding: services
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: disallow-nodeport-services
+    spec:
+      matchResources:
+        namespaceSelector:
+          matchExpressions:
+            - key: kubernetes.io/metadata.name
+              operator: NotIn
+              values:
+                - kube-system
+        resourceRules:
+          - apiGroups:
+              - ""
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - services
+      paramRef:
+        name: posture-exceptions
+        parameterNotFoundAction: Deny
+      policyName: disallow-nodeport-services
+      validationActions:
+        - Deny
+        - Audit
+  28: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicy
+    metadata:
+      annotations:
         policy.posture.dev/description: Every container sets allowPrivilegeEscalation to false.
         policy.posture.dev/nist: AC-6
         policy.posture.dev/pss: restricted
@@ -1453,7 +1529,7 @@ minimal:
           name: allContainers
         - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'disallow-privilege-escalation' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
           name: exempt
-  27: |
+  29: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -1492,7 +1568,7 @@ minimal:
       validationActions:
         - Deny
         - Audit
-  28: |
+  30: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -1542,7 +1618,7 @@ minimal:
       policyName: disallow-privilege-escalation
       validationActions:
         - Warn
-  29: |
+  31: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicy
     metadata:
@@ -1625,7 +1701,7 @@ minimal:
           name: allContainers
         - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'disallow-privileged-containers' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
           name: exempt
-  30: |
+  32: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -1664,7 +1740,7 @@ minimal:
       validationActions:
         - Deny
         - Audit
-  31: |
+  33: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -1714,7 +1790,90 @@ minimal:
       policyName: disallow-privileged-containers
       validationActions:
         - Warn
-  32: |
+  34: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicy
+    metadata:
+      annotations:
+        policy.posture.dev/description: Roles and ClusterRoles don't grant the escalate, bind, or impersonate verbs.
+        policy.posture.dev/nist: AC-6
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: disallow-rbac-escalation-verbs
+    spec:
+      failurePolicy: Fail
+      matchConditions:
+        - expression: '!object.metadata.name.startsWith(''system:'')'
+          name: not-system
+      matchConstraints:
+        resourceRules:
+          - apiGroups:
+              - rbac.authorization.k8s.io
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - roles
+              - clusterroles
+              - rolebindings
+              - clusterrolebindings
+      validations:
+        - expression: |-
+            variables.allowed || variables.rules.all(r,
+              !r.verbs.exists(v, v in ['escalate', 'bind', 'impersonate']))
+          message: 'rules[*].verbs must not contain escalate, bind, or impersonate: they let the holder grant itself more than this role. To allow this role, add its name to policies.disallow-rbac-escalation-verbs.allowedRoles.'
+      variables:
+        - expression: '[]'
+          name: setting_allowedRoles
+        - expression: 'has(object.rules) ? object.rules : []'
+          name: rules
+        - expression: object.metadata.name in ['cluster-admin', 'admin', 'edit'] + variables.setting_allowedRoles
+          name: allowed
+  35: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicyBinding
+    metadata:
+      annotations:
+        policy.posture.dev/binding: rbac
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: disallow-rbac-escalation-verbs
+    spec:
+      matchResources:
+        namespaceSelector:
+          matchExpressions:
+            - key: kubernetes.io/metadata.name
+              operator: NotIn
+              values:
+                - kube-system
+        resourceRules:
+          - apiGroups:
+              - rbac.authorization.k8s.io
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - roles
+              - clusterroles
+              - rolebindings
+              - clusterrolebindings
+      policyName: disallow-rbac-escalation-verbs
+      validationActions:
+        - Audit
+        - Warn
+  36: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicy
     metadata:
@@ -1787,7 +1946,7 @@ minimal:
           name: allContainers
         - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'disallow-secrets-in-env' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
           name: exempt
-  33: |
+  37: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -1825,7 +1984,7 @@ minimal:
       policyName: disallow-secrets-in-env
       validationActions:
         - Audit
-  34: |
+  38: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -1875,7 +2034,7 @@ minimal:
       policyName: disallow-secrets-in-env
       validationActions:
         - Warn
-  35: |
+  39: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicy
     metadata:
@@ -1945,7 +2104,7 @@ minimal:
           name: allContainers
         - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'disallow-shared-process-namespace' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
           name: exempt
-  36: |
+  40: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -1983,7 +2142,7 @@ minimal:
       policyName: disallow-shared-process-namespace
       validationActions:
         - Audit
-  37: |
+  41: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -2033,7 +2192,7 @@ minimal:
       policyName: disallow-shared-process-namespace
       validationActions:
         - Warn
-  38: |
+  42: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicy
     metadata:
@@ -2114,7 +2273,7 @@ minimal:
           name: allContainers
         - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'require-drop-all-capabilities' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
           name: exempt
-  39: |
+  43: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -2153,7 +2312,7 @@ minimal:
       validationActions:
         - Deny
         - Audit
-  40: |
+  44: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -2203,7 +2362,7 @@ minimal:
       policyName: require-drop-all-capabilities
       validationActions:
         - Warn
-  41: |
+  45: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicy
     metadata:
@@ -2273,7 +2432,7 @@ minimal:
           name: allContainers
         - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'require-image-digest' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
           name: exempt
-  42: |
+  46: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -2312,7 +2471,7 @@ minimal:
       validationActions:
         - Deny
         - Audit
-  43: |
+  47: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -2362,7 +2521,7 @@ minimal:
       policyName: require-image-digest
       validationActions:
         - Warn
-  44: |
+  48: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicy
     metadata:
@@ -2441,7 +2600,7 @@ minimal:
           name: longRunning
         - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'require-probes' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
           name: exempt
-  45: |
+  49: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -2479,7 +2638,7 @@ minimal:
       policyName: require-probes
       validationActions:
         - Audit
-  46: |
+  50: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -2529,7 +2688,7 @@ minimal:
       policyName: require-probes
       validationActions:
         - Warn
-  47: |
+  51: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicy
     metadata:
@@ -2602,7 +2761,7 @@ minimal:
           name: allContainers
         - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'require-read-only-root-filesystem' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
           name: exempt
-  48: |
+  52: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -2641,7 +2800,7 @@ minimal:
       validationActions:
         - Deny
         - Audit
-  49: |
+  53: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -2691,7 +2850,7 @@ minimal:
       policyName: require-read-only-root-filesystem
       validationActions:
         - Warn
-  50: |
+  54: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicy
     metadata:
@@ -2773,7 +2932,7 @@ minimal:
           name: resourceContainers
         - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'require-resource-limits' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
           name: exempt
-  51: |
+  55: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -2812,7 +2971,7 @@ minimal:
       validationActions:
         - Deny
         - Audit
-  52: |
+  56: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -2862,7 +3021,7 @@ minimal:
       policyName: require-resource-limits
       validationActions:
         - Warn
-  53: |
+  57: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicy
     metadata:
@@ -2947,7 +3106,7 @@ minimal:
           name: podRunAsNonRoot
         - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'require-run-as-non-root' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
           name: exempt
-  54: |
+  58: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -2986,7 +3145,7 @@ minimal:
       validationActions:
         - Deny
         - Audit
-  55: |
+  59: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -3036,7 +3195,7 @@ minimal:
       policyName: require-run-as-non-root
       validationActions:
         - Warn
-  56: |
+  60: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicy
     metadata:
@@ -3106,7 +3265,7 @@ minimal:
           name: allContainers
         - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'require-standard-labels' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
           name: exempt
-  57: |
+  61: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -3145,7 +3304,7 @@ minimal:
       validationActions:
         - Deny
         - Audit
-  58: |
+  62: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -3195,7 +3354,7 @@ minimal:
       policyName: require-standard-labels
       validationActions:
         - Warn
-  59: |
+  63: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicy
     metadata:
@@ -3278,7 +3437,7 @@ minimal:
           name: allContainers
         - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'restrict-apparmor' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
           name: exempt
-  60: |
+  64: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -3317,7 +3476,7 @@ minimal:
       validationActions:
         - Deny
         - Audit
-  61: |
+  65: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -3367,7 +3526,91 @@ minimal:
       policyName: restrict-apparmor
       validationActions:
         - Warn
-  62: |
+  66: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicy
+    metadata:
+      annotations:
+        policy.posture.dev/description: Only the subjects listed are bound to cluster-admin.
+        policy.posture.dev/nist: AC-2, AC-6
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: restrict-cluster-admin-binding
+    spec:
+      failurePolicy: Fail
+      matchConditions:
+        - expression: '!object.metadata.name.startsWith(''system:'')'
+          name: not-system
+      matchConstraints:
+        resourceRules:
+          - apiGroups:
+              - rbac.authorization.k8s.io
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - roles
+              - clusterroles
+              - rolebindings
+              - clusterrolebindings
+      validations:
+        - expression: |-
+            !variables.bindsClusterAdmin || !has(object.subjects) || object.subjects.all(s, variables.allowedSubjects.exists(a,
+              a.kind == s.kind && a.name == s.name &&
+              (s.kind != 'ServiceAccount' || ('namespace' in a && a.namespace == s.namespace))))
+          message: Only the subjects in policies.restrict-cluster-admin-binding.allowedSubjects may be bound to cluster-admin; bind a narrower role instead. To allow a subject, add it there ({kind, name}, plus namespace for a ServiceAccount).
+      variables:
+        - expression: '[]'
+          name: setting_allowedSubjects
+        - expression: has(object.roleRef) && object.roleRef.kind == 'ClusterRole' && object.roleRef.name == 'cluster-admin'
+          name: bindsClusterAdmin
+        - expression: '[{''kind'': ''Group'', ''name'': ''system:masters''}] + variables.setting_allowedSubjects'
+          name: allowedSubjects
+  67: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicyBinding
+    metadata:
+      annotations:
+        policy.posture.dev/binding: rbac
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: restrict-cluster-admin-binding
+    spec:
+      matchResources:
+        namespaceSelector:
+          matchExpressions:
+            - key: kubernetes.io/metadata.name
+              operator: NotIn
+              values:
+                - kube-system
+        resourceRules:
+          - apiGroups:
+              - rbac.authorization.k8s.io
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - roles
+              - clusterroles
+              - rolebindings
+              - clusterrolebindings
+      policyName: restrict-cluster-admin-binding
+      validationActions:
+        - Deny
+        - Audit
+  68: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicy
     metadata:
@@ -3405,7 +3648,7 @@ minimal:
           name: workloadLabels
         - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'restrict-external-ips' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
           name: exempt
-  63: |
+  69: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -3443,7 +3686,83 @@ minimal:
       validationActions:
         - Deny
         - Audit
-  64: |
+  70: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicy
+    metadata:
+      annotations:
+        policy.posture.dev/description: Services are not of type ExternalName.
+        policy.posture.dev/nist: SC-7
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: restrict-externalname-services
+    spec:
+      failurePolicy: Fail
+      matchConstraints:
+        resourceRules:
+          - apiGroups:
+              - ""
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - services
+      paramKind:
+        apiVersion: policy.posture.dev/v1alpha1
+        kind: PolicyExceptions
+      validations:
+        - expression: variables.exempt || (!has(object.spec.type) || object.spec.type != 'ExternalName')
+          message: 'spec.type must not be ExternalName: it points cluster DNS at any name, including other namespaces'' Services. If this Service needs it, add a posture exception for restrict-externalname-services.'
+      variables:
+        - expression: 'has(object.metadata.labels) ? object.metadata.labels : {}'
+          name: workloadLabels
+        - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'restrict-externalname-services' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
+          name: exempt
+  71: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicyBinding
+    metadata:
+      annotations:
+        policy.posture.dev/binding: services
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: restrict-externalname-services
+    spec:
+      matchResources:
+        namespaceSelector:
+          matchExpressions:
+            - key: kubernetes.io/metadata.name
+              operator: NotIn
+              values:
+                - kube-system
+        resourceRules:
+          - apiGroups:
+              - ""
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - services
+      paramRef:
+        name: posture-exceptions
+        parameterNotFoundAction: Deny
+      policyName: restrict-externalname-services
+      validationActions:
+        - Deny
+        - Audit
+  72: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicy
     metadata:
@@ -3517,7 +3836,7 @@ minimal:
           name: setting_registries
         - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'restrict-image-registries' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
           name: exempt
-  65: |
+  73: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -3556,7 +3875,7 @@ minimal:
       validationActions:
         - Deny
         - Audit
-  66: |
+  74: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -3606,7 +3925,85 @@ minimal:
       policyName: restrict-image-registries
       validationActions:
         - Warn
-  67: |
+  75: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicy
+    metadata:
+      annotations:
+        policy.posture.dev/description: Services of type LoadBalancer only in the namespaces listed.
+        policy.posture.dev/nist: SC-7
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: restrict-loadbalancer-services
+    spec:
+      failurePolicy: Fail
+      matchConstraints:
+        resourceRules:
+          - apiGroups:
+              - ""
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - services
+      paramKind:
+        apiVersion: policy.posture.dev/v1alpha1
+        kind: PolicyExceptions
+      validations:
+        - expression: variables.exempt || (!has(object.spec.type) || object.spec.type != 'LoadBalancer' || request.namespace in variables.setting_namespaces)
+          message: spec.type must not be LoadBalancer in this namespace; only the namespaces in policies.restrict-loadbalancer-services.namespaces get an external address. If this Service needs one, add a posture exception for restrict-loadbalancer-services.
+      variables:
+        - expression: 'has(object.metadata.labels) ? object.metadata.labels : {}'
+          name: workloadLabels
+        - expression: '[]'
+          name: setting_namespaces
+        - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'restrict-loadbalancer-services' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
+          name: exempt
+  76: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicyBinding
+    metadata:
+      annotations:
+        policy.posture.dev/binding: services
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.1.0
+      name: restrict-loadbalancer-services
+    spec:
+      matchResources:
+        namespaceSelector:
+          matchExpressions:
+            - key: kubernetes.io/metadata.name
+              operator: NotIn
+              values:
+                - kube-system
+        resourceRules:
+          - apiGroups:
+              - ""
+            apiVersions:
+              - v1
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - services
+      paramRef:
+        name: posture-exceptions
+        parameterNotFoundAction: Deny
+      policyName: restrict-loadbalancer-services
+      validationActions:
+        - Deny
+        - Audit
+  77: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicy
     metadata:
@@ -3680,7 +4077,7 @@ minimal:
           name: allContainers
         - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'restrict-proc-mount' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
           name: exempt
-  68: |
+  78: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -3719,7 +4116,7 @@ minimal:
       validationActions:
         - Deny
         - Audit
-  69: |
+  79: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -3769,7 +4166,7 @@ minimal:
       policyName: restrict-proc-mount
       validationActions:
         - Warn
-  70: |
+  80: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicy
     metadata:
@@ -3846,7 +4243,7 @@ minimal:
           name: podSeccompAllowed
         - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'restrict-seccomp' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
           name: exempt
-  71: |
+  81: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -3885,7 +4282,7 @@ minimal:
       validationActions:
         - Deny
         - Audit
-  72: |
+  82: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -3935,7 +4332,7 @@ minimal:
       policyName: restrict-seccomp
       validationActions:
         - Warn
-  73: |
+  83: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicy
     metadata:
@@ -4020,7 +4417,7 @@ minimal:
           name: seLinuxOptions
         - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'restrict-selinux' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
           name: exempt
-  74: |
+  84: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -4059,7 +4456,7 @@ minimal:
       validationActions:
         - Deny
         - Audit
-  75: |
+  85: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -4109,7 +4506,7 @@ minimal:
       policyName: restrict-selinux
       validationActions:
         - Warn
-  76: |
+  86: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicy
     metadata:
@@ -4193,7 +4590,7 @@ minimal:
           name: allContainers
         - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'restrict-sysctls' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
           name: exempt
-  77: |
+  87: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -4232,7 +4629,7 @@ minimal:
       validationActions:
         - Deny
         - Audit
-  78: |
+  88: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -4282,7 +4679,7 @@ minimal:
       policyName: restrict-sysctls
       validationActions:
         - Warn
-  79: |
+  89: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicy
     metadata:
@@ -4356,7 +4753,7 @@ minimal:
           name: allContainers
         - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'restrict-volume-types' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
           name: exempt
-  80: |
+  90: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -4395,7 +4792,7 @@ minimal:
       validationActions:
         - Deny
         - Audit
-  81: |
+  91: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -4445,7 +4842,7 @@ minimal:
       policyName: restrict-volume-types
       validationActions:
         - Warn
-  82: |
+  92: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicy
     metadata:
@@ -4492,7 +4889,7 @@ minimal:
           name: rules
         - expression: object.metadata.name in ['cluster-admin'] + variables.setting_allowedRoles
           name: allowed
-  83: |
+  93: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:

@@ -202,8 +202,10 @@ validate: $(HELM) $(KUBECONFORM) $(CRD_SCHEMA)
 
 # CLAUDE.md, "Testing": every policy has allow and deny fixtures covering the kinds it applies
 # to (read from its resources: line): workloads a Pod, a Deployment, and a CronJob; services a
-# Service; rbac a ClusterRole and a Role. A matchConstraints block (disallow-pod-exec) has no
-# object to fixture; its cases are commands in test/e2e/scenarios/catalog.sh. And no fixtures
+# Service; rbac a cluster-scoped object (ClusterRole or ClusterRoleBinding) and a namespaced one
+# (Role or RoleBinding). A matchConstraints block (disallow-pod-exec,
+# disallow-ephemeral-containers) has no object to fixture; its cases are commands in
+# test/e2e/scenarios/catalog.sh. And no fixtures
 # exist for a policy that isn't defined.
 check-fixtures:
 	@set -e; fail=0; \
@@ -212,12 +214,12 @@ check-fixtures:
 	  case $$(sed -n 's/^resources: *//p' $$def) in \
 	    workloads) kinds="Pod Deployment CronJob" ;; \
 	    services) kinds="Service" ;; \
-	    rbac) kinds="ClusterRole Role" ;; \
+	    rbac) kinds="ClusterRole|ClusterRoleBinding Role|RoleBinding" ;; \
 	    *) echo "==> $$p: a matchConstraints block, covered by e2e commands (no fixtures)"; continue ;; \
 	  esac; \
 	  for dir in allow deny; do \
 	    for kind in $$kinds; do \
-	      if ! grep -lqx "kind: $$kind" fixtures/$$p/$$dir/*.yaml 2>/dev/null; then \
+	      if ! grep -lqxE "kind: ($$kind)" fixtures/$$p/$$dir/*.yaml 2>/dev/null; then \
 	        echo "FAIL: fixtures/$$p/$$dir/ has no $$kind"; fail=1; \
 	      fi; \
 	    done; \

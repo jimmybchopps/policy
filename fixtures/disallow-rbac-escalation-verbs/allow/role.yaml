@@ -1,0 +1,7 @@
+# Ordinary verbs, including create on rolebindings: admitted.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: e2e-role
+rules:
+  - { apiGroups: [rbac.authorization.k8s.io], resources: [rolebindings], verbs: [get, create] }

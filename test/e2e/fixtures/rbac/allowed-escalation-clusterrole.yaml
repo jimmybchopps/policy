@@ -1,0 +1,7 @@
+# escalate on a ClusterRole named in policies.disallow-rbac-escalation-verbs.allowedRoles (the catalog scenario sets it): admitted.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: e2e-allowed-escalation
+rules:
+  - { apiGroups: [rbac.authorization.k8s.io], resources: [clusterroles], verbs: [escalate] }
