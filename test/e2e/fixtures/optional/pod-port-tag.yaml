@@ -13,7 +13,7 @@ spec:
     seccompProfile: { type: RuntimeDefault }
   containers:
     - name: app
-      image: registry.example.mil:5000/app:1.4.2
+      image: 127.0.0.1:31999/app:1.4.2
       readinessProbe: { tcpSocket: { port: 8080 } }
       livenessProbe: { tcpSocket: { port: 8080 } }
       securityContext:

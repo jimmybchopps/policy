@@ -20,7 +20,7 @@ spec:
             seccompProfile: { type: RuntimeDefault }
           containers:
             - name: app
-              image: registry.example.mil:5000/app:1.0@sha256:0000000000000000000000000000000000000000000000000000000000000000
+              image: 127.0.0.1:31999/app:1.0@sha256:0000000000000000000000000000000000000000000000000000000000000000
               securityContext:
                 allowPrivilegeEscalation: false
                 readOnlyRootFilesystem: true
