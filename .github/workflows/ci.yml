@@ -45,6 +45,9 @@ jobs:
       - name: new baked-in policies are announced (CHANGELOG.md)
         run: make check-release
 
+      - name: policy catalog is current (docs/policies.md)
+        run: make check-docs
+
       - name: helm unittest
         run: make unittest
 

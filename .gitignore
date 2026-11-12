@@ -1,3 +1,4 @@
 .bin/
 test/model-probe/charts/
 test/model-probe/Chart.lock
+dist/

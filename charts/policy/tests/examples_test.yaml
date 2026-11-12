@@ -23,3 +23,13 @@ tests:
     values: [../../../examples/reporting.yaml]
     asserts:
       - matchSnapshot: {}
+
+  - it: default
+    values: [../../../examples/default.yaml]
+    asserts:
+      - matchSnapshot: {}
+
+  - it: strict
+    values: [../../../examples/strict.yaml]
+    asserts:
+      - matchSnapshot: {}

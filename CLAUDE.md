@@ -281,9 +281,11 @@ PolicyException CRD, tenants just create the objects.)
   `templates/crd.yaml` renders it with `.Files.Get` and adds the chart's labels and
   `helm.sh/resource-policy: keep`, so uninstalling this chart never deletes every namespace's
   exceptions. It lives under `templates/`, not Helm's `crds/` folder, so Helm upgrades it.
-- **Consumers fetch the same file** at a release tag and pin to it:
-  `https://raw.githubusercontent.com/jimmybchopps/policy/<tag>/charts/policy/crd/policy.posture.dev_policyexceptions.yaml`
-  (release assets come with phase 3c). `posture` pins to that tag.
+- **Consumers fetch the same file** at a release tag and pin to it, from the release assets
+  (`https://github.com/jimmybchopps/policy/releases/download/<tag>/policy.posture.dev_policyexceptions.yaml`)
+  or the raw file at the tag
+  (`https://raw.githubusercontent.com/jimmybchopps/policy/<tag>/charts/policy/crd/policy.posture.dev_policyexceptions.yaml`).
+  `posture` pins to that tag.
 - **Compatibility rule:** within an API version (`v1alpha1`, `v1beta1`, ...) changes are
   additive only (new optional fields). Anything else means a new API version, served alongside
   the old one until `posture` moves over.
@@ -317,6 +319,7 @@ PolicyException CRD, tenants just create the objects.)
 ```
 charts/policy/
   Chart.yaml  values.yaml  values.schema.json (generated: make values-schema)
+  README.md                        install, values, exceptions, upgrades (helm show readme)
   dashboards/admission-policies.json   the Grafana dashboard; __POLICIES__ becomes this release's names
   definitions/
     validating/<name>.yaml        one file per policy (read with .Files.Glob)
@@ -344,7 +347,12 @@ test/definition-schema/            JSON schema for definitions (make check-defin
 test/mutation-schema/              JSON schema for mutation definitions (make check-definitions)
 test/crd-schema/                   CRD -> JSON schema for kubeconform (make crd-schema)
 test/values-schema/                definitions -> charts/policy/values.schema.json (make values-schema)
-test/release/                      check-release.sh (new baked-in policies announced) and its cases
+test/release/                      check-release.sh (new baked-in policies announced), check-tag.sh,
+                                   release-notes.sh, build-dist.sh (the release assets), and their cases
+test/docs/                         definitions -> docs/policies.md (make docs)
+examples/*.yaml                    values files: minimal, default (recommended), strict, mutations, reporting
+.github/workflows/                 ci.yml (make test per Helm version, e2e), release.yml (on a v* tag)
+dist/                              release assets from make release-check (not committed)
 examples/objects/                  example objects (not values files), e.g. posture-exceptions.yaml
 docs/PLAN.md                       build order
 CHANGELOG.md                       one section per release; announces baked-in policies a minor ahead
@@ -354,7 +362,7 @@ docs/policies.md                   generated catalog (make docs); CI checks it's
 ## Testing
 
     make test           # lint, check-definitions, check-fixtures, check-values-schema,
-                        # check-release, unittest, validate (kubeconform)
+                        # check-docs, check-release, unittest, validate (kubeconform)
     make test-all-helm  # the same under every supported Helm version
     make e2e            # k3d, Kubernetes 1.36+ (MutatingAdmissionPolicy is v1 there)
 
@@ -397,10 +405,22 @@ Every exception path needs an e2e case:
 exempt workload admitted with no warning, non-exempt denied, namespace without
 `posture-exceptions` denied, `kube-system` never evaluated.
 
+## Releasing
+
+1. Set `version` in `charts/policy/Chart.yaml`, and write that version's section in
+   `CHANGELOG.md` (announcing any baked-in policy coming in the next minor; `make test` runs
+   `check-release`).
+2. `make docs` if definitions changed, then `make test` and `make e2e`.
+3. In the release commit, remove the section's `(unreleased)` marker, and rehearse with
+   `make release-check TAG=v<version>` (builds `dist/` exactly as the workflow does).
+4. Tag `v<version>` on main and push the tag. `release.yml` checks the tag against
+   `Chart.yaml` and `CHANGELOG.md`, runs `make test`, and creates the GitHub release with the
+   chart package, the CRD, the dashboard JSON, and `SHA256SUMS`.
+
 ## Status
 
 | Phase | Area | Status |
 |---|---|---|
 | 1 | Foundations: format, renderer, CRD, exceptions, first policies | 1a–1e done, e2e green; green CI run pending |
 | 2 | Full catalog, custom policies, enforcement controls | done, e2e green |
-| 3 | Mutations, reporting, docs, release | 3a done, e2e green; 3b built, e2e run pending |
+| 3 | Mutations, reporting, docs, release | 3a, 3b done, e2e green; 3c built (1.0.0 waits on posture's CRD v1beta1) |

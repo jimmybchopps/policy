@@ -70,7 +70,7 @@ UNITTEST_FILES := -f 'tests/*_test.yaml' -f 'tests/*/*_test.yaml'
 
 KUBECONFORM_ARGS := -strict -summary -schema-location default $(LOCAL_SCHEMAS) -schema-location '$(CRDS_CATALOG)'
 
-.PHONY: help tools tools-e2e lint check-definitions check-fixtures check-values-schema check-release values-schema unittest unittest-update crd-schema validate test test-all-helm e2e clean
+.PHONY: help tools tools-e2e lint check-definitions check-fixtures check-values-schema check-release check-docs docs release-check values-schema unittest unittest-update crd-schema validate test test-all-helm e2e clean
 
 help:
 	@echo "make tools          install helm $(HELM_VERSION), helm-unittest, kubeconform into .bin/"
@@ -177,6 +177,31 @@ check-values-schema: $(HELM)
 	fi
 	@echo "==> $(VALUES_SCHEMA) is current"
 
+# Renders docs/policies.md (the policy catalog) into $(1), from the definitions (test/docs). The
+# chart is assembled in .bin/ because a chart can only read its own files; its output is one YAML
+# block (Helm parses what a template renders), unwrapped here.
+POLICY_DOCS := docs/policies.md
+define render-docs
+	@rm -rf $(BIN)/docs-chart
+	@cp -r test/docs $(BIN)/docs-chart
+	@mkdir -p $(BIN)/docs-chart/definitions
+	@cp -r $(CHART)/definitions/validating $(CHART)/definitions/mutating $(BIN)/docs-chart/definitions/
+	@$(HELM) template x $(BIN)/docs-chart --show-only templates/policies.yaml > $(BIN)/docs.out
+	@printf '%s\n' "$$(sed -e '1,/^policies.md: |$$/d' -e 's/^  //' $(BIN)/docs.out)" > $(1)
+endef
+
+docs: $(HELM)
+	$(call render-docs,$(POLICY_DOCS))
+	@echo "==> wrote $(POLICY_DOCS)"
+
+check-docs: $(HELM)
+	@$(call render-docs,$(BIN)/policies.md)
+	@if ! cmp -s $(BIN)/policies.md $(POLICY_DOCS); then \
+	  echo "FAIL: $(POLICY_DOCS) is stale; run make docs and commit it"; \
+	  diff -u $(POLICY_DOCS) $(BIN)/policies.md | head -40; exit 1; \
+	fi
+	@echo "==> $(POLICY_DOCS) is current"
+
 crd-schema: $(CRD_SCHEMA)
 
 # Rebuilt whenever the CRD or the converter changes. The chart is assembled in .bin/ because a
@@ -266,7 +291,7 @@ check-release:
 	@test/release/run-cases.sh
 	@test/release/check-release.sh $(CHART) CHANGELOG.md
 
-test: lint check-definitions check-fixtures check-values-schema check-release unittest validate
+test: lint check-definitions check-fixtures check-values-schema check-docs check-release unittest validate
 
 test-all-helm:
 	@set -e; for v in $(HELM_VERSIONS); do \
@@ -278,6 +303,13 @@ test-all-helm:
 e2e: $(HELM) tools-e2e
 	K3D=$(K3D) KUBECTL=$(KUBECTL) HELM=$(HELM) K3S_IMAGE=$(K3S_IMAGE) \
 	  test/e2e/run.sh $(E2E_ARGS)
+
+# Builds a release's assets into dist/ exactly as .github/workflows/release.yml does
+# (test/release/build-dist.sh), so a release can be rehearsed before tagging:
+#   make release-check TAG=v0.1.0
+release-check: $(HELM)
+	@test -n "$(TAG)" || { echo "usage: make release-check TAG=v<version>"; exit 1; }
+	@HELM=$(HELM) test/release/build-dist.sh $(TAG) dist
 
 clean:
 	rm -rf $(BIN)

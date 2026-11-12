@@ -180,7 +180,7 @@ This chart owns the CRD (see CLAUDE.md). Nothing here waits on `posture`.
       and covered by `tests/crd_test.yaml` and the API server.
 - [x] The same accept/reject checks in a k3d API server (smoke scenario).
 - [x] Publish the CRD file with each release so `posture` can pin to it: the raw file at a tag
-      (URL in CLAUDE.md); release assets come with 3c.
+      (URL in CLAUDE.md), and as a release asset (3c).
 - [x] `templates/crd.yaml` renders it with `helm.sh/resource-policy: keep`.
 - [x] e2e (moved from 1c, needs the CRD): every installed policy has no
       `status.typeChecking.expressionWarnings` (the API server is the only real check of the
@@ -351,10 +351,21 @@ Split like Phase 1; each subphase ends with a green `make e2e`.
 
 ### 3c. Documentation and release
 
-- [ ] `make docs` generates `docs/policies.md` from the definitions (name, tier, default, rule,
-      PSS, NIST, settings); CI fails if it's out of date.
-- [ ] Examples: `default.yaml` and `strict.yaml` (every optional policy at enforce).
-- [ ] Chart version 1.0.0 once the CRD contract with `posture` is at `v1beta1` or later.
+- [x] `make docs` generates `docs/policies.md` from the definitions (name, tier, default, rule,
+      PSS, NIST, settings, what each checks; the mutations too) through `test/docs/`;
+      `make check-docs` (in `make test` and CI) fails if it's out of date.
+- [x] Examples: `default.yaml` (the recommended setup: the security-context mutation and the
+      dashboard on) and `strict.yaml` (every optional policy at enforce, every mutation on;
+      `notes_test` fails if a new one is missing).
+- [x] The chart README (`charts/policy/README.md`): install order, values, exceptions,
+      upgrades, the CRD contract.
+- [x] Releases: `.github/workflows/release.yml` on a `v*` tag checks the tag against
+      `Chart.yaml` and `CHANGELOG.md` (no longer `(unreleased)`), runs `make test`, and creates
+      the GitHub release with the chart package, the CRD, the dashboard JSON, and `SHA256SUMS`
+      (`test/release/build-dist.sh`, rehearsed locally with `make release-check TAG=...`).
+- [ ] Chart version 1.0.0 once the CRD contract with `posture` is at `v1beta1` or later
+      (depends on `posture`; 0.1.0 is the first release).
+- [ ] e2e: a regression run (3c changes nothing deployed).
 
 **Done when** mutations pass their fixtures and the docs and examples are generated and
 current.

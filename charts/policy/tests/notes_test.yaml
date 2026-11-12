@@ -54,3 +54,20 @@ tests:
     values: [../../../examples/minimal.yaml, ../../../examples/reporting.yaml]
     asserts:
       - matchRegexRaw: { pattern: "Grafana dashboard: ConfigMap policy-dashboard in policy; Grafana's dashboard sidecar must search this namespace" }
+
+  # examples/strict.yaml is every optional policy at enforce and every mutation on. A new optional
+  # policy or mutation fails here until it's added to examples/strict.yaml.
+  - it: examples/strict.yaml turns on every optional policy at enforce (add new ones there)
+    values: [../../../examples/strict.yaml]
+    asserts:
+      - matchRegexRaw: { pattern: "Optional policies off: none\\." }
+      - notMatchRegexRaw: { pattern: "\\n  audit: " }
+      - matchRegexRaw: { pattern: "Mutations \\(v1\\): add-default-resources, add-default-security-context, disable-service-account-token-automount\\." }
+
+  - it: examples/default.yaml turns on the security-context mutation and the dashboard
+    release:
+      namespace: policy
+    values: [../../../examples/default.yaml]
+    asserts:
+      - matchRegexRaw: { pattern: "Mutations \\(v1\\): add-default-security-context\\." }
+      - matchRegexRaw: { pattern: "Grafana dashboard: ConfigMap policy-dashboard in policy;" }

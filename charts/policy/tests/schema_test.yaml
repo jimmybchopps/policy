@@ -293,3 +293,14 @@ tests:
     asserts:
       - failedTemplate:
           errorPattern: "namespace"
+
+  # ---- the shipped examples
+  - it: accepts examples/default.yaml
+    values: [../../../examples/default.yaml]
+    asserts:
+      - notFailedTemplate: {}
+
+  - it: accepts examples/strict.yaml
+    values: [../../../examples/strict.yaml]
+    asserts:
+      - notFailedTemplate: {}
