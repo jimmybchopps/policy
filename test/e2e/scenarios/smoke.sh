@@ -55,6 +55,8 @@ extra() {
   done
 
   check_type_checking
+  # The dashboard's validating-policy metrics exist (the checks above produced denials and warnings).
+  check_metrics apiserver_validating_admission_policy
 
   # The CRD in a real API server: posture's documented output is accepted, malformed objects
   # are rejected (matched on the field that's wrong).

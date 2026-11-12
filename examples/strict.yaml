@@ -1,0 +1,35 @@
+# Every optional policy on at enforce, and every mutation on: the strictest configuration this
+# chart offers. Allowlists are empty, so nothing gets an exemption except through posture.
+# tests/notes_test.yaml checks that no optional policy is missing or auditing; add new ones here.
+policies:
+  restrict-image-registries:
+    registries:
+      - registry.example.mil/
+      - 127.0.0.1:31999/
+  disallow-automount-service-account-token: { enabled: true, action: enforce }
+  disallow-default-namespace:               { enabled: true, action: enforce }
+  disallow-default-service-account:         { enabled: true, action: enforce }
+  disallow-ephemeral-containers:            { enabled: true, action: enforce }
+  disallow-latest-tag:                      { enabled: true, action: enforce }
+  disallow-mesh-opt-out:                    { enabled: true, action: enforce }
+  disallow-nodeport-services:               { enabled: true, action: enforce }
+  disallow-pod-exec:                        { enabled: true, action: enforce }
+  disallow-rbac-escalation-verbs:           { enabled: true, action: enforce }
+  disallow-secrets-in-env:                  { enabled: true, action: enforce }
+  disallow-shared-process-namespace:        { enabled: true, action: enforce }
+  require-image-digest:                     { enabled: true, action: enforce }
+  require-probes:                           { enabled: true, action: enforce }
+  require-read-only-root-filesystem:        { enabled: true, action: enforce }
+  require-resource-limits:                  { enabled: true, action: enforce }
+  require-standard-labels:                  { enabled: true, action: enforce }
+  restrict-cluster-admin-binding:           { enabled: true, action: enforce }
+  restrict-externalname-services:           { enabled: true, action: enforce }
+  restrict-loadbalancer-services:           { enabled: true, action: enforce }
+  restrict-wildcard-rbac:                   { enabled: true, action: enforce }
+
+mutations:
+  enabled: true
+  policies:
+    add-default-resources:                   { enabled: true }
+    add-default-security-context:            { enabled: true }
+    disable-service-account-token-automount: { enabled: true }

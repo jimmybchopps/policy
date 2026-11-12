@@ -1,0 +1,8 @@
+apiVersion: v2
+name: docs
+description: >-
+  Tool chart: renders docs/policies.md, the policy catalog, from the policy and mutation
+  definitions. `make docs` assembles it in .bin/ (a chart can only read its own files) and
+  writes the result; `make check-docs` fails if the committed file is stale. Never published.
+type: application
+version: 0.0.0

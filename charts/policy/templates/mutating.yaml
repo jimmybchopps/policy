@@ -1,0 +1,1 @@
+{{- include "policy.renderMutating" (dict "model" (include "policy.modelFor" . | fromJson) "root" .) -}}

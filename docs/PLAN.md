@@ -87,10 +87,13 @@ by operators at runtime, which render-time hardening can't reach.
 
 | Mutation | Default | Sets, only when unset |
 |---|---|---|
-| `add-default-security-context` | on | `runAsNonRoot: true`, seccomp `RuntimeDefault`, `allowPrivilegeEscalation: false`, `capabilities.drop: [ALL]` |
-| `set-image-pull-policy` | on | `imagePullPolicy: IfNotPresent` for digest-pinned images |
-| `disable-service-account-token-automount` | off | pod `automountServiceAccountToken: false` |
-| `add-default-resources` | off | requests and limits from values |
+| `add-default-security-context` | on | pod `runAsNonRoot: true` and seccomp `RuntimeDefault`; each container's and init container's `allowPrivilegeEscalation: false` and `capabilities.drop: [ALL]` |
+| `disable-service-account-token-automount` | off | pod `automountServiceAccountToken: false`; also removes the token volume (`kube-api-access-*`) and mounts the ServiceAccount admission plugin already added, which runs before any mutating policy |
+| `add-default-resources` | off | each container's and init container's `requests.cpu`, `requests.memory`, `limits.memory` from its settings (`cpuRequest` 100m, `memoryRequest` 128Mi, `memoryLimit` 128Mi); a memory limit is never set below the container's request |
+
+There's no `set-image-pull-policy`: the API server's defaulting, which runs before any mutating
+policy, already sets `IfNotPresent` on a digest-pinned image without a tag, and a mutation may
+not overwrite the `Always` it sets for `:latest`, so it could never do anything.
 
 Because controllers get only warnings, a Deployment that relies on a mutation to pass (for
 example, it leaves `allowPrivilegeEscalation` unset) is admitted with a warning and its Pods
@@ -177,7 +180,7 @@ This chart owns the CRD (see CLAUDE.md). Nothing here waits on `posture`.
       and covered by `tests/crd_test.yaml` and the API server.
 - [x] The same accept/reject checks in a k3d API server (smoke scenario).
 - [x] Publish the CRD file with each release so `posture` can pin to it: the raw file at a tag
-      (URL in CLAUDE.md); release assets come with 3c.
+      (URL in CLAUDE.md), and as a release asset (3c).
 - [x] `templates/crd.yaml` renders it with `helm.sh/resource-policy: keep`.
 - [x] e2e (moved from 1c, needs the CRD): every installed policy has no
       `status.typeChecking.expressionWarnings` (the API server is the only real check of the
@@ -300,7 +303,7 @@ Split like Phase 1; each subphase ends with a green `make e2e`.
       Unit tests for both (`test/model-probe/tests/since_test.yaml`, `notes_test.yaml`;
       `test/release/cases/`).
 - [x] `CHANGELOG.md`, starting with 0.1.0.
-- [ ] e2e: a regression run (nothing sets `since` yet, so nothing should change).
+- [x] e2e: green (a regression run; nothing sets `since` yet).
 
 **Done when** every policy in the catalog passes its fixtures in k3d.
 
@@ -310,32 +313,81 @@ Split like Phase 1; each subphase ends with a green `make e2e`.
 
 ### 3a. Mutations
 
-- [ ] `definitions/mutating/` for the four mutations, using ApplyConfiguration where it can
-      express "only when unset" and JSONPatch where it can't.
-- [ ] `MutatingAdmissionPolicy` and binding per mutation (`mutations.apiVersion`), Pods only,
-      `reinvocationPolicy: IfNeeded`, the same exclusion list, exceptions via `paramRef`.
-      Verify which parts of a mutating policy can read `params`; if match conditions can't,
-      put the exemption check in the mutation expressions themselves.
-- [ ] Fixtures show the mutated Pod passes the validators, an already-set value is left alone,
-      and an excepted workload isn't mutated.
+- [x] `definitions/mutating/` for the three mutations (`set-image-pull-policy` dropped; see
+      the table), using ApplyConfiguration where it can express "only when unset" (one
+      mutation per field, returning `Object{}` when it's set) and JSONPatch where it can't
+      (removing the service account token volume; `capabilities.drop`, an atomic list an
+      apply configuration may not set). Their own schema, `test/mutation-schema/`.
+- [x] `MutatingAdmissionPolicy` and binding per mutation (`mutations.apiVersion`), Pods on
+      CREATE only, `reinvocationPolicy: IfNeeded`, the same exclusion list, exceptions via
+      `paramRef` (`parameterNotFoundAction: Deny`). The exemption check is a variable, and each
+      mutation is wrapped to do nothing for an excepted Pod, so match conditions never need
+      `params`. `mutations.*` in the values schema, generated from the definitions.
+- [x] Fixtures (`fixtures/mutations/<name>/{mutated,kept,exempt}/`, with `# expect:` lines)
+      show the mutated Pod passes the validators, an already-set value is left alone, and an
+      excepted workload isn't mutated; the `mutations` e2e scenario also checks kube-system, a
+      Deployment's template, and a namespace without `posture-exceptions`.
+- [x] e2e: green.
 
 ### 3b. Reporting
 
-- [ ] An optional Grafana dashboard (ConfigMap) built on the API server's admission-policy
-      metrics (evaluations and denials per policy and binding). Confirm the metric names
-      against Kubernetes 1.36 before building panels.
-- [ ] NOTES.txt lists enforcement, enabled optional policies, mutations, and the excluded
-      namespaces.
+- [x] An optional Grafana dashboard (`reporting.grafanaDashboard`: a ConfigMap the Grafana
+      sidecar loads) built on the API server's admission-policy metrics: denials, warnings,
+      audits, and errors per policy and binding, evaluation latency, and the mutations. Every
+      query is limited to this release's enabled policies and mutations. The ConfigMap is
+      always in the release namespace (this chart installs first, so Grafana's may not exist
+      yet); Grafana's sidecar is pointed at it (`searchNamespace`). The metric names
+      are confirmed against the Kubernetes version under test by e2e (`check_metrics`):
+
+      | Metric | Labels used |
+      |---|---|
+      | `apiserver_validating_admission_policy_check_total` | `policy`, `policy_binding`, `enforcement_action`, `error_type` |
+      | `apiserver_validating_admission_policy_check_duration_seconds` | `policy`, `policy_binding` |
+      | `apiserver_mutating_admission_policy_check_total` | `policy`, `error_type` |
+      | `apiserver_mutating_admission_policy_check_duration_seconds` | `policy` |
+- [x] NOTES.txt lists enforcement, the baked-in count, optional policies by action and the
+      ones off, custom policies, mutations, the excluded namespaces, and the dashboard.
+- [x] e2e: green.
 
 ### 3c. Documentation and release
 
-- [ ] `make docs` generates `docs/policies.md` from the definitions (name, tier, default, rule,
-      PSS, NIST, settings); CI fails if it's out of date.
-- [ ] Examples: `default.yaml` and `strict.yaml` (every optional policy at enforce).
-- [ ] Chart version 1.0.0 once the CRD contract with `posture` is at `v1beta1` or later.
+- [x] `make docs` generates `docs/policies.md` from the definitions (name, tier, default, rule,
+      PSS, NIST, settings, what each checks; the mutations too) through `test/docs/`;
+      `make check-docs` (in `make test` and CI) fails if it's out of date.
+- [x] Examples: `default.yaml` (the recommended setup: the security-context mutation and the
+      dashboard on) and `strict.yaml` (every optional policy at enforce, every mutation on;
+      `notes_test` fails if a new one is missing).
+- [x] The chart README (`charts/policy/README.md`): install order, values, exceptions,
+      upgrades, the CRD contract.
+- [x] Releases: `.github/workflows/release.yml` on a `v*` tag checks the tag against
+      `Chart.yaml` and `CHANGELOG.md` (no longer `(unreleased)`), runs `make test`, and creates
+      the GitHub release with the chart package, the CRD, the dashboard JSON, and `SHA256SUMS`
+      (`test/release/build-dist.sh`, rehearsed locally with `make release-check TAG=...`).
+- [x] e2e: green (a regression run; 3c changes nothing deployed).
 
 **Done when** mutations pass their fixtures and the docs and examples are generated and
 current.
+
+---
+
+## Phase 4: posture integration and 1.0.0
+
+1.0.0 means the contract with `posture` (the PolicyExceptions CRD and the policy names its
+exceptions refer to) is stable. It depends on work in `posture`, so it's its own phase.
+
+- [ ] 0.1.0 released: tag `v0.1.0`, a GitHub release with the CRD asset.
+- [ ] `posture` pins to `v0.1.0`'s CRD, and its e2e runs against this chart's policies:
+      its `posture-exceptions` objects are accepted by the CRD and exempt the workloads they
+      name.
+- [ ] Fixes from that integration ship as 0.x releases. Within `v1alpha1` they're additive
+      only (the CRD compatibility rule).
+- [ ] CRD `v1beta1` is served alongside `v1alpha1`, and the policies' `paramKind` moves to
+      it, released in a 0.x minor.
+- [ ] `posture` moves to `v1beta1`.
+- [ ] Chart 1.0.0. From then on, a breaking change to the CRD or a policy name needs a major
+      version.
+
+**Done when** posture's integration is green on `v1beta1` and 1.0.0 is released.
 
 ---
 

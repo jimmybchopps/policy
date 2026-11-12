@@ -103,3 +103,56 @@ The root (Chart, Release) is only used for labels; the probe chart passes its ow
 {{- end -}}
 {{- end -}}
 {{- end -}}
+
+{{/*
+Renders the model's mutations: per enabled mutation, one MutatingAdmissionPolicy and one
+binding, both named for the mutation, at the model's mutationApiVersion (mutations.apiVersion).
+
+Mutations apply to Pods on CREATE only (a pod spec is mostly immutable, and changing a
+controller's template would fight with Helm or Flux), never in the excluded namespaces, and
+read the namespace's posture-exceptions as params like every validating policy: the binding
+fails closed without it. An excepted Pod isn't mutated: every mutation is wrapped so it does
+nothing when variables.exempt is true (an empty apply configuration, or no JSON patches),
+which keeps the check out of match conditions.
+
+Usage: include "policy.renderMutating" (dict "model" $model "root" .)
+*/}}
+{{- define "policy.renderMutating" -}}
+{{- $root := .root -}}
+{{- $model := .model -}}
+{{- $labels := include "policy.labels" $root | fromYaml -}}
+{{- $excluded := $model.excludedNamespaces -}}
+{{- $apiVersion := $model.mutationApiVersion -}}
+{{- range $m := $model.mutations -}}
+{{- if $m.enabled -}}
+{{- $annotations := dict "policy.posture.dev/description" $m.description -}}
+{{- with $m.controls.nist -}}{{- $_ := set $annotations "policy.posture.dev/nist" (join ", " .) -}}{{- end -}}
+{{- $variables := concat $m.variables (list (dict "name" "exempt" "expression" (include "policy.exemptExpression" (dict "kind" $m.kind "name" $m.name)))) -}}
+{{- $mutations := list -}}
+{{- range $mu := $m.mutations -}}
+  {{- if eq $mu.patchType "JSONPatch" -}}
+    {{- $mutations = append $mutations (dict "patchType" "JSONPatch" "jsonPatch" (dict "expression" (printf "(%s).filter(p, !variables.exempt)" $mu.expression))) -}}
+  {{- else -}}
+    {{- $mutations = append $mutations (dict "patchType" "ApplyConfiguration" "applyConfiguration" (dict "expression" (printf "variables.exempt ? Object{} : (%s)" $mu.expression))) -}}
+  {{- end -}}
+{{- end -}}
+{{- $rules := list (dict "apiGroups" (list "") "apiVersions" (list "v1") "operations" (list "CREATE") "resources" (list "pods")) -}}
+{{- $spec := dict
+  "failurePolicy" "Fail"
+  "reinvocationPolicy" "IfNeeded"
+  "matchConstraints" (dict "resourceRules" $rules)
+  "paramKind" (dict "apiVersion" "policy.posture.dev/v1alpha1" "kind" "PolicyExceptions")
+  "variables" $variables
+  "mutations" $mutations }}
+---
+{{ dict "apiVersion" $apiVersion "kind" "MutatingAdmissionPolicy" "metadata" (dict "name" $m.name "labels" $labels "annotations" $annotations) "spec" $spec | toYaml }}
+{{- $namespaceSelector := dict "matchExpressions" (list (dict "key" "kubernetes.io/metadata.name" "operator" "NotIn" "values" $excluded)) -}}
+{{- $bindingSpec := dict
+  "policyName" $m.name
+  "paramRef" (dict "name" "posture-exceptions" "parameterNotFoundAction" "Deny")
+  "matchResources" (dict "namespaceSelector" $namespaceSelector "resourceRules" $rules) }}
+---
+{{ dict "apiVersion" $apiVersion "kind" "MutatingAdmissionPolicyBinding" "metadata" (dict "name" $m.name "labels" $labels "annotations" (dict "policy.posture.dev/binding" "pods" "policy.posture.dev/kind" "mutating")) "spec" $bindingSpec | toYaml }}
+{{- end -}}
+{{- end -}}
+{{- end -}}

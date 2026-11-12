@@ -1,0 +1,107 @@
+# The MutatingAdmissionPolicies and their bindings. The expressions themselves are exercised by
+# the API server (make e2e, the mutations scenario).
+suite: mutations
+templates:
+  - templates/mutating.yaml
+release:
+  name: policy
+values:
+  - ../../../../examples/minimal.yaml
+tests:
+  - it: renders nothing unless mutations.enabled
+    asserts:
+      - hasDocuments: { count: 0 }
+
+  - it: renders the mutations on by default (add-default-security-context) when enabled
+    set:
+      mutations: { enabled: true }
+    asserts:
+      - hasDocuments: { count: 2 }
+      - containsDocument: { kind: MutatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: add-default-security-context, any: true }
+      - containsDocument: { kind: MutatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: add-default-security-context, any: true }
+
+  - it: a mutation that's on by default can be turned off
+    set:
+      mutations:
+        enabled: true
+        policies:
+          add-default-security-context: { enabled: false }
+    asserts:
+      - hasDocuments: { count: 0 }
+
+  - it: renders every mutation with the mutations example
+    values: [../../../../examples/mutations.yaml]
+    asserts:
+      - hasDocuments: { count: 6 }
+      - containsDocument: { kind: MutatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: disable-service-account-token-automount, any: true }
+      - containsDocument: { kind: MutatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: add-default-resources, any: true }
+
+  - it: uses mutations.apiVersion
+    set:
+      mutations: { enabled: true, apiVersion: admissionregistration.k8s.io/v1beta1 }
+    asserts:
+      - containsDocument: { kind: MutatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1beta1, name: add-default-security-context, any: true }
+      - containsDocument: { kind: MutatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1beta1, name: add-default-security-context, any: true }
+
+  - it: a policy mutates Pods on CREATE only, fails closed, and is reinvoked if needed
+    set:
+      mutations: { enabled: true }
+    documentSelector: { path: kind, value: MutatingAdmissionPolicy }
+    asserts:
+      - equal: { path: spec.failurePolicy, value: Fail }
+      - equal: { path: spec.reinvocationPolicy, value: IfNeeded }
+      - equal:
+          path: spec.matchConstraints.resourceRules
+          value: [{ apiGroups: [""], apiVersions: [v1], operations: [CREATE], resources: [pods] }]
+      - equal: { path: spec.paramKind, value: { apiVersion: policy.posture.dev/v1alpha1, kind: PolicyExceptions } }
+      - equal: { path: "spec.variables[0]", value: { name: workloadLabels, expression: "has(object.metadata.labels) ? object.metadata.labels : {}" } }
+      - matchRegex: { path: "metadata.annotations['policy.posture.dev/description']", pattern: "never changed" }
+
+  - it: the exempt check names the MutatingAdmissionPolicy, and every mutation is skipped for an excepted Pod
+    set:
+      mutations: { enabled: true }
+    documentSelector: { path: kind, value: MutatingAdmissionPolicy }
+    asserts:
+      - equal: { path: "spec.variables[4].name", value: exempt }
+      - matchRegex: { path: "spec.variables[4].expression", pattern: "e.policy.kind == 'MutatingAdmissionPolicy' && e.policy.name == 'add-default-security-context'" }
+      - lengthEqual: { path: spec.mutations, count: 6 }
+      # capabilities.drop is an atomic list, which an apply configuration may not set: JSON patches.
+      - equal: { path: "spec.mutations[0].patchType", value: JSONPatch }
+      - matchRegex: { path: "spec.mutations[0].jsonPatch.expression", pattern: "\\)\\.filter\\(p, !variables\\.exempt\\)$" }
+      - equal: { path: "spec.mutations[1].patchType", value: JSONPatch }
+      - equal: { path: "spec.mutations[2].patchType", value: ApplyConfiguration }
+      - matchRegex: { path: "spec.mutations[2].applyConfiguration.expression", pattern: "^variables\\.exempt \\? Object\\{\\} : \\(" }
+
+  - it: disable-service-account-token-automount removes the token with a JSON patch, then sets the field
+    values: [../../../../examples/mutations.yaml]
+    documentSelector: { path: "spec.variables[1].name", value: tokenVolumes }
+    asserts:
+      - equal: { path: metadata.name, value: disable-service-account-token-automount }
+      - equal: { path: "spec.mutations[0].patchType", value: JSONPatch }
+      - matchRegex: { path: "spec.mutations[0].jsonPatch.expression", pattern: "\\)\\.filter\\(p, !variables\\.exempt\\)$" }
+      - equal: { path: "spec.mutations[1].patchType", value: ApplyConfiguration }
+
+  - it: add-default-resources renders its settings as CEL strings
+    values: [../../../../examples/mutations.yaml]
+    set:
+      mutations:
+        policies:
+          add-default-resources: { enabled: true, cpuRequest: 250m }
+    documentSelector: { path: "spec.variables[1].name", value: setting_cpuRequest }
+    asserts:
+      - equal: { path: metadata.name, value: add-default-resources }
+      - equal: { path: "spec.variables[1].expression", value: '"250m"' }
+      - equal: { path: "spec.variables[2]", value: { name: setting_memoryLimit, expression: '"128Mi"' } }
+
+  - it: the binding reads posture-exceptions (failing closed) and skips kube-system
+    set:
+      mutations: { enabled: true }
+    documentSelector: { path: kind, value: MutatingAdmissionPolicyBinding }
+    asserts:
+      - equal: { path: spec.policyName, value: add-default-security-context }
+      - equal: { path: spec.paramRef, value: { name: posture-exceptions, parameterNotFoundAction: Deny } }
+      - equal:
+          path: spec.matchResources.namespaceSelector
+          value: { matchExpressions: [{ key: kubernetes.io/metadata.name, operator: NotIn, values: [kube-system] }] }
+      - equal: { path: "metadata.annotations['policy.posture.dev/binding']", value: pods }
+      - equal: { path: "metadata.annotations['policy.posture.dev/kind']", value: mutating }

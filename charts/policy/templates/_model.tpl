@@ -28,7 +28,19 @@ Shape:
       variables: [{ name, expression }]   # shared (workloads), setting_*, the definition's own
       validations: [{ expression, message | messageExpression, reason? }]
 
-The model also carries release: the chart's MAJOR.MINOR ("0.1"), against which since is read.
+The model also carries enforcement (enforce | audit), release: the chart's MAJOR.MINOR ("0.1"), against which since is read,
+and the mutations (definitions/mutating/), each normalized the same way:
+
+  mutationApiVersion: admissionregistration.k8s.io/v1 | v1beta1   # mutations.apiVersion
+  mutations:                              # sorted by name; disabled ones are kept
+    - name: add-default-security-context
+      source: definitions/mutating/add-default-security-context.yaml
+      kind: MutatingAdmissionPolicy
+      description, controls
+      enabled: true                       # mutations.enabled and the mutation's own enabled
+      settings: { <name>: value }         # resolved, defaults applied
+      variables: [{ name, expression }]   # workloadLabels, setting_*, the definition's own
+      mutations: [{ patchType, expression }]
 
 policy.model is a pure function of its input (dict "Values" ... "definitions" ...
 "chartVersion" ...), so the
@@ -69,11 +81,27 @@ Usage: include "policy.definitions" . | fromJsonArray     (needs the chart root,
 {{- end -}}
 
 {{/*
+The mutation definition files (definitions/mutating/), parsed, each with source: <path>.
+Usage: include "policy.mutationDefinitions" . | fromJsonArray     (needs the chart root)
+*/}}
+{{- define "policy.mutationDefinitions" -}}
+{{- $defs := list -}}
+{{- range $path, $_ := .Files.Glob "definitions/mutating/*.yaml" -}}
+  {{- $def := $.Files.Get $path | fromYaml -}}
+  {{- if hasKey $def "Error" -}}
+    {{- fail (printf "policy: %s: not valid YAML: %s" $path $def.Error) -}}
+  {{- end -}}
+  {{- $defs = append $defs (set $def "source" $path) -}}
+{{- end -}}
+{{- toJson $defs -}}
+{{- end -}}
+
+{{/*
 The model for this release: the real definitions and values.
 Usage: include "policy.modelFor" . | fromJson
 */}}
 {{- define "policy.modelFor" -}}
-{{- include "policy.model" (dict "Values" .Values "definitions" (include "policy.definitions" . | fromJsonArray) "chartVersion" .Chart.Version) -}}
+{{- include "policy.model" (dict "Values" .Values "definitions" (include "policy.definitions" . | fromJsonArray) "mutationDefinitions" (include "policy.mutationDefinitions" . | fromJsonArray) "chartVersion" .Chart.Version) -}}
 {{- end -}}
 
 {{- define "policy.model" -}}
@@ -122,7 +150,46 @@ Usage: include "policy.modelFor" . | fromJson
 {{- range $name := keys $byName | sortAlpha -}}
   {{- $policies = append $policies (get $byName $name) -}}
 {{- end -}}
-{{- dict "policies" $policies "release" $release "excludedNamespaces" (include "policy.excludedNamespaces" . | fromJsonArray) | toJson -}}
+
+{{- /* Mutations: off unless mutations.enabled; each also has its own enabled. */ -}}
+{{- $mutationValues := $values.mutations | default dict -}}
+{{- range $key := keys $mutationValues | sortAlpha -}}
+  {{- if not (has $key (list "enabled" "apiVersion" "policies")) -}}
+    {{- fail (printf "policy: mutations.%s: unknown key; mutations takes enabled, apiVersion, policies" $key) -}}
+  {{- end -}}
+{{- end -}}
+{{- $mutationsOn := $mutationValues.enabled | default false -}}
+{{- if not (kindIs "bool" $mutationsOn) -}}
+  {{- fail "policy: mutations.enabled: must be true or false" -}}
+{{- end -}}
+{{- $mutationApiVersion := $mutationValues.apiVersion | default "admissionregistration.k8s.io/v1" -}}
+{{- if not (has $mutationApiVersion (list "admissionregistration.k8s.io/v1" "admissionregistration.k8s.io/v1beta1")) -}}
+  {{- fail (printf "policy: mutations.apiVersion: must be admissionregistration.k8s.io/v1 (Kubernetes 1.36+) or admissionregistration.k8s.io/v1beta1 (1.34-1.35), not %q" $mutationApiVersion) -}}
+{{- end -}}
+{{- $perMutation := $mutationValues.policies | default dict -}}
+{{- $mutationsByName := dict -}}
+{{- range $def := .mutationDefinitions -}}
+  {{- if hasKey $mutationsByName $def.name -}}
+    {{- fail (printf "policy: %s: the mutation name %q is already defined in %s" $def.source $def.name (get $mutationsByName $def.name).source) -}}
+  {{- end -}}
+  {{- if hasKey $byName $def.name -}}
+    {{- fail (printf "policy: %s: %q is already the name of a validating policy (%s); posture exceptions name policies, so mutations need names of their own" $def.source $def.name (get $byName $def.name).source) -}}
+  {{- end -}}
+  {{- $out := dict -}}
+  {{- $_ := include "policy.normalizeMutation" (dict "def" $def "values" (get $perMutation $def.name) "on" $mutationsOn "out" $out) -}}
+  {{- $_ := set $mutationsByName $def.name $out -}}
+{{- end -}}
+{{- range $name := keys $perMutation | sortAlpha -}}
+  {{- if not (hasKey $mutationsByName $name) -}}
+    {{- fail (printf "policy: mutations.policies.%s: no such mutation; known: %s" $name (keys $mutationsByName | sortAlpha | join ", ")) -}}
+  {{- end -}}
+{{- end -}}
+{{- $mutations := list -}}
+{{- range $name := keys $mutationsByName | sortAlpha -}}
+  {{- $mutations = append $mutations (get $mutationsByName $name) -}}
+{{- end -}}
+
+{{- dict "policies" $policies "mutations" $mutations "mutationApiVersion" $mutationApiVersion "enforcement" $enforcement "release" $release "excludedNamespaces" (include "policy.excludedNamespaces" . | fromJsonArray) | toJson -}}
 {{- end -}}
 
 {{/*
@@ -208,19 +275,9 @@ Input: dict "def" <definition> "tier" <baked-in|optional|custom> "path" <values 
   {{- $exprs = append $exprs (dict "where" (printf "validations[%d].expression" $i) "cel" ($v.expression | default "")) -}}
   {{- if $v.messageExpression -}}{{- $exprs = append $exprs (dict "where" (printf "validations[%d].messageExpression" $i) "cel" $v.messageExpression) -}}{{- end -}}
 {{- end -}}
-{{- range $exprs -}}
-  {{- $hit := regexFind "(^|[^A-Za-z0-9_.])(params|authorizer)([^A-Za-z0-9_]|$)" .cel -}}
-  {{- if $hit -}}
-    {{- fail (printf "policy: %s: %s uses %s; definitions are portable CEL and may not use params (exceptions are injected by the renderer) or authorizer" $src .where (regexFind "params|authorizer" $hit)) -}}
-  {{- end -}}
-{{- end -}}
+{{- $_ := include "policy.checkPortable" (dict "src" $src "exprs" $exprs) -}}
 
-{{- $reserved := include "policy.reservedVariables" . | fromJsonArray -}}
-{{- range $def.variables -}}
-  {{- if or (has .name $reserved) (hasPrefix "setting_" .name) -}}
-    {{- fail (printf "policy: %s: variables.%s: the name is reserved (shared variables %s, exempt, and setting_*)" $src .name (join ", " (without $reserved "exempt"))) -}}
-  {{- end -}}
-{{- end -}}
+{{- $_ := include "policy.checkReserved" (dict "src" $src "variables" $def.variables) -}}
 
 {{- if and (eq $tier "baked-in") $settingsSpec (ne $name "restrict-image-registries") -}}
   {{- fail (printf "policy: %s: baked-in policies take no settings (only restrict-image-registries takes its registries); write fixed values into the definition" $src) -}}
@@ -238,26 +295,7 @@ Input: dict "def" <definition> "tier" <baked-in|optional|custom> "path" <values 
     {{- end -}}
   {{- end -}}
 {{- end -}}
-
-{{- $settings := dict -}}
-{{- range $s := keys $settingsSpec | sortAlpha -}}
-  {{- $spec := get $settingsSpec $s -}}
-  {{- $zero := get (dict "list" list "string" "" "bool" false) $spec.type -}}
-  {{- $value := $zero -}}
-  {{- if hasKey $spec "default" -}}{{- $value = get $spec "default" -}}{{- end -}}
-  {{- if hasKey $userValues $s -}}{{- $value = get $userValues $s -}}{{- end -}}
-  {{- $kind := get (dict "list" "slice" "string" "string" "bool" "bool") $spec.type -}}
-  {{- if not $kind -}}
-    {{- fail (printf "policy: %s: settings.%s: type must be list, string, or bool, not %q" $src $s $spec.type) -}}
-  {{- end -}}
-  {{- if not (kindIs $kind $value) -}}
-    {{- fail (printf "policy: %s.%s: must be a %s" $path $s $spec.type) -}}
-  {{- end -}}
-  {{- if and $spec.required (ne $spec.type "bool") (eq (len $value) 0) -}}
-    {{- fail (printf "policy: %s.%s is required%s" $path $s (ternary (printf ": %s" $spec.description) "" (not (empty $spec.description)))) -}}
-  {{- end -}}
-  {{- $_ := set $settings $s $value -}}
-{{- end -}}
+{{- $settings := include "policy.resolveSettings" (dict "spec" $settingsSpec "values" $userValues "path" $path "src" $src) | fromJson -}}
 
 {{- /* enabled and action. */ -}}
 {{- $enabled := true -}}
@@ -320,4 +358,135 @@ Input: dict "def" <definition> "tier" <baked-in|optional|custom> "path" <values 
 {{- $_ := set $out "settings" $settings -}}
 {{- $_ := set $out "variables" (default list $variables) -}}
 {{- $_ := set $out "validations" ($def.validations | default list) -}}
+{{- end -}}
+
+{{/*
+Fails if any expression uses params or authorizer: definitions are portable CEL (exceptions are
+injected by the renderer).
+Input: dict "src" <source> "exprs" (list (dict "where" <field> "cel" <expression>))
+*/}}
+{{- define "policy.checkPortable" -}}
+{{- $src := .src -}}
+{{- range .exprs -}}
+  {{- $hit := regexFind "(^|[^A-Za-z0-9_.])(params|authorizer)([^A-Za-z0-9_]|$)" .cel -}}
+  {{- if $hit -}}
+    {{- fail (printf "policy: %s: %s uses %s; definitions are portable CEL and may not use params (exceptions are injected by the renderer) or authorizer" $src .where (regexFind "params|authorizer" $hit)) -}}
+  {{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Fails if a definition declares a variable whose name the renderer reserves.
+Input: dict "src" <source> "variables" <the definition's variables>
+*/}}
+{{- define "policy.checkReserved" -}}
+{{- $src := .src -}}
+{{- $reserved := include "policy.reservedVariables" . | fromJsonArray -}}
+{{- range .variables -}}
+  {{- if or (has .name $reserved) (hasPrefix "setting_" .name) -}}
+    {{- fail (printf "policy: %s: variables.%s: the name is reserved (shared variables %s, exempt, and setting_*)" $src .name (join ", " (without $reserved "exempt"))) -}}
+  {{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+A definition's settings, resolved: each declared setting's default, overridden by the user's
+value, type-checked, and required ones present. The caller checks for undeclared keys.
+Input: dict "spec" <settings> "values" <the user's values> "path" <values path> "src" <source>
+Output: JSON object { <name>: value }
+*/}}
+{{- define "policy.resolveSettings" -}}
+{{- $settingsSpec := .spec | default dict -}}
+{{- $userValues := .values | default dict -}}
+{{- $path := .path -}}
+{{- $src := .src -}}
+{{- $settings := dict -}}
+{{- range $s := keys $settingsSpec | sortAlpha -}}
+  {{- $spec := get $settingsSpec $s -}}
+  {{- $zero := get (dict "list" list "string" "" "bool" false) $spec.type -}}
+  {{- $value := $zero -}}
+  {{- if hasKey $spec "default" -}}{{- $value = get $spec "default" -}}{{- end -}}
+  {{- if hasKey $userValues $s -}}{{- $value = get $userValues $s -}}{{- end -}}
+  {{- $kind := get (dict "list" "slice" "string" "string" "bool" "bool") $spec.type -}}
+  {{- if not $kind -}}
+    {{- fail (printf "policy: %s: settings.%s: type must be list, string, or bool, not %q" $src $s $spec.type) -}}
+  {{- end -}}
+  {{- if not (kindIs $kind $value) -}}
+    {{- fail (printf "policy: %s.%s: must be a %s" $path $s $spec.type) -}}
+  {{- end -}}
+  {{- if and $spec.required (ne $spec.type "bool") (eq (len $value) 0) -}}
+    {{- fail (printf "policy: %s.%s is required%s" $path $s (ternary (printf ": %s" $spec.description) "" (not (empty $spec.description)))) -}}
+  {{- end -}}
+  {{- if and $spec.pattern (eq $spec.type "string") (not (regexMatch $spec.pattern $value)) -}}
+    {{- fail (printf "policy: %s.%s: %q doesn't match %s" $path $s $value $spec.pattern) -}}
+  {{- end -}}
+  {{- $_ := set $settings $s $value -}}
+{{- end -}}
+{{- toJson $settings -}}
+{{- end -}}
+
+{{/*
+Normalize one mutation into out (see the model's shape above).
+Input: dict "def" <mutation definition> "values" <mutations.policies.<name>, or nil>
+            "on" <mutations.enabled> "out" <dict>
+*/}}
+{{- define "policy.normalizeMutation" -}}
+{{- $def := .def -}}
+{{- $name := $def.name -}}
+{{- $src := $def.source -}}
+{{- $path := printf "mutations.policies.%s" $name -}}
+{{- $userValues := .values | default dict -}}
+{{- $settingsSpec := $def.settings | default dict -}}
+{{- if hasSuffix ".yaml" $src -}}
+  {{- if ne (base $src | trimSuffix ".yaml") $name -}}
+    {{- fail (printf "policy: %s: name is %q; it must match the file name" $src $name) -}}
+  {{- end -}}
+{{- end -}}
+{{- if not $def.mutations -}}
+  {{- fail (printf "policy: %s: mutations: required (at least one)" $src) -}}
+{{- end -}}
+
+{{- $exprs := list -}}
+{{- range $def.variables -}}{{- $exprs = append $exprs (dict "where" (printf "variables.%s" .name) "cel" .expression) -}}{{- end -}}
+{{- range $i, $m := $def.mutations -}}
+  {{- if not (has $m.patchType (list "ApplyConfiguration" "JSONPatch")) -}}
+    {{- fail (printf "policy: %s: mutations[%d].patchType: must be ApplyConfiguration or JSONPatch, not %q" $src $i (toString $m.patchType)) -}}
+  {{- end -}}
+  {{- $exprs = append $exprs (dict "where" (printf "mutations[%d].expression" $i) "cel" ($m.expression | default "")) -}}
+{{- end -}}
+{{- $_ := include "policy.checkPortable" (dict "src" $src "exprs" $exprs) -}}
+{{- $_ := include "policy.checkReserved" (dict "src" $src "variables" $def.variables) -}}
+
+{{- $allowed := concat (keys $settingsSpec) (list "enabled") -}}
+{{- range $key := keys $userValues | sortAlpha -}}
+  {{- if not (has $key $allowed) -}}
+    {{- fail (printf "policy: %s.%s: unknown setting; %s accepts: %s" $path $key $name (sortAlpha $allowed | join ", ")) -}}
+  {{- end -}}
+{{- end -}}
+{{- $settings := include "policy.resolveSettings" (dict "spec" $settingsSpec "values" $userValues "path" $path "src" $src) | fromJson -}}
+
+{{- $dflt := $def.default | default dict -}}
+{{- if not (hasKey $dflt "enabled") -}}
+  {{- fail (printf "policy: %s: a mutation needs default.enabled" $src) -}}
+{{- end -}}
+{{- $enabled := get $dflt "enabled" -}}
+{{- if hasKey $userValues "enabled" -}}{{- $enabled = get $userValues "enabled" -}}{{- end -}}
+{{- if not (kindIs "bool" $enabled) -}}
+  {{- fail (printf "policy: %s.enabled: must be true or false" $path) -}}
+{{- end -}}
+
+{{- /* Pods only: workloadLabels is the Pod's own labels (the workload variables would read
+       controller fields a Pod doesn't have). */ -}}
+{{- $variables := concat (include "policy.objectVariables" . | fromJsonArray) (include "policy.settingVariables" $settings | fromJsonArray) ($def.variables | default list) -}}
+
+{{- $out := .out -}}
+{{- $_ := set $out "name" $name -}}
+{{- $_ := set $out "source" $src -}}
+{{- $_ := set $out "kind" "MutatingAdmissionPolicy" -}}
+{{- $_ := set $out "description" ($def.description | default "") -}}
+{{- $_ := set $out "controls" ($def.controls | default dict) -}}
+{{- $_ := set $out "enabled" (and .on $enabled) -}}
+{{- $_ := set $out "settings" $settings -}}
+{{- $_ := set $out "variables" $variables -}}
+{{- $_ := set $out "mutations" $def.mutations -}}
 {{- end -}}

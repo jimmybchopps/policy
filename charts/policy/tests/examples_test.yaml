@@ -4,10 +4,32 @@ suite: examples
 templates:
   - templates/crd.yaml
   - templates/validating.yaml
+  - templates/mutating.yaml
+  - templates/dashboard.yaml
 release:
   name: policy
 tests:
   - it: minimal
     values: [../../../examples/minimal.yaml]
+    asserts:
+      - matchSnapshot: {}
+
+  - it: mutations
+    values: [../../../examples/mutations.yaml]
+    asserts:
+      - matchSnapshot: {}
+
+  - it: reporting
+    values: [../../../examples/reporting.yaml]
+    asserts:
+      - matchSnapshot: {}
+
+  - it: default
+    values: [../../../examples/default.yaml]
+    asserts:
+      - matchSnapshot: {}
+
+  - it: strict
+    values: [../../../examples/strict.yaml]
     asserts:
       - matchSnapshot: {}

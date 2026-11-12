@@ -1,0 +1,24 @@
+# NOTES.txt's summary (policy.summary) over the shared test definitions: one of each tier.
+suite: summary (NOTES.txt)
+templates:
+  - templates/notes.yaml
+values:
+  - ../values/definitions.yaml
+tests:
+  - it: counts baked-in policies, groups optional ones by action, and lists the off ones
+    asserts:
+      - matchRegex: { path: summary, pattern: "^Enforcement: enforce " }
+      - matchRegex: { path: summary, pattern: "Baked-in policies, always enforced: 1\\." }
+      - matchRegex: { path: summary, pattern: "Optional policies on: 2\\.\\n  enforce: opt-on\\n  audit: opt-audit\\n" }
+      - matchRegex: { path: summary, pattern: "Optional policies off: opt-off\\." }
+      - matchRegex: { path: summary, pattern: "Mutations: off\\." }
+
+  - it: lists custom policies, and says none when nothing is off
+    set:
+      input:
+        policies: { opt-off: { enabled: true } }
+        custom:
+          mine: { description: x, validations: [{ expression: "true", message: x }] }
+    asserts:
+      - matchRegex: { path: summary, pattern: "Optional policies off: none\\." }
+      - matchRegex: { path: summary, pattern: "Custom policies: mine \\(enforce\\)\\." }

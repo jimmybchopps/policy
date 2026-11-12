@@ -1,0 +1,27 @@
+# automountServiceAccountToken unset, with a posture exception for the mutation: not mutated (the token stays).
+# namespace: exempt
+# expect: {.spec.automountServiceAccountToken} = 
+# expect: {.spec.volumes[*].name} ~ kube-api-access-
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-unset
+  labels: { app.kubernetes.io/name: pod-unset, e2e.test/fixture: "true" }
+spec:
+  serviceAccountName: app
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65532
+    seccompProfile: { type: RuntimeDefault }
+  containers:
+    - name: app
+      image: registry.example.mil/app@sha256:0000000000000000000000000000000000000000000000000000000000000000
+      readinessProbe: { tcpSocket: { port: 8080 } }
+      livenessProbe: { tcpSocket: { port: 8080 } }
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities: { drop: [ALL] }
+      resources:
+        requests: { cpu: 10m, memory: 16Mi }
+        limits: { memory: 16Mi }

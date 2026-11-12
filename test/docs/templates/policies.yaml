@@ -1,0 +1,20 @@
+{{- /*
+docs/policies.md, as one YAML block (Helm parses what a template renders, and Markdown isn't
+YAML); make docs strips the wrapper. Everything comes from definitions/validating/*.yaml and
+definitions/mutating/*.yaml, copied in by make docs.
+*/ -}}
+{{- $policies := list -}}
+{{- range $path, $_ := .Files.Glob "definitions/validating/*.yaml" -}}
+  {{- $policies = append $policies ($.Files.Get $path | fromYaml) -}}
+{{- end -}}
+{{- $mutations := list -}}
+{{- range $path, $_ := .Files.Glob "definitions/mutating/*.yaml" -}}
+  {{- $mutations = append $mutations ($.Files.Get $path | fromYaml) -}}
+{{- end -}}
+{{- $baked := list -}}{{- $optional := list -}}
+{{- range $policies -}}
+  {{- if eq .tier "baked-in" -}}{{- $baked = append $baked . -}}{{- else -}}{{- $optional = append $optional . -}}{{- end -}}
+{{- end -}}
+{{- $md := include "docs.page" (dict "baked" $baked "optional" $optional "mutations" $mutations) -}}
+policies.md: |
+{{ $md | indent 2 }}

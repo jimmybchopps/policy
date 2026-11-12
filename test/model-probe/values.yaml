@@ -13,3 +13,6 @@ chartVersion: 0.1.0
 
 # The definitions under test, in the definition format (each with a source path).
 definitions: []
+
+# The mutation definitions under test (definitions/mutating/ format, each with a source path).
+mutationDefinitions: []

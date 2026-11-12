@@ -2,7 +2,6 @@
 #
 # Install once per cluster, before anything else. Every key is checked by values.schema.json
 # (generated from the policy definitions), so the chart never silently ignores a setting.
-# Mutations arrive in a later phase; see docs/PLAN.md.
 #
 # The baked-in baseline is fixed: those policies are always on, always enforced, and take no
 # settings, except restrict-image-registries, which needs the site's registry list. A
@@ -39,3 +38,38 @@ policies:
 #          - expression: "'team' in variables.workloadLabels"
 #            message: "Add a 'team' label to the pod template."
 custom: {}
+
+# -- Mutations: MutatingAdmissionPolicies that fill in safe defaults on Pods that leave them
+#    unset, so pods created at runtime (by operators, for example) pass the policies above.
+#    They apply to Pods only (never a Deployment's template), never change a value that's
+#    already set, and skip a Pod with a posture exception for the mutation.
+mutations:
+  # -- Install the mutations at all.
+  enabled: false
+  # -- MutatingAdmissionPolicy's API version: admissionregistration.k8s.io/v1 on Kubernetes
+  #    1.36+, admissionregistration.k8s.io/v1beta1 on 1.34-1.35 (where the feature gate and
+  #    the API must be turned on).
+  apiVersion: admissionregistration.k8s.io/v1
+  # -- Each mutation's enabled (default from its definition) and settings, for example:
+  #      add-default-security-context: { enabled: true }               # on by default
+  #      disable-service-account-token-automount: { enabled: true }    # off by default
+  #      add-default-resources: { enabled: true, cpuRequest: 100m, memoryRequest: 128Mi, memoryLimit: 128Mi }
+  policies: {}
+
+# -- Reporting on what the policies do.
+reporting:
+  # -- A Grafana dashboard built on the API server's admission-policy metrics (denials,
+  #    warnings, audits, and errors per policy and binding; mutations), as a ConfigMap the
+  #    Grafana sidecar (e.g. kube-prometheus-stack's) loads. Needs Prometheus scraping the API
+  #    server. Only this release's enabled policies and mutations are shown.
+  #    The ConfigMap is always in this release's namespace: this chart installs before
+  #    anything else, so Grafana's namespace may not exist yet. Point Grafana's dashboard
+  #    sidecar at it instead, e.g. kube-prometheus-stack's
+  #    grafana.sidecar.dashboards.searchNamespace: ALL (or a list including this namespace).
+  grafanaDashboard:
+    enabled: false
+    # -- Labels the Grafana sidecar selects dashboards by.
+    labels:
+      grafana_dashboard: "1"
+    # -- Annotations, e.g. grafana_folder: Security.
+    annotations: {}

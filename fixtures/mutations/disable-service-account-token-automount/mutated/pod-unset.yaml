@@ -1,0 +1,42 @@
+# automountServiceAccountToken unset: set to false, and the token volume and mounts the ServiceAccount plugin added are removed (the Pod's own volume stays).
+# expect: {.spec.automountServiceAccountToken} = false
+# expect: {.spec.volumes[*].name} = tmp
+# expect: {.spec.containers[0].volumeMounts[*].name} = tmp
+# expect: {.spec.initContainers[0].volumeMounts[*].name} = tmp
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-unset
+  labels: { app.kubernetes.io/name: pod-unset, e2e.test/fixture: "true" }
+spec:
+  serviceAccountName: app
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65532
+    seccompProfile: { type: RuntimeDefault }
+  initContainers:
+    - name: init
+      image: registry.example.mil/app@sha256:0000000000000000000000000000000000000000000000000000000000000000
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities: { drop: [ALL] }
+      resources:
+        requests: { cpu: 10m, memory: 16Mi }
+        limits: { memory: 16Mi }
+      volumeMounts: [{ name: tmp, mountPath: /tmp }]
+  containers:
+    - name: app
+      image: registry.example.mil/app@sha256:0000000000000000000000000000000000000000000000000000000000000000
+      readinessProbe: { tcpSocket: { port: 8080 } }
+      livenessProbe: { tcpSocket: { port: 8080 } }
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities: { drop: [ALL] }
+      resources:
+        requests: { cpu: 10m, memory: 16Mi }
+        limits: { memory: 16Mi }
+      volumeMounts: [{ name: tmp, mountPath: /tmp }]
+  volumes:
+    - { name: tmp, emptyDir: {} }

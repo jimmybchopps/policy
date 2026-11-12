@@ -23,8 +23,12 @@ EXAMPLES := $(wildcard examples/*.yaml)
 # Policy definitions, checked against the definition JSON schema (test/definition-schema), and
 # deliberately broken ones the schema must reject.
 DEFINITION_SCHEMA := test/definition-schema
-DEFINITIONS       := $(wildcard $(CHART)/definitions/*/*.yaml)
+DEFINITIONS       := $(wildcard $(CHART)/definitions/validating/*.yaml)
 BAD_DEFINITIONS   := $(wildcard $(DEFINITION_SCHEMA)/bad/*.yaml)
+# Mutation definitions have their own schema (test/mutation-schema).
+MUTATION_SCHEMA   := test/mutation-schema
+MUTATIONS         := $(wildcard $(CHART)/definitions/mutating/*.yaml)
+BAD_MUTATIONS     := $(wildcard $(MUTATION_SCHEMA)/bad/*.yaml)
 # Objects each policy must admit or refuse (phase 1e), the e2e fixtures, and example objects
 # (examples/objects/), all validated with kubeconform. Files under an invalid/ folder must be
 # rejected instead.
@@ -66,7 +70,7 @@ UNITTEST_FILES := -f 'tests/*_test.yaml' -f 'tests/*/*_test.yaml'
 
 KUBECONFORM_ARGS := -strict -summary -schema-location default $(LOCAL_SCHEMAS) -schema-location '$(CRDS_CATALOG)'
 
-.PHONY: help tools tools-e2e lint check-definitions check-fixtures check-values-schema check-release values-schema unittest unittest-update crd-schema validate test test-all-helm e2e clean
+.PHONY: help tools tools-e2e lint check-definitions check-fixtures check-values-schema check-release check-docs docs release-check values-schema unittest unittest-update crd-schema validate test test-all-helm e2e clean
 
 help:
 	@echo "make tools          install helm $(HELM_VERSION), helm-unittest, kubeconform into .bin/"
@@ -117,23 +121,29 @@ lint: $(HELM)
 	  $(HELM) lint --strict $(CHART) -f $$f; \
 	done
 
-# Every definition must pass the definition schema; every file in bad/ must fail it, and for a
-# schema error (not some other lint problem), so the schema is known to reject things.
-check-definitions: $(HELM)
-	@set -e; for f in $(DEFINITIONS); do \
-	  echo "==> definition schema: $$f"; \
-	  $(HELM) lint --strict $(DEFINITION_SCHEMA) -f $$f >/dev/null \
-	    || { $(HELM) lint --strict $(DEFINITION_SCHEMA) -f $$f; exit 1; }; \
+# Every definition must pass its schema (validating or mutating); every file in a bad/ folder
+# must fail it, and for a schema error (not some other lint problem), so the schema is known to
+# reject things. $(1): the schema chart, $(2): the definitions, $(3): the bad ones.
+define check-schema
+	@set -e; for f in $(2); do \
+	  echo "==> $(notdir $(1)): $$f"; \
+	  $(HELM) lint --strict $(1) -f $$f >/dev/null \
+	    || { $(HELM) lint --strict $(1) -f $$f; exit 1; }; \
 	done
-	@set -e; for f in $(BAD_DEFINITIONS); do \
-	  if out=$$($(HELM) lint --strict $(DEFINITION_SCHEMA) -f $$f 2>&1); then \
-	    echo "FAIL: $$f was accepted by the definition schema"; exit 1; \
+	@set -e; for f in $(3); do \
+	  if out=$$($(HELM) lint --strict $(1) -f $$f 2>&1); then \
+	    echo "FAIL: $$f was accepted by $(1)"; exit 1; \
 	  fi; \
 	  if ! printf '%s\n' "$$out" | grep -q '\[ERROR\] values.yaml:'; then \
 	    echo "FAIL: $$f was rejected, but not by the schema:"; printf '%s\n' "$$out"; exit 1; \
 	  fi; \
 	  echo "==> rejected as expected: $$f"; \
 	done
+endef
+
+check-definitions: $(HELM)
+	$(call check-schema,$(DEFINITION_SCHEMA),$(DEFINITIONS),$(BAD_DEFINITIONS))
+	$(call check-schema,$(MUTATION_SCHEMA),$(MUTATIONS),$(BAD_MUTATIONS))
 
 unittest: $(UNITTEST_PLUGIN)
 	$(if $(HAS_PROBE),$(HELM) dependency update --skip-refresh $(PROBE) >/dev/null)
@@ -149,7 +159,7 @@ define render-values-schema
 	@rm -rf $(BIN)/values-schema-chart
 	@cp -r test/values-schema $(BIN)/values-schema-chart
 	@mkdir -p $(BIN)/values-schema-chart/definitions
-	@cp -r $(CHART)/definitions/validating $(BIN)/values-schema-chart/definitions/
+	@cp -r $(CHART)/definitions/validating $(CHART)/definitions/mutating $(BIN)/values-schema-chart/definitions/
 	@cp $(DEFINITION_SCHEMA)/values.schema.json $(BIN)/values-schema-chart/definition.schema.json
 	@$(HELM) template x $(BIN)/values-schema-chart --show-only templates/schema.yaml > $(BIN)/values-schema.out
 	@sed -e '/^---/d' -e '/^# Source/d' -e '/^$$/d' $(BIN)/values-schema.out > $(1)
@@ -166,6 +176,31 @@ check-values-schema: $(HELM)
 	  diff -u $(VALUES_SCHEMA) $(BIN)/values.schema.json | head -40; exit 1; \
 	fi
 	@echo "==> $(VALUES_SCHEMA) is current"
+
+# Renders docs/policies.md (the policy catalog) into $(1), from the definitions (test/docs). The
+# chart is assembled in .bin/ because a chart can only read its own files; its output is one YAML
+# block (Helm parses what a template renders), unwrapped here.
+POLICY_DOCS := docs/policies.md
+define render-docs
+	@rm -rf $(BIN)/docs-chart
+	@cp -r test/docs $(BIN)/docs-chart
+	@mkdir -p $(BIN)/docs-chart/definitions
+	@cp -r $(CHART)/definitions/validating $(CHART)/definitions/mutating $(BIN)/docs-chart/definitions/
+	@$(HELM) template x $(BIN)/docs-chart --show-only templates/policies.yaml > $(BIN)/docs.out
+	@printf '%s\n' "$$(sed -e '1,/^policies.md: |$$/d' -e 's/^  //' $(BIN)/docs.out)" > $(1)
+endef
+
+docs: $(HELM)
+	$(call render-docs,$(POLICY_DOCS))
+	@echo "==> wrote $(POLICY_DOCS)"
+
+check-docs: $(HELM)
+	@$(call render-docs,$(BIN)/policies.md)
+	@if ! cmp -s $(BIN)/policies.md $(POLICY_DOCS); then \
+	  echo "FAIL: $(POLICY_DOCS) is stale; run make docs and commit it"; \
+	  diff -u $(POLICY_DOCS) $(BIN)/policies.md | head -40; exit 1; \
+	fi
+	@echo "==> $(POLICY_DOCS) is current"
 
 crd-schema: $(CRD_SCHEMA)
 
@@ -205,8 +240,9 @@ validate: $(HELM) $(KUBECONFORM) $(CRD_SCHEMA)
 # Service; rbac a cluster-scoped object (ClusterRole or ClusterRoleBinding) and a namespaced one
 # (Role or RoleBinding). A matchConstraints block (disallow-pod-exec,
 # disallow-ephemeral-containers) has no object to fixture; its cases are commands in
-# test/e2e/scenarios/catalog.sh. And no fixtures
-# exist for a policy that isn't defined.
+# test/e2e/scenarios/catalog.sh. Every mutation has fixtures/mutations/<name>/{mutated,kept,
+# exempt}/ (test/e2e/scenarios/mutations.sh). And no fixtures exist for a policy or mutation
+# that isn't defined.
 check-fixtures:
 	@set -e; fail=0; \
 	for def in $(DEFINITIONS); do \
@@ -227,11 +263,26 @@ check-fixtures:
 	done; \
 	for d in fixtures/*/; do \
 	  p=$$(basename $$d); \
+	  [ $$p = mutations ] && continue; \
 	  if [ ! -f $(CHART)/definitions/validating/$$p.yaml ]; then \
 	    echo "FAIL: $$d has no definition ($(CHART)/definitions/validating/$$p.yaml)"; fail=1; \
 	  fi; \
 	done; \
-	[ $$fail -eq 0 ] && echo "==> fixtures cover every policy (the kinds it applies to; allow and deny)"
+	for def in $(MUTATIONS); do \
+	  p=$$(basename $$def .yaml); \
+	  for dir in mutated kept exempt; do \
+	    if ! ls fixtures/mutations/$$p/$$dir/*.yaml >/dev/null 2>&1; then \
+	      echo "FAIL: fixtures/mutations/$$p/$$dir/ has no fixtures"; fail=1; \
+	    fi; \
+	  done; \
+	done; \
+	for d in fixtures/mutations/*/; do \
+	  p=$$(basename $$d); \
+	  if [ ! -f $(CHART)/definitions/mutating/$$p.yaml ]; then \
+	    echo "FAIL: $$d has no definition ($(CHART)/definitions/mutating/$$p.yaml)"; fail=1; \
+	  fi; \
+	done; \
+	[ $$fail -eq 0 ] && echo "==> fixtures cover every policy (the kinds it applies to; allow and deny) and every mutation (mutated, kept, exempt)"
 
 # Upgrade safety (CLAUDE.md, "New policies arrive in audit"): every baked-in policy new in this
 # chart's minor (since:) is announced in CHANGELOG.md under the previous minor. Also runs the
@@ -240,7 +291,7 @@ check-release:
 	@test/release/run-cases.sh
 	@test/release/check-release.sh $(CHART) CHANGELOG.md
 
-test: lint check-definitions check-fixtures check-values-schema check-release unittest validate
+test: lint check-definitions check-fixtures check-values-schema check-docs check-release unittest validate
 
 test-all-helm:
 	@set -e; for v in $(HELM_VERSIONS); do \
@@ -252,6 +303,13 @@ test-all-helm:
 e2e: $(HELM) tools-e2e
 	K3D=$(K3D) KUBECTL=$(KUBECTL) HELM=$(HELM) K3S_IMAGE=$(K3S_IMAGE) \
 	  test/e2e/run.sh $(E2E_ARGS)
+
+# Builds a release's assets into dist/ exactly as .github/workflows/release.yml does
+# (test/release/build-dist.sh), so a release can be rehearsed before tagging:
+#   make release-check TAG=v0.1.0
+release-check: $(HELM)
+	@test -n "$(TAG)" || { echo "usage: make release-check TAG=v<version>"; exit 1; }
+	@HELM=$(HELM) test/release/build-dist.sh $(TAG) dist
 
 clean:
 	rm -rf $(BIN)

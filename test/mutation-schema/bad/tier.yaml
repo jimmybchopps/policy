@@ -1,0 +1,7 @@
+# Mutations have no tier (they're all optional, under mutations.policies).
+name: tier
+tier: baked-in
+default: { enabled: true }
+description: x
+mutations:
+  - { patchType: ApplyConfiguration, expression: "Object{}" }

@@ -1,0 +1,108 @@
+name: add-default-resources
+default: { enabled: false }
+description: >-
+  Sets a CPU request, a memory request, and a memory limit on each container and init
+  container that leaves them unset, from this mutation's settings. A memory limit is never set
+  below the container's memory request. Values that are already set are never changed.
+controls:
+  nist: [SC-5]
+settings:
+  cpuRequest:
+    type: string
+    default: 100m
+    pattern: '^[0-9]+(\.[0-9]+)?(m|[kMGTPE]i?)?$'
+    description: the CPU request set where a container has none (a Kubernetes quantity)
+  memoryRequest:
+    type: string
+    default: 128Mi
+    pattern: '^[0-9]+(\.[0-9]+)?([kMGTPE]i?)?$'
+    description: the memory request set where a container has none (a Kubernetes quantity)
+  memoryLimit:
+    type: string
+    default: 128Mi
+    pattern: '^[0-9]+(\.[0-9]+)?([kMGTPE]i?)?$'
+    description: >-
+      the memory limit set where a container has none; a container whose memory request is
+      higher gets its request as its limit (a Kubernetes quantity)
+variables:
+  - name: initContainers
+    expression: "has(object.spec.initContainers) ? object.spec.initContainers : []"
+  # The default limit is never below the default request.
+  - name: defaultMemoryLimit
+    expression: >-
+      quantity(variables.setting_memoryLimit).isLessThan(quantity(variables.setting_memoryRequest))
+        ? variables.setting_memoryRequest : variables.setting_memoryLimit
+  - name: containersWithoutCpuRequest
+    expression: >-
+      object.spec.containers.filter(c, !has(c.resources) || !has(c.resources.requests) ||
+        !('cpu' in c.resources.requests))
+  - name: initContainersWithoutCpuRequest
+    expression: >-
+      variables.initContainers.filter(c, !has(c.resources) || !has(c.resources.requests) ||
+        !('cpu' in c.resources.requests))
+  - name: containersWithoutMemoryRequest
+    expression: >-
+      object.spec.containers.filter(c, !has(c.resources) || !has(c.resources.requests) ||
+        !('memory' in c.resources.requests))
+  - name: initContainersWithoutMemoryRequest
+    expression: >-
+      variables.initContainers.filter(c, !has(c.resources) || !has(c.resources.requests) ||
+        !('memory' in c.resources.requests))
+  - name: containersWithoutMemoryLimit
+    expression: >-
+      object.spec.containers.filter(c, !has(c.resources) || !has(c.resources.limits) ||
+        !('memory' in c.resources.limits))
+  - name: initContainersWithoutMemoryLimit
+    expression: >-
+      variables.initContainers.filter(c, !has(c.resources) || !has(c.resources.limits) ||
+        !('memory' in c.resources.limits))
+# Each mutation sets one key, only where it's unset. The limit is computed from the object as
+# admitted (a request set by the mutation before it is the default request, which the default
+# limit already covers).
+mutations:
+  - patchType: ApplyConfiguration
+    expression: >-
+      size(variables.containersWithoutCpuRequest) > 0
+        ? Object{spec: Object.spec{containers: variables.containersWithoutCpuRequest.map(c,
+            Object.spec.containers{name: c.name, resources: Object.spec.containers.resources{
+              requests: {'cpu': variables.setting_cpuRequest}}})}}
+        : Object{}
+  - patchType: ApplyConfiguration
+    expression: >-
+      size(variables.initContainersWithoutCpuRequest) > 0
+        ? Object{spec: Object.spec{initContainers: variables.initContainersWithoutCpuRequest.map(c,
+            Object.spec.initContainers{name: c.name, resources: Object.spec.initContainers.resources{
+              requests: {'cpu': variables.setting_cpuRequest}}})}}
+        : Object{}
+  - patchType: ApplyConfiguration
+    expression: >-
+      size(variables.containersWithoutMemoryRequest) > 0
+        ? Object{spec: Object.spec{containers: variables.containersWithoutMemoryRequest.map(c,
+            Object.spec.containers{name: c.name, resources: Object.spec.containers.resources{
+              requests: {'memory': variables.setting_memoryRequest}}})}}
+        : Object{}
+  - patchType: ApplyConfiguration
+    expression: >-
+      size(variables.initContainersWithoutMemoryRequest) > 0
+        ? Object{spec: Object.spec{initContainers: variables.initContainersWithoutMemoryRequest.map(c,
+            Object.spec.initContainers{name: c.name, resources: Object.spec.initContainers.resources{
+              requests: {'memory': variables.setting_memoryRequest}}})}}
+        : Object{}
+  - patchType: ApplyConfiguration
+    expression: >-
+      size(variables.containersWithoutMemoryLimit) > 0
+        ? Object{spec: Object.spec{containers: variables.containersWithoutMemoryLimit.map(c,
+            Object.spec.containers{name: c.name, resources: Object.spec.containers.resources{
+              limits: {'memory': has(c.resources) && has(c.resources.requests) && 'memory' in c.resources.requests &&
+                quantity(string(c.resources.requests['memory'])).isGreaterThan(quantity(variables.defaultMemoryLimit))
+                ? string(c.resources.requests['memory']) : variables.defaultMemoryLimit}}})}}
+        : Object{}
+  - patchType: ApplyConfiguration
+    expression: >-
+      size(variables.initContainersWithoutMemoryLimit) > 0
+        ? Object{spec: Object.spec{initContainers: variables.initContainersWithoutMemoryLimit.map(c,
+            Object.spec.initContainers{name: c.name, resources: Object.spec.initContainers.resources{
+              limits: {'memory': has(c.resources) && has(c.resources.requests) && 'memory' in c.resources.requests &&
+                quantity(string(c.resources.requests['memory'])).isGreaterThan(quantity(variables.defaultMemoryLimit))
+                ? string(c.resources.requests['memory']) : variables.defaultMemoryLimit}}})}}
+        : Object{}

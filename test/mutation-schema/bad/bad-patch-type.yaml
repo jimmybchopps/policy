@@ -1,0 +1,6 @@
+# patchType is ApplyConfiguration or JSONPatch.
+name: bad-patch-type
+default: { enabled: true }
+description: x
+mutations:
+  - { patchType: StrategicMerge, expression: "Object{}" }

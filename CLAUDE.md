@@ -109,10 +109,21 @@ custom:                          # user-defined policies, same format as definit
 mutations:
   enabled: false
   apiVersion: admissionregistration.k8s.io/v1   # v1 on Kubernetes 1.36+; v1beta1 on 1.34-1.35
-  policies:
+  policies:                      # each mutation's enabled (default from its definition) and settings
     add-default-security-context: { enabled: true }
-    set-image-pull-policy: { enabled: true }
+    disable-service-account-token-automount: { enabled: false }
+    add-default-resources: { enabled: false, cpuRequest: 100m, memoryRequest: 128Mi, memoryLimit: 128Mi }
+
+reporting:
+  grafanaDashboard:              # a ConfigMap the Grafana sidecar loads (dashboards/admission-policies.json),
+    enabled: false               # always in the release namespace: Grafana's may not exist yet when this
+    labels: { grafana_dashboard: "1" }   # chart installs, so the sidecar searches this one
+    annotations: {}              # e.g. grafana_folder: Security
 ```
+
+NOTES.txt summarizes what the release turned on (`policy.summary`: enforcement, the
+baked-in count, optional policies by action and off, custom policies, mutations, the
+namespaces never evaluated), then any policies new in this minor (`policy.releaseNotes`).
 
 ### Actions
 
@@ -171,6 +182,38 @@ a `namespaceSelector` or `objectSelector` (exclusions are the chart's decision);
 `test/values-schema/`), so every policy's settings, `enabled`, and `action` are checked and
 documented; `make check-values-schema` fails if it's stale. Regenerate it after changing any
 definition.
+
+### Mutation format (`definitions/mutating/<name>.yaml`)
+
+```yaml
+name: add-default-security-context
+default: { enabled: true }       # on when mutations.enabled; no tier, no action
+description: Sets ... where a Pod leaves it unset. A value that's already set is never changed.
+controls: { nist: [AC-6, CM-7] }
+settings: {}                     # as for policies, under mutations.policies.<name>
+variables: []
+mutations:                       # applied in order, each seeing the result of the ones before
+  - patchType: ApplyConfiguration   # or JSONPatch (for what an apply configuration can't do: removing)
+    expression: >-
+      !has(object.spec.securityContext) || !has(object.spec.securityContext.runAsNonRoot)
+        ? Object{spec: Object.spec{securityContext: Object.spec.securityContext{runAsNonRoot: true}}}
+        : Object{}
+```
+
+Every mutation is a MutatingAdmissionPolicy on **Pods, CREATE only** (a pod spec is mostly
+immutable; a controller's template would fight with Helm or Flux), `failurePolicy: Fail`,
+`reinvocationPolicy: IfNeeded`, at `mutations.apiVersion`. It **never overwrites a set value**:
+an apply configuration sets whatever it names, so each expression builds only the fields that
+are unset (one mutation per field, containers filtered and merged by `name`) and returns
+`Object{}` otherwise. An apply configuration may not set an atomic list (such as
+`capabilities.drop`) even when it's unset, and can't remove anything; those take JSON patches,
+which compute their indexes from the object they patch. It gets one shared variable, `workloadLabels` (the Pod's own labels), and
+its settings as `setting_<name>`; the same portability rules apply (no `params`, no
+`authorizer`). Exceptions work like a policy's, with kind `MutatingAdmissionPolicy`: the binding
+reads `posture-exceptions` (`parameterNotFoundAction: Deny`, so it fails closed too), and the
+renderer wraps each mutation so it does nothing for an excepted Pod
+(`variables.exempt ? Object{} : (E)`, `(E).filter(p, !variables.exempt)` for a JSON patch).
+Mutation names must not collide with policy names. `test/mutation-schema/` is its JSON schema.
 
 ### Shared variables (injected for `resources: workloads`)
 
@@ -238,9 +281,11 @@ PolicyException CRD, tenants just create the objects.)
   `templates/crd.yaml` renders it with `.Files.Get` and adds the chart's labels and
   `helm.sh/resource-policy: keep`, so uninstalling this chart never deletes every namespace's
   exceptions. It lives under `templates/`, not Helm's `crds/` folder, so Helm upgrades it.
-- **Consumers fetch the same file** at a release tag and pin to it:
-  `https://raw.githubusercontent.com/jimmybchopps/policy/<tag>/charts/policy/crd/policy.posture.dev_policyexceptions.yaml`
-  (release assets come with phase 3c). `posture` pins to that tag.
+- **Consumers fetch the same file** at a release tag and pin to it, from the release assets
+  (`https://github.com/jimmybchopps/policy/releases/download/<tag>/policy.posture.dev_policyexceptions.yaml`)
+  or the raw file at the tag
+  (`https://raw.githubusercontent.com/jimmybchopps/policy/<tag>/charts/policy/crd/policy.posture.dev_policyexceptions.yaml`).
+  `posture` pins to that tag.
 - **Compatibility rule:** within an API version (`v1alpha1`, `v1beta1`, ...) changes are
   additive only (new optional fields). Anything else means a new API version, served alongside
   the old one until `posture` moves over.
@@ -264,6 +309,9 @@ PolicyException CRD, tenants just create the objects.)
 - Annotations on every binding: `policy.posture.dev/tier` and `policy.posture.dev/binding`
   (`pods`, `controllers`, `services`, `rbac`, or `custom`; the first binding shares its name
   with the policy, so this tells them apart).
+- A mutation's MutatingAdmissionPolicy and its one binding share its name; the policy carries
+  `policy.posture.dev/description` (and `nist`), the binding `policy.posture.dev/binding: pods`
+  and `policy.posture.dev/kind: mutating`.
 - Custom policy names must not collide with built-in ones; collisions fail the render.
 
 ## Layout
@@ -271,30 +319,40 @@ PolicyException CRD, tenants just create the objects.)
 ```
 charts/policy/
   Chart.yaml  values.yaml  values.schema.json (generated: make values-schema)
+  README.md                        install, values, exceptions, upgrades (helm show readme)
+  dashboards/admission-policies.json   the Grafana dashboard; __POLICIES__ becomes this release's names
   definitions/
     validating/<name>.yaml        one file per policy (read with .Files.Glob)
-    mutating/<name>.yaml
+    mutating/<name>.yaml          one file per mutation
   crd/policy.posture.dev_policyexceptions.yaml   the PolicyExceptions CRD (owned here)
   templates/
     _lib.tpl                       shared variables, policy settings as CEL literals, actions, exclusions
     _model.tpl                     definitions + values + custom -> one normalized list
     validate.yaml                  builds the model on every render, so bad values always fail
-    _render.tpl                    the model -> policies and bindings (validating.yaml calls it)
+    _render.tpl                    the model -> policies and bindings (validating.yaml, mutating.yaml)
     crd.yaml
     validating.yaml                policies and their bindings
-    mutating.yaml
+    mutating.yaml                  mutations and their bindings (when mutations.enabled)
+    dashboard.yaml                 the Grafana dashboard ConfigMap (when reporting.grafanaDashboard.enabled)
     NOTES.txt
   tests/                           helm-unittest suites
 fixtures/<policy>/allow/*.yaml     objects each policy must admit
 fixtures/<policy>/deny/*.yaml      objects each policy must refuse (Pods, Services, RBAC) or warn on (controllers)
+fixtures/mutations/<mutation>/     mutated/, kept/, exempt/ Pods, each with "# expect:" lines
 test/e2e/run.sh                    k3d: server-side dry-run every fixture, compare to expected
-test/e2e/scenarios/                smoke, catalog, settings (enforcement audit, a custom policy)
+test/e2e/scenarios/                smoke, catalog, settings (enforcement audit, a custom policy), mutations
 test/e2e/values/                   values files for scenarios (also checked by tests/schema_test)
 test/model-probe/                  test-only chart that renders the model for helm-unittest
 test/definition-schema/            JSON schema for definitions (make check-definitions)
+test/mutation-schema/              JSON schema for mutation definitions (make check-definitions)
 test/crd-schema/                   CRD -> JSON schema for kubeconform (make crd-schema)
 test/values-schema/                definitions -> charts/policy/values.schema.json (make values-schema)
-test/release/                      check-release.sh (new baked-in policies announced) and its cases
+test/release/                      check-release.sh (new baked-in policies announced), check-tag.sh,
+                                   release-notes.sh, build-dist.sh (the release assets), and their cases
+test/docs/                         definitions -> docs/policies.md (make docs)
+examples/*.yaml                    values files: minimal, default (recommended), strict, mutations, reporting
+.github/workflows/                 ci.yml (make test per Helm version, e2e), release.yml (on a v* tag)
+dist/                              release assets from make release-check (not committed)
 examples/objects/                  example objects (not values files), e.g. posture-exceptions.yaml
 docs/PLAN.md                       build order
 CHANGELOG.md                       one section per release; announces baked-in policies a minor ahead
@@ -304,7 +362,7 @@ docs/policies.md                   generated catalog (make docs); CI checks it's
 ## Testing
 
     make test           # lint, check-definitions, check-fixtures, check-values-schema,
-                        # check-release, unittest, validate (kubeconform)
+                        # check-docs, check-release, unittest, validate (kubeconform)
     make test-all-helm  # the same under every supported Helm version
     make e2e            # k3d, Kubernetes 1.36+ (MutatingAdmissionPolicy is v1 there)
 
@@ -333,14 +391,37 @@ be admitted with no warning. Policies with `exceptions: none` skip both; their d
 are denied in `apps`, and their allowlist settings get their own checks. "No warning" means no
 warning from a ValidatingAdmissionPolicy: the API server adds its own (deprecations such as
 `spec.externalIPs` on 1.37+), and those don't count.
+Every mutation has fixtures in `fixtures/mutations/<name>/`: `mutated/` (unset fields are
+filled in, and the Pod then passes every policy), `kept/` (set values are never overwritten),
+and `exempt/` (a Pod excepted from the mutation isn't touched). Each fixture's header has
+`# expect: <jsonpath> = <value>` lines (`~` contains, `!~` doesn't; an empty value means
+unset), checked against the object the API server would store (`expect mutated` in
+`test/e2e/scenarios/mutations.sh`); `# namespace: <ns>` picks a namespace other than `apps`
+(or `exempt` for `exempt/`).
+The dashboard's queries are checked against the API server under test: `check_metrics` (in
+the smoke scenario for the validating metrics, in mutations for the mutating ones) fails if
+any `apiserver_*` metric the dashboard uses isn't in `/metrics`, and lists the ones that are.
 Every exception path needs an e2e case:
 exempt workload admitted with no warning, non-exempt denied, namespace without
 `posture-exceptions` denied, `kube-system` never evaluated.
+
+## Releasing
+
+1. Set `version` in `charts/policy/Chart.yaml`, and write that version's section in
+   `CHANGELOG.md` (announcing any baked-in policy coming in the next minor; `make test` runs
+   `check-release`).
+2. `make docs` if definitions changed, then `make test` and `make e2e`.
+3. In the release commit, remove the section's `(unreleased)` marker, and rehearse with
+   `make release-check TAG=v<version>` (builds `dist/` exactly as the workflow does).
+4. Tag `v<version>` on main and push the tag. `release.yml` checks the tag against
+   `Chart.yaml` and `CHANGELOG.md`, runs `make test`, and creates the GitHub release with the
+   chart package, the CRD, the dashboard JSON, and `SHA256SUMS`.
 
 ## Status
 
 | Phase | Area | Status |
 |---|---|---|
 | 1 | Foundations: format, renderer, CRD, exceptions, first policies | 1a–1e done, e2e green; green CI run pending |
-| 2 | Full catalog, custom policies, enforcement controls | 2a–2d done, e2e green; 2e built, e2e run pending |
-| 3 | Mutations, reporting, docs, release | not started |
+| 2 | Full catalog, custom policies, enforcement controls | done, e2e green |
+| 3 | Mutations, reporting, docs, release | done, e2e green |
+| 4 | posture integration, CRD v1beta1, 1.0.0 | not started (0.1.0 released first) |

@@ -1,0 +1,35 @@
+# A recommended starting point for a site: the baked-in baseline, the optional policies at their
+# defaults, the security-context mutation, and the Grafana dashboard. Copy it, then change what
+# the comments point out. Every policy, its default, and its settings: docs/policies.md.
+policies:
+  # Required: the registries this cluster may pull from (image prefixes, with the trailing "/").
+  restrict-image-registries:
+    registries:
+      - registry.example.mil/
+      - 127.0.0.1:31999/
+
+  # Only the ingress gateway needs an external address; list its namespace here.
+  # restrict-loadbalancer-services:
+  #   namespaces: [ingress-gateway]
+
+  # Who may hold cluster-admin besides system:masters, e.g. your platform team's group.
+  # restrict-cluster-admin-binding:
+  #   allowedSubjects:
+  #     - { kind: Group, name: platform-admins }
+
+  # Operators that genuinely need "*" in their roles.
+  # restrict-wildcard-rbac:
+  #   allowedRoles: [my-operator-role]
+
+# Fill in the restricted security context on Pods that leave it unset (operators' Pods,
+# mostly), so they pass the baked-in policies. Never changes a value that's already set.
+mutations:
+  enabled: true
+
+# The Grafana dashboard, in this release's namespace: point Grafana's dashboard sidecar at it
+# (kube-prometheus-stack: grafana.sidecar.dashboards.searchNamespace).
+reporting:
+  grafanaDashboard:
+    enabled: true
+    annotations:
+      grafana_folder: Security

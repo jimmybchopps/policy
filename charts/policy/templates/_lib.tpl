@@ -205,3 +205,52 @@ New baked-in policies in {{ $release }}, enforced now (see CHANGELOG.md):
 {{- end }}
 {{- end }}
 {{- end -}}
+
+{{/*
+What this release turned on, from the model, for NOTES.txt: enforcement, the baked-in count,
+optional policies on (by action) and off, custom policies, mutations, the namespaces never
+evaluated, and the posture reminder.
+Usage: include "policy.summary" $model
+*/}}
+{{- define "policy.summary" -}}
+{{- $baked := 0 -}}
+{{- $byAction := dict "enforce" list "audit" list -}}
+{{- $off := list -}}
+{{- $custom := list -}}
+{{- range .policies -}}
+  {{- if eq .tier "baked-in" -}}
+    {{- $baked = add1 $baked -}}
+  {{- else if eq .tier "optional" -}}
+    {{- if .enabled -}}
+      {{- $_ := set $byAction .action (append (get $byAction .action) .name) -}}
+    {{- else -}}
+      {{- $off = append $off .name -}}
+    {{- end -}}
+  {{- else if .enabled -}}
+    {{- $custom = append $custom (printf "%s (%s)" .name .action) -}}
+  {{- end -}}
+{{- end -}}
+{{- $mutations := list -}}
+{{- range .mutations -}}{{- if .enabled -}}{{- $mutations = append $mutations .name -}}{{- end -}}{{- end }}
+Enforcement: {{ .enforcement }} (optional and custom policies with action inherit).
+Baked-in policies, always enforced: {{ $baked }}.
+{{- $on := concat $byAction.enforce $byAction.audit }}
+Optional policies on: {{ len $on }}.
+{{- with $byAction.enforce }}
+  enforce: {{ join ", " . }}
+{{- end }}
+{{- with $byAction.audit }}
+  audit: {{ join ", " . }}
+{{- end }}
+Optional policies off: {{ if $off }}{{ join ", " $off }}{{ else }}none{{ end }}.
+{{- with $custom }}
+Custom policies: {{ join ", " . }}.
+{{- end }}
+{{- if $mutations }}
+Mutations ({{ trimPrefix "admissionregistration.k8s.io/" .mutationApiVersion }}): {{ join ", " $mutations }}.
+{{- else }}
+Mutations: off.
+{{- end }}
+Never evaluated: {{ join ", " .excludedNamespaces }}.
+Every other namespace needs its posture-exceptions object (the posture chart) before anything is admitted there.
+{{- end -}}

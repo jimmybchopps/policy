@@ -1,0 +1,4 @@
+# A mutation definition needs at least one mutation.
+name: missing-mutations
+default: { enabled: true }
+description: x

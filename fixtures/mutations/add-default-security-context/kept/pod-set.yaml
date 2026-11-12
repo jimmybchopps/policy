@@ -1,0 +1,26 @@
+# Every field already set (a Localhost seccomp profile, an extra dropped capability): left exactly as it is.
+# expect: {.spec.securityContext.seccompProfile.type} = Localhost
+# expect: {.spec.containers[0].securityContext.capabilities.drop} = ["ALL","NET_RAW"]
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-set
+  labels: { app.kubernetes.io/name: pod-set, e2e.test/fixture: "true" }
+spec:
+  automountServiceAccountToken: false
+  serviceAccountName: app
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile: { type: Localhost, localhostProfile: profiles/app.json }
+  containers:
+    - name: app
+      image: registry.example.mil/app@sha256:0000000000000000000000000000000000000000000000000000000000000000
+      readinessProbe: { tcpSocket: { port: 8080 } }
+      livenessProbe: { tcpSocket: { port: 8080 } }
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities: { drop: [ALL, NET_RAW] }
+      resources:
+        requests: { cpu: 10m, memory: 16Mi }
+        limits: { memory: 16Mi }

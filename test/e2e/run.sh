@@ -48,7 +48,7 @@ fixture_service_account kube-system
 
 scenarios=("$@")
 if [[ ${#scenarios[@]} -eq 0 ]]; then
-  scenarios=(smoke catalog settings)                  # every scenario, in order
+  scenarios=(smoke catalog settings mutations)        # every scenario, in order
 fi
 for s in "${scenarios[@]}"; do
   run_scenario "$s"

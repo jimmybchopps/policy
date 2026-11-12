@@ -1,16 +1,24 @@
 {{- /*
-One document for the model's top-level fields (probe: Model), then one per policy (probe: Policy),
-so tests can pick a policy with documentSelector on its name.
+One document for the model's top-level fields (probe: Model), then one per policy (probe: Policy)
+and one per mutation (probe: Mutation), so tests can pick one with documentSelector on its name.
 */ -}}
-{{- $model := include "policy.model" (dict "Values" .Values.input "definitions" .Values.definitions "chartVersion" .Values.chartVersion) | fromJson -}}
+{{- $model := include "policy.model" (dict "Values" .Values.input "definitions" .Values.definitions "mutationDefinitions" .Values.mutationDefinitions "chartVersion" .Values.chartVersion) | fromJson -}}
 probe: Model
 name: model
-{{ omit $model "policies" | toYaml }}
+{{ omit $model "policies" "mutations" | toYaml }}
 {{- $names := list -}}
 {{- range $model.policies }}{{ $names = append $names .name }}{{ end }}
 names: {{ toJson $names }}
+{{- $mutationNames := list -}}
+{{- range $model.mutations }}{{ $mutationNames = append $mutationNames .name }}{{ end }}
+mutationNames: {{ toJson $mutationNames }}
 {{- range $model.policies }}
 ---
 probe: Policy
+{{ toYaml . }}
+{{- end }}
+{{- range $model.mutations }}
+---
+probe: Mutation
 {{ toYaml . }}
 {{- end }}
