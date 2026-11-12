@@ -1,0 +1,26 @@
+# kernel.msgmax, namespaced but not on the safe list.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-unsafe
+  labels: { app.kubernetes.io/name: pod-unsafe, e2e.test/fixture: "true" }
+spec:
+  automountServiceAccountToken: false
+  serviceAccountName: app
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65532
+    seccompProfile: { type: RuntimeDefault }
+    sysctls: [{ name: kernel.msgmax, value: "65536" }]
+  containers:
+    - name: app
+      image: registry.example.mil/app@sha256:0000000000000000000000000000000000000000000000000000000000000000
+      readinessProbe: { tcpSocket: { port: 8080 } }
+      livenessProbe: { tcpSocket: { port: 8080 } }
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities: { drop: [ALL] }
+      resources:
+        requests: { cpu: 10m, memory: 16Mi }
+        limits: { memory: 16Mi }

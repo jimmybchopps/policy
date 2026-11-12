@@ -1,0 +1,9 @@
+# type: ExternalName.
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-externalname
+  labels: { app.kubernetes.io/name: service-externalname, e2e.test/fixture: "true" }
+spec:
+  type: ExternalName
+  externalName: api.example.mil

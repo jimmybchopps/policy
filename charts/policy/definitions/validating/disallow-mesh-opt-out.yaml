@@ -1,0 +1,38 @@
+name: disallow-mesh-opt-out
+tier: optional
+default: { enabled: true, action: inherit }
+description: Pods don't carry the labels or annotations that take them out of the service mesh.
+controls:
+  nist: [SC-7, SC-8]
+resources: workloads
+operations: [CREATE, UPDATE]
+settings:
+  markers:
+    type: list
+    description: labels and annotations that take a pod out of the mesh
+    default:
+      - { kind: label, key: istio.io/dataplane-mode, value: none }
+      - { kind: label, key: sidecar.istio.io/inject, value: "false" }
+      - { kind: annotation, key: sidecar.istio.io/inject, value: "false" }
+      - { kind: annotation, key: linkerd.io/inject, value: disabled }
+    items:
+      type: object
+      additionalProperties: false
+      required: [kind, key, value]
+      properties:
+        kind: { enum: [label, annotation] }
+        key: { type: string, minLength: 1 }
+        value: { type: string }
+variables:
+  - name: annotations
+    expression: "has(variables.podMeta.annotations) ? variables.podMeta.annotations : {}"
+validations:
+  - expression: >-
+      !variables.setting_markers.exists(m, m.kind == 'label'
+        ? m.key in variables.workloadLabels && variables.workloadLabels[m.key] == m.value
+        : m.key in variables.annotations && variables.annotations[m.key] == m.value)
+    message: >-
+      The pod (or pod template) carries a label or annotation in
+      policies.disallow-mesh-opt-out.markers, which takes it out of the service mesh. Remove
+      it; if this workload must run outside the mesh, add a posture exception for
+      disallow-mesh-opt-out.

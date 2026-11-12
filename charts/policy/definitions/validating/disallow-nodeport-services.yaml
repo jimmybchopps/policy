@@ -1,0 +1,14 @@
+name: disallow-nodeport-services
+tier: optional
+default: { enabled: true, action: inherit }
+description: Services are not of type NodePort.
+controls:
+  nist: [SC-7]
+resources: services
+operations: [CREATE, UPDATE]
+validations:
+  - expression: "!has(object.spec.type) || object.spec.type != 'NodePort'"
+    message: >-
+      spec.type must not be NodePort: it opens the port on every node. Use a ClusterIP Service
+      behind the ingress gateway. If this Service needs it, add a posture exception for
+      disallow-nodeport-services.

@@ -1,0 +1,24 @@
+# No readiness probe.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-no-readiness
+  labels: { app.kubernetes.io/name: pod-no-readiness, e2e.test/fixture: "true" }
+spec:
+  automountServiceAccountToken: false
+  serviceAccountName: app
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65532
+    seccompProfile: { type: RuntimeDefault }
+  containers:
+    - name: app
+      image: registry.example.mil/app@sha256:0000000000000000000000000000000000000000000000000000000000000000
+      livenessProbe: { tcpSocket: { port: 8080 } }
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities: { drop: [ALL] }
+      resources:
+        requests: { cpu: 10m, memory: 16Mi }
+        limits: { memory: 16Mi }

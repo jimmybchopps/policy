@@ -1,0 +1,32 @@
+name: restrict-selinux
+tier: baked-in
+description: SELinux options use only the container types, and never set a user or role.
+controls:
+  pss: baseline
+  nist: [AC-3, SC-39]
+resources: workloads
+operations: [CREATE, UPDATE]
+variables:
+  # Every seLinuxOptions in the pod: the pod's own, then each container's.
+  - name: seLinuxOptions
+    expression: >-
+      (has(variables.podSpec.securityContext) &&
+        has(variables.podSpec.securityContext.seLinuxOptions)
+        ? [variables.podSpec.securityContext.seLinuxOptions] : []) +
+      variables.allContainers
+        .filter(c, has(c.securityContext) && has(c.securityContext.seLinuxOptions))
+        .map(c, c.securityContext.seLinuxOptions)
+validations:
+  - expression: >-
+      variables.seLinuxOptions.all(o, !has(o.type) ||
+        o.type in ['', 'container_t', 'container_init_t', 'container_kvm_t', 'container_engine_t'])
+    message: >-
+      securityContext.seLinuxOptions.type (pod and containers[*]) must be unset or one of
+      container_t, container_init_t, container_kvm_t, container_engine_t. If this workload
+      needs another type, add a posture exception for restrict-selinux.
+  - expression: >-
+      variables.seLinuxOptions.all(o,
+        (!has(o.user) || o.user == '') && (!has(o.role) || o.role == ''))
+    message: >-
+      securityContext.seLinuxOptions.user and .role (pod and containers[*]) must be unset. If
+      this workload needs them, add a posture exception for restrict-selinux.

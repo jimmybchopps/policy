@@ -8,5 +8,8 @@ policy:
 # The model's input under test: what the user would set (enforcement, policies, custom).
 input: {}
 
+# The chart version the model reads since against (the real chart passes .Chart.Version).
+chartVersion: 0.1.0
+
 # The definitions under test, in the definition format (each with a source path).
 definitions: []

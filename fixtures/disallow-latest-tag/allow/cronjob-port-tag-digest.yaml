@@ -1,0 +1,30 @@
+# A registry port, a tag, and a digest: admitted.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cronjob-port-tag-digest
+spec:
+  schedule: "0 3 * * *"
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels: { app.kubernetes.io/name: cronjob-port-tag-digest, e2e.test/fixture: "true" }
+        spec:
+          restartPolicy: OnFailure
+          automountServiceAccountToken: false
+          serviceAccountName: app
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            seccompProfile: { type: RuntimeDefault }
+          containers:
+            - name: app
+              image: 127.0.0.1:31999/app:1.0@sha256:0000000000000000000000000000000000000000000000000000000000000000
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: { drop: [ALL] }
+              resources:
+                requests: { cpu: 10m, memory: 16Mi }
+                limits: { memory: 16Mi }

@@ -1,4 +1,5 @@
-# The Phase 1 catalog: every baked-in policy renders a policy and its two bindings. Field-level
+# The catalog with the minimal example: every policy that's on by default renders a policy and
+# its bindings (two for workloads, one otherwise). Field-level
 # details are in policy_test, bindings_test, and the examples snapshot; the CEL itself is
 # checked by the API server (make e2e).
 suite: catalog
@@ -9,9 +10,38 @@ release:
 values:
   - ../../../../examples/minimal.yaml
 tests:
-  - it: renders a policy and two bindings for each of the five baked-in policies
+  - it: renders the policies on by default (26 workloads x 3, 4 services x 2, 3 rbac x 2)
     asserts:
-      - hasDocuments: { count: 15 }
+      - hasDocuments: { count: 92 }
+
+  - it: disallow-pod-exec is off by default
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: disallow-pod-exec, any: true }
+        not: true
+
+  - it: disallow-pod-exec renders a policy and one binding when enabled
+    set:
+      policies:
+        disallow-pod-exec: { enabled: true }
+    asserts:
+      - hasDocuments: { count: 94 }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: disallow-pod-exec, any: true }
+
+  - it: require-read-only-root-filesystem
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: require-read-only-root-filesystem, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: require-read-only-root-filesystem, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: require-read-only-root-filesystem-controllers, any: true }
+
+  - it: restrict-external-ips
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: restrict-external-ips, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: restrict-external-ips, any: true }
+
+  - it: restrict-wildcard-rbac
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: restrict-wildcard-rbac, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: restrict-wildcard-rbac, any: true }
 
   - it: disallow-host-namespaces
     asserts:
@@ -43,6 +73,176 @@ tests:
       - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: restrict-image-registries, any: true }
       - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: restrict-image-registries-controllers, any: true }
 
+  - it: disallow-host-ports
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: disallow-host-ports, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: disallow-host-ports, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: disallow-host-ports-controllers, any: true }
+
+  - it: disallow-privilege-escalation
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: disallow-privilege-escalation, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: disallow-privilege-escalation, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: disallow-privilege-escalation-controllers, any: true }
+
+  - it: require-drop-all-capabilities
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: require-drop-all-capabilities, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: require-drop-all-capabilities, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: require-drop-all-capabilities-controllers, any: true }
+
+  - it: restrict-seccomp
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: restrict-seccomp, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: restrict-seccomp, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: restrict-seccomp-controllers, any: true }
+
+  - it: restrict-apparmor
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: restrict-apparmor, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: restrict-apparmor, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: restrict-apparmor-controllers, any: true }
+
+  - it: restrict-selinux
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: restrict-selinux, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: restrict-selinux, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: restrict-selinux-controllers, any: true }
+
+  - it: restrict-proc-mount
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: restrict-proc-mount, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: restrict-proc-mount, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: restrict-proc-mount-controllers, any: true }
+
+  - it: restrict-sysctls
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: restrict-sysctls, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: restrict-sysctls, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: restrict-sysctls-controllers, any: true }
+
+  - it: restrict-volume-types
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: restrict-volume-types, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: restrict-volume-types, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: restrict-volume-types-controllers, any: true }
+
+  - it: disallow-ephemeral-containers is off by default
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: disallow-ephemeral-containers, any: true }
+        not: true
+
+  - it: disallow-ephemeral-containers renders a policy and one binding when enabled
+    set:
+      policies:
+        disallow-ephemeral-containers: { enabled: true }
+    asserts:
+      - hasDocuments: { count: 94 }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: disallow-ephemeral-containers, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: disallow-ephemeral-containers-controllers, any: true }
+        not: true
+
+  - it: require-image-digest
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: require-image-digest, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: require-image-digest, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: require-image-digest-controllers, any: true }
+
+  - it: disallow-latest-tag
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: disallow-latest-tag, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: disallow-latest-tag, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: disallow-latest-tag-controllers, any: true }
+
+  - it: require-resource-limits
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: require-resource-limits, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: require-resource-limits, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: require-resource-limits-controllers, any: true }
+
+  - it: require-standard-labels
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: require-standard-labels, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: require-standard-labels, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: require-standard-labels-controllers, any: true }
+
+  - it: disallow-default-namespace
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: disallow-default-namespace, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: disallow-default-namespace, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: disallow-default-namespace-controllers, any: true }
+
+  - it: disallow-mesh-opt-out
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: disallow-mesh-opt-out, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: disallow-mesh-opt-out, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: disallow-mesh-opt-out-controllers, any: true }
+
+  - it: disallow-automount-service-account-token
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: disallow-automount-service-account-token, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: disallow-automount-service-account-token, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: disallow-automount-service-account-token-controllers, any: true }
+
+  - it: disallow-default-service-account
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: disallow-default-service-account, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: disallow-default-service-account, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: disallow-default-service-account-controllers, any: true }
+
+  - it: disallow-secrets-in-env
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: disallow-secrets-in-env, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: disallow-secrets-in-env, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: disallow-secrets-in-env-controllers, any: true }
+
+  - it: disallow-shared-process-namespace
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: disallow-shared-process-namespace, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: disallow-shared-process-namespace, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: disallow-shared-process-namespace-controllers, any: true }
+
+  - it: require-probes
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: require-probes, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: require-probes, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: require-probes-controllers, any: true }
+
+  - it: disallow-nodeport-services
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: disallow-nodeport-services, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: disallow-nodeport-services, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: disallow-nodeport-services-controllers, any: true }
+        not: true
+
+  - it: restrict-externalname-services
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: restrict-externalname-services, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: restrict-externalname-services, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: restrict-externalname-services-controllers, any: true }
+        not: true
+
+  - it: restrict-loadbalancer-services
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: restrict-loadbalancer-services, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: restrict-loadbalancer-services, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: restrict-loadbalancer-services-controllers, any: true }
+        not: true
+
+  - it: restrict-cluster-admin-binding
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: restrict-cluster-admin-binding, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: restrict-cluster-admin-binding, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: restrict-cluster-admin-binding-controllers, any: true }
+        not: true
+
+  - it: disallow-rbac-escalation-verbs
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: disallow-rbac-escalation-verbs, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: disallow-rbac-escalation-verbs, any: true }
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: disallow-rbac-escalation-verbs-controllers, any: true }
+        not: true
+
   - it: each policy's controls (PSS level, NIST) and validation count follow its definition
     asserts:
       - equal: { path: "metadata.annotations['policy.posture.dev/pss']", value: baseline }
@@ -71,3 +271,141 @@ tests:
     asserts:
       - equal: { path: "spec.variables[4].name", value: podRunAsNonRoot }
       - equal: { path: "spec.variables[5].name", value: exempt }
+      - equal: { path: "metadata.annotations['policy.posture.dev/pss']", value: baseline }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Containers may not bind ports on the node (hostPort)." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/nist']", value: "CM-7, SC-7" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Containers may not bind ports on the node (hostPort)." }
+      - lengthEqual: { path: spec.validations, count: 1 }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Containers may not bind ports on the node (hostPort)." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/pss']", value: restricted }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Every container sets allowPrivilegeEscalation to false." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/nist']", value: "AC-6" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Every container sets allowPrivilegeEscalation to false." }
+      - lengthEqual: { path: spec.validations, count: 1 }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Every container sets allowPrivilegeEscalation to false." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/pss']", value: restricted }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Every container drops ALL capabilities and adds back nothing but NET_BIND_SERVICE." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/nist']", value: "AC-6, CM-7" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Every container drops ALL capabilities and adds back nothing but NET_BIND_SERVICE." }
+      - lengthEqual: { path: spec.validations, count: 2 }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Every container drops ALL capabilities and adds back nothing but NET_BIND_SERVICE." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/pss']", value: restricted }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Every container runs under a RuntimeDefault or Localhost seccomp profile." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/nist']", value: "CM-7, SC-39" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Every container runs under a RuntimeDefault or Localhost seccomp profile." }
+      - lengthEqual: { path: spec.validations, count: 1 }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Every container runs under a RuntimeDefault or Localhost seccomp profile." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/pss']", value: baseline }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "AppArmor, where set, uses the runtime default or a node-local profile." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/nist']", value: "CM-7, SC-39" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "AppArmor, where set, uses the runtime default or a node-local profile." }
+      - lengthEqual: { path: spec.validations, count: 2 }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "AppArmor, where set, uses the runtime default or a node-local profile." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/pss']", value: baseline }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "SELinux options use only the container types, and never set a user or role." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/nist']", value: "AC-3, SC-39" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "SELinux options use only the container types, and never set a user or role." }
+      - lengthEqual: { path: spec.validations, count: 2 }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "SELinux options use only the container types, and never set a user or role." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/pss']", value: baseline }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Containers use the default (masked) /proc mount." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/nist']", value: "SC-39" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Containers use the default (masked) /proc mount." }
+      - lengthEqual: { path: spec.validations, count: 1 }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Containers use the default (masked) /proc mount." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/pss']", value: baseline }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Pods set only the Pod Security Standards' safe sysctls." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/nist']", value: "CM-7, SC-39" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Pods set only the Pod Security Standards' safe sysctls." }
+      - lengthEqual: { path: spec.validations, count: 1 }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Pods set only the Pod Security Standards' safe sysctls." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/pss']", value: restricted }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Volumes are only of the Pod Security restricted types." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/nist']", value: "CM-7" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Volumes are only of the Pod Security restricted types." }
+      - lengthEqual: { path: spec.validations, count: 1 }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Volumes are only of the Pod Security restricted types." }
+      - notExists: { path: "metadata.annotations['policy.posture.dev/pss']" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Every container image is pinned by sha256 digest." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/nist']", value: "CM-2, SI-7" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Every container image is pinned by sha256 digest." }
+      - lengthEqual: { path: spec.validations, count: 1 }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Every container image is pinned by sha256 digest." }
+      - notExists: { path: "metadata.annotations['policy.posture.dev/pss']" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "No image uses the latest tag or no tag at all (unless it is pinned by digest)." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/nist']", value: "CM-2" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "No image uses the latest tag or no tag at all (unless it is pinned by digest)." }
+      - lengthEqual: { path: spec.validations, count: 1 }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "No image uses the latest tag or no tag at all (unless it is pinned by digest)." }
+      - notExists: { path: "metadata.annotations['policy.posture.dev/pss']" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Every container sets a memory limit and CPU and memory requests." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/nist']", value: "SC-5" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Every container sets a memory limit and CPU and memory requests." }
+      - lengthEqual: { path: spec.validations, count: 3 }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Every container sets a memory limit and CPU and memory requests." }
+      - notExists: { path: "metadata.annotations['policy.posture.dev/pss']" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Every pod carries the app.kubernetes.io/name label." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/nist']", value: "CM-8" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Every pod carries the app.kubernetes.io/name label." }
+      - lengthEqual: { path: spec.validations, count: 1 }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Every pod carries the app.kubernetes.io/name label." }
+      - notExists: { path: "metadata.annotations['policy.posture.dev/pss']" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Nothing runs in the default namespace." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/nist']", value: "CM-7" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Nothing runs in the default namespace." }
+      - lengthEqual: { path: spec.validations, count: 1 }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Nothing runs in the default namespace." }
+      - notExists: { path: "metadata.annotations['policy.posture.dev/pss']" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Pods don't carry the labels or annotations that take them out of the service mesh." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/nist']", value: "SC-7, SC-8" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Pods don't carry the labels or annotations that take them out of the service mesh." }
+      - lengthEqual: { path: spec.validations, count: 1 }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Pods don't carry the labels or annotations that take them out of the service mesh." }
+      - notExists: { path: "metadata.annotations['policy.posture.dev/pss']" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Pods set automountServiceAccountToken to false." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/nist']", value: "AC-6" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Pods set automountServiceAccountToken to false." }
+      - lengthEqual: { path: spec.validations, count: 1 }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Pods set automountServiceAccountToken to false." }
+      - notExists: { path: "metadata.annotations['policy.posture.dev/pss']" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Pods run as a service account of their own, not default." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/nist']", value: "AC-6" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Pods run as a service account of their own, not default." }
+      - lengthEqual: { path: spec.validations, count: 1 }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Pods run as a service account of their own, not default." }
+      - notExists: { path: "metadata.annotations['policy.posture.dev/pss']" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Secrets are mounted as files, not passed in environment variables." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/nist']", value: "SC-28" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Secrets are mounted as files, not passed in environment variables." }
+      - lengthEqual: { path: spec.validations, count: 1 }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Secrets are mounted as files, not passed in environment variables." }
+      - notExists: { path: "metadata.annotations['policy.posture.dev/pss']" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Containers in a pod don't share a process namespace." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/nist']", value: "SC-39" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Containers in a pod don't share a process namespace." }
+      - lengthEqual: { path: spec.validations, count: 1 }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Containers in a pod don't share a process namespace." }
+      - notExists: { path: "metadata.annotations['policy.posture.dev/pss']" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Long-running containers have readiness and liveness probes." }
+      - lengthEqual: { path: spec.validations, count: 2 }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Long-running containers have readiness and liveness probes." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/nist']", value: "SC-7" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Services are not of type NodePort." }
+      - lengthEqual: { path: spec.validations, count: 1 }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Services are not of type NodePort." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/nist']", value: "SC-7" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Services are not of type ExternalName." }
+      - lengthEqual: { path: spec.validations, count: 1 }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Services are not of type ExternalName." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/nist']", value: "SC-7" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Services of type LoadBalancer only in the namespaces listed." }
+      - lengthEqual: { path: spec.validations, count: 1 }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Services of type LoadBalancer only in the namespaces listed." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/nist']", value: "AC-2, AC-6" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Only the subjects listed are bound to cluster-admin." }
+      - lengthEqual: { path: spec.validations, count: 1 }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Only the subjects listed are bound to cluster-admin." }
+      - equal: { path: "metadata.annotations['policy.posture.dev/nist']", value: "AC-6" }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Roles and ClusterRoles don't grant the escalate, bind, or impersonate verbs." }
+      - lengthEqual: { path: spec.validations, count: 1 }
+        documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Roles and ClusterRoles don't grant the escalate, bind, or impersonate verbs." }

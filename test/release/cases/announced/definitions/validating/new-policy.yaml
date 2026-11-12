@@ -1,0 +1,4 @@
+name: new-policy
+tier: baked-in
+since: "0.2"
+description: test

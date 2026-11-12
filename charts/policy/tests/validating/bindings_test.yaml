@@ -8,7 +8,15 @@ release:
 values:
   - ../../../../examples/minimal.yaml
 tests:
-  - it: Pod bindings deny and audit (baked-in), Pods only
+  # The audit-default optional policies are turned up to enforce, so every Pod binding enforces.
+  - it: Pod bindings deny and audit (baked-in, and optional at enforce), Pods only
+    set:
+      policies:
+        disallow-automount-service-account-token: { action: enforce }
+        disallow-default-service-account: { action: enforce }
+        disallow-secrets-in-env: { action: enforce }
+        disallow-shared-process-namespace: { action: enforce }
+        require-probes: { action: enforce }
     documentSelector: { path: "metadata.annotations['policy.posture.dev/binding']", value: pods, matchMany: true }
     asserts:
       - isKind: { of: ValidatingAdmissionPolicyBinding }
@@ -35,11 +43,48 @@ tests:
       - equal: { path: spec.policyName, value: restrict-image-registries }
       - equal: { path: metadata.annotations, value: { policy.posture.dev/tier: baked-in, policy.posture.dev/binding: controllers } }
 
-  - it: every binding reads posture-exceptions from the object's namespace and fails closed without it
-    documentSelector: { path: kind, value: ValidatingAdmissionPolicyBinding, matchMany: true }
+  - it: every Pod binding reads posture-exceptions from the object's namespace and fails closed without it
+    documentSelector: { path: "metadata.annotations['policy.posture.dev/binding']", value: pods, matchMany: true }
     asserts:
       - equal: { path: spec.paramRef, value: { name: posture-exceptions, parameterNotFoundAction: Deny } }
       - notExists: { path: spec.paramRef.namespace }
+
+  - it: every controller binding reads posture-exceptions too
+    documentSelector: { path: "metadata.annotations['policy.posture.dev/binding']", value: controllers, matchMany: true }
+    asserts:
+      - equal: { path: spec.paramRef, value: { name: posture-exceptions, parameterNotFoundAction: Deny } }
+
+  - it: a services policy has one binding, with the policy's actions and posture-exceptions
+    documentSelector: { path: "metadata.annotations['policy.posture.dev/binding']", value: services, matchMany: true }
+    asserts:
+      - equal: { path: spec.validationActions, value: [Deny, Audit] }
+      - equal: { path: spec.paramRef, value: { name: posture-exceptions, parameterNotFoundAction: Deny } }
+      - equal:
+          path: spec.matchResources.resourceRules
+          value:
+            - { apiGroups: [""], apiVersions: [v1], operations: [CREATE, UPDATE], resources: [services] }
+
+  - it: an rbac policy has one binding, without params (cluster-scoped objects)
+    set:
+      policies:
+        disallow-rbac-escalation-verbs: { action: enforce }
+    documentSelector: { path: "metadata.annotations['policy.posture.dev/binding']", value: rbac, matchMany: true }
+    asserts:
+      - equal: { path: spec.validationActions, value: [Deny, Audit] }
+      - notExists: { path: spec.paramRef }
+
+  - it: an rbac policy under audit audits and warns
+    set:
+      policies:
+        restrict-wildcard-rbac: { action: audit }
+    documentSelector: { path: spec.policyName, value: restrict-wildcard-rbac }
+    asserts:
+      - equal: { path: spec.validationActions, value: [Audit, Warn] }
+
+  - it: no rbac policy has a controllers binding
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicyBinding, apiVersion: admissionregistration.k8s.io/v1, name: restrict-wildcard-rbac-controllers, any: true }
+        not: true
 
   - it: every binding skips kube-system, and only kube-system
     documentSelector: { path: kind, value: ValidatingAdmissionPolicyBinding, matchMany: true }
@@ -50,8 +95,19 @@ tests:
             matchExpressions:
               - { key: kubernetes.io/metadata.name, operator: NotIn, values: [kube-system] }
 
-  - it: every binding carries the chart labels and the tier
+  - it: every binding carries the chart labels and its policy's tier
     documentSelector: { path: kind, value: ValidatingAdmissionPolicyBinding, matchMany: true }
     asserts:
       - equal: { path: "metadata.labels['app.kubernetes.io/name']", value: policy }
-      - equal: { path: "metadata.annotations['policy.posture.dev/tier']", value: baked-in }
+      - exists: { path: "metadata.annotations['policy.posture.dev/tier']" }
+
+  - it: an optional policy's bindings carry tier optional
+    documentSelector: { path: metadata.name, value: require-read-only-root-filesystem-controllers }
+    asserts:
+      - equal: { path: "metadata.annotations['policy.posture.dev/tier']", value: optional }
+
+  - it: an audit-default rbac policy's single binding audits and warns
+    documentSelector: { path: spec.policyName, value: disallow-rbac-escalation-verbs }
+    asserts:
+      - equal: { path: "metadata.annotations['policy.posture.dev/binding']", value: rbac }
+      - equal: { path: spec.validationActions, value: [Audit, Warn] }

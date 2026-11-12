@@ -1,0 +1,15 @@
+name: require-image-digest
+tier: optional
+default: { enabled: true, action: inherit }
+description: Every container image is pinned by sha256 digest.
+controls:
+  nist: [CM-2, SI-7]
+resources: workloads
+operations: [CREATE, UPDATE]
+validations:
+  - expression: >-
+      variables.allContainers.all(c, c.image.matches('@sha256:[0-9a-f]{64}$'))
+    message: >-
+      containers[*].image must be pinned by digest (<image>@sha256:<64 hex digits>, a tag
+      before the digest is fine). If this workload can't pin its images, add a posture
+      exception for require-image-digest.

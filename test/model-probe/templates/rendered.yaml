@@ -2,5 +2,5 @@
 The renderer over the model built from the test definitions, so tests can check rendering of
 tiers and actions the real chart doesn't have yet (optional, audit, custom, disabled).
 */ -}}
-{{- $model := include "policy.model" (dict "Values" .Values.input "definitions" .Values.definitions) | fromJson -}}
+{{- $model := include "policy.model" (dict "Values" .Values.input "definitions" .Values.definitions "chartVersion" .Values.chartVersion) | fromJson -}}
 {{- include "policy.renderValidating" (dict "model" $model "root" .) -}}

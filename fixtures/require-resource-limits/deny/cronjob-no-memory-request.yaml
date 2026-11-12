@@ -1,0 +1,30 @@
+# A CPU limit, but no memory request or limit.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cronjob-no-memory-request
+spec:
+  schedule: "0 3 * * *"
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels: { app.kubernetes.io/name: cronjob-no-memory-request, e2e.test/fixture: "true" }
+        spec:
+          restartPolicy: OnFailure
+          automountServiceAccountToken: false
+          serviceAccountName: app
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            seccompProfile: { type: RuntimeDefault }
+          containers:
+            - name: app
+              image: registry.example.mil/app@sha256:0000000000000000000000000000000000000000000000000000000000000000
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: { drop: [ALL] }
+              resources:
+                requests: { cpu: 10m }
+                limits: { cpu: 100m }

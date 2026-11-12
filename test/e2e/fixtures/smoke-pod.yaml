@@ -1,12 +1,16 @@
-# A Pod that meets the whole baked-in baseline; every phase must keep admitting it.
+# A Pod that meets every policy, optional ones included; every phase must keep admitting it.
+# It carries the fixture label so a namespace's exceptions can select it (catalog's
+# debug-allowed).
 apiVersion: v1
 kind: Pod
 metadata:
   name: smoke
   labels:
     app.kubernetes.io/name: smoke
+    e2e.test/fixture: "true"
 spec:
   automountServiceAccountToken: false
+  serviceAccountName: app
   securityContext:
     runAsNonRoot: true
     runAsUser: 65532
@@ -14,6 +18,8 @@ spec:
   containers:
     - name: app
       image: registry.example.mil/smoke@sha256:0000000000000000000000000000000000000000000000000000000000000000
+      readinessProbe: { tcpSocket: { port: 8080 } }
+      livenessProbe: { tcpSocket: { port: 8080 } }
       securityContext:
         allowPrivilegeEscalation: false
         readOnlyRootFilesystem: true

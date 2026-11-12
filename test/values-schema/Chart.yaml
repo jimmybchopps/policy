@@ -1,0 +1,10 @@
+apiVersion: v2
+name: values-schema
+description: >-
+  Tool chart: renders charts/policy/values.schema.json from the policy definitions and the
+  definition schema, so every policy's settings, enabled, and action are documented and
+  checked in one place. `make values-schema` assembles it in .bin/ (a chart can only read its
+  own files) and writes the result; `make check-values-schema` fails if the committed file is
+  stale. Never published.
+type: application
+version: 0.0.0

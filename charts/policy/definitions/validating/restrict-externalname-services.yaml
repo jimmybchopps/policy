@@ -1,0 +1,14 @@
+name: restrict-externalname-services
+tier: optional
+default: { enabled: true, action: inherit }
+description: Services are not of type ExternalName.
+controls:
+  nist: [SC-7]
+resources: services
+operations: [CREATE, UPDATE]
+validations:
+  - expression: "!has(object.spec.type) || object.spec.type != 'ExternalName'"
+    message: >-
+      spec.type must not be ExternalName: it points cluster DNS at any name, including other
+      namespaces' Services. If this Service needs it, add a posture exception for
+      restrict-externalname-services.

@@ -1,0 +1,7 @@
+# impersonate on users.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: e2e-impersonate
+rules:
+  - { apiGroups: [""], resources: [users], verbs: [impersonate] }

@@ -1,4 +1,4 @@
-# hostPath, without the e2e.test/fixture label the exempt namespace's exceptions select: denied by disallow-host-path.
+# hostPID, without the e2e.test/fixture label the exempt namespace's exceptions select: denied by disallow-host-namespaces.
 apiVersion: v1
 kind: Pod
 metadata:
@@ -6,6 +6,8 @@ metadata:
   labels: { app.kubernetes.io/name: unlabeled }
 spec:
   automountServiceAccountToken: false
+  serviceAccountName: app
+  hostPID: true
   securityContext:
     runAsNonRoot: true
     runAsUser: 65532
@@ -13,6 +15,8 @@ spec:
   containers:
     - name: app
       image: registry.example.mil/app@sha256:0000000000000000000000000000000000000000000000000000000000000000
+      readinessProbe: { tcpSocket: { port: 8080 } }
+      livenessProbe: { tcpSocket: { port: 8080 } }
       securityContext:
         allowPrivilegeEscalation: false
         readOnlyRootFilesystem: true
@@ -20,5 +24,3 @@ spec:
       resources:
         requests: { cpu: 10m, memory: 16Mi }
         limits: { memory: 16Mi }
-  volumes:
-    - { name: proc, hostPath: { path: /proc } }

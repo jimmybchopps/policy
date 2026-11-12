@@ -1,0 +1,9 @@
+# "*" in apiGroups: denied.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: e2e-clusterrole-apigroups
+rules:
+  - apiGroups: ["*"]
+    resources: [deployments]
+    verbs: [get]

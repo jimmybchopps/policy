@@ -1,0 +1,51 @@
+name: restrict-cluster-admin-binding
+tier: optional
+default: { enabled: true, action: inherit }
+description: Only the subjects listed are bound to cluster-admin.
+controls:
+  nist: [AC-2, AC-6]
+resources: rbac
+operations: [CREATE, UPDATE]
+settings:
+  allowedSubjects:
+    type: list
+    description: subjects allowed to be bound to cluster-admin
+    items:
+      type: object
+      additionalProperties: false
+      required: [kind, name]
+      properties:
+        kind: { enum: [User, Group, ServiceAccount] }
+        name: { type: string, minLength: 1 }
+        namespace: { type: string, minLength: 1 }
+      # A ServiceAccount is named with its namespace; users and groups have none.
+      oneOf:
+        - properties: { kind: { enum: [User, Group] } }
+          not: { required: [namespace] }
+        - properties: { kind: { enum: [ServiceAccount] } }
+          required: [namespace]
+variables:
+  # Roles and ClusterRoles have no roleRef, so they always pass.
+  - name: bindsClusterAdmin
+    expression: >-
+      has(object.roleRef) && object.roleRef.kind == 'ClusterRole' &&
+      object.roleRef.name == 'cluster-admin'
+  # system:masters is bound by the API server's own cluster-admin ClusterRoleBinding, which it
+  # reconciles, so it's always allowed.
+  - name: allowedSubjects
+    expression: >-
+      [{'kind': 'Group', 'name': 'system:masters'}] + variables.setting_allowedSubjects
+  # Read through a variable: the type checker checks validations against every kind matched,
+  # and Roles and ClusterRoles have no subjects field.
+  - name: subjects
+    expression: "has(object.subjects) ? object.subjects : []"
+validations:
+  - expression: >-
+      !variables.bindsClusterAdmin ||
+      variables.subjects.all(s, variables.allowedSubjects.exists(a,
+        a.kind == s.kind && a.name == s.name &&
+        (s.kind != 'ServiceAccount' || ('namespace' in a && a.namespace == s.namespace))))
+    message: >-
+      Only the subjects in policies.restrict-cluster-admin-binding.allowedSubjects may be bound
+      to cluster-admin; bind a narrower role instead. To allow a subject, add it there
+      ({kind, name}, plus namespace for a ServiceAccount).

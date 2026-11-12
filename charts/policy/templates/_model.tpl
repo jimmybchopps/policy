@@ -13,17 +13,25 @@ Shape:
       tier: baked-in | optional | custom
       kind: ValidatingAdmissionPolicy
       description, controls: { pss?, nist? }
-      resources: workloads | services | rbac | { matchConstraints }
+      resources: workloads | services | rbac | { resourceRules, ... }   # as defined
+      shape: workloads | services | rbac | custom   # what resources is; picks rules and bindings
       operations: [CREATE, UPDATE]
-      scope: namespaced | cluster         # cluster (rbac): no namespace to read exceptions from
+      exceptions: labels | none           # none: no paramKind, no exempt (rbac always)
+      since: "0.N"                        # when the definition sets it: the chart minor that introduced it
+      introducing: true                   # since is this chart's minor (its first release)
+      newAudit: true                      # an optional policy auditing only because it's introducing
       enabled: true
       action: enforce | audit             # resolved; never inherit
-      actions: { pods: [Deny, Audit], controllers: [Warn] }
+      actions: { pods: [Deny, Audit], controllers: [Warn] }   # workloads
+               { single: [Deny, Audit] }                      # every other shape
       settings: { <name>: value }         # resolved, defaults applied
       variables: [{ name, expression }]   # shared (workloads), setting_*, the definition's own
       validations: [{ expression, message | messageExpression, reason? }]
 
-policy.model is a pure function of its input (dict "Values" ... "definitions" ...), so the
+The model also carries release: the chart's MAJOR.MINOR ("0.1"), against which since is read.
+
+policy.model is a pure function of its input (dict "Values" ... "definitions" ...
+"chartVersion" ...), so the
 probe chart (test/model-probe) can feed it test definitions and values the public schema
 doesn't accept yet. policy.modelFor loads the real definitions and passes the real values.
 
@@ -41,11 +49,18 @@ Usage: include "policy.definitions" . | fromJsonArray     (needs the chart root,
   {{- if hasKey $def "Error" -}}
     {{- fail (printf "policy: %s: not valid YAML: %s" $path $def.Error) -}}
   {{- end -}}
-  {{- /* Messages tell people what to do (CLAUDE.md): every built-in message names its exception.
-         Checked here, on the real files only, so the probe's test definitions stay minimal. */ -}}
+  {{- /* Messages tell people what to do (CLAUDE.md): every built-in message names its exception,
+         or, for a policy without exceptions, the setting that allows it. Checked here, on the
+         real files only, so the probe's test definitions stay minimal. */ -}}
+  {{- $none := or (eq (toString $def.exceptions) "none") (eq (toString $def.resources) "rbac") -}}
+  {{- $want := ternary (printf "policies.%s." $def.name) (printf "posture exception for %s" $def.name) $none -}}
   {{- range $i, $v := $def.validations -}}
-    {{- if and $v.message (not (contains (printf "posture exception for %s" $def.name) $v.message)) -}}
-      {{- fail (printf "policy: %s: validations[%d].message must say how to get an exception: \"... add a posture exception for %s.\"" $path $i $def.name) -}}
+    {{- if and $v.message (not (contains $want $v.message)) -}}
+      {{- if $none -}}
+        {{- fail (printf "policy: %s: validations[%d].message must name the setting that allows it (%s<setting>)" $path $i $want) -}}
+      {{- else -}}
+        {{- fail (printf "policy: %s: validations[%d].message must say how to get an exception: \"... add a posture exception for %s.\"" $path $i $def.name) -}}
+      {{- end -}}
     {{- end -}}
   {{- end -}}
   {{- $defs = append $defs (set $def "source" $path) -}}
@@ -58,7 +73,7 @@ The model for this release: the real definitions and values.
 Usage: include "policy.modelFor" . | fromJson
 */}}
 {{- define "policy.modelFor" -}}
-{{- include "policy.model" (dict "Values" .Values "definitions" (include "policy.definitions" . | fromJsonArray)) -}}
+{{- include "policy.model" (dict "Values" .Values "definitions" (include "policy.definitions" . | fromJsonArray) "chartVersion" .Chart.Version) -}}
 {{- end -}}
 
 {{- define "policy.model" -}}
@@ -69,6 +84,12 @@ Usage: include "policy.modelFor" . | fromJson
 {{- if not (has $enforcement (list "enforce" "audit")) -}}
   {{- fail (printf "policy: enforcement: must be enforce or audit, not %q" $enforcement) -}}
 {{- end -}}
+{{- $chartVersion := .chartVersion | default "0.0.0" | toString -}}
+{{- $release := regexFind "^[0-9]+\\.[0-9]+" $chartVersion -}}
+{{- if not $release -}}
+  {{- fail (printf "policy: Chart.yaml version %q: not a semantic version" $chartVersion) -}}
+{{- end -}}
+{{- $rel := dict "release" $release "chartVersion" $chartVersion -}}
 
 {{- $byName := dict -}}
 {{- range $def := .definitions -}}
@@ -76,7 +97,7 @@ Usage: include "policy.modelFor" . | fromJson
     {{- fail (printf "policy: %s: the policy name %q is already defined in %s" $def.source $def.name (get $byName $def.name).source) -}}
   {{- end -}}
   {{- $out := dict -}}
-  {{- $_ := include "policy.normalize" (dict "def" $def "tier" $def.tier "path" (printf "policies.%s" $def.name) "values" (get $policyValues $def.name) "enforcement" $enforcement "out" $out) -}}
+  {{- $_ := include "policy.normalize" (dict "def" $def "tier" $def.tier "path" (printf "policies.%s" $def.name) "values" (get $policyValues $def.name) "enforcement" $enforcement "rel" $rel "out" $out) -}}
   {{- $_ := set $byName $def.name $out -}}
 {{- end -}}
 
@@ -90,9 +111,10 @@ Usage: include "policy.modelFor" . | fromJson
   {{- if hasKey $byName $name -}}
     {{- fail (printf "policy: custom.%s: %q is the name of a built-in policy (%s); choose another name" $name $name (get $byName $name).source) -}}
   {{- end -}}
-  {{- $def := merge (dict "name" $name "source" (printf "custom.%s" $name)) (get $custom $name | default dict) -}}
+  {{- $entry := get $custom $name | default dict -}}
+  {{- $def := merge (dict "name" $name "source" (printf "custom.%s" $name)) (omit $entry "enabled" "action") -}}
   {{- $out := dict -}}
-  {{- $_ := include "policy.normalize" (dict "def" $def "tier" "custom" "path" (printf "custom.%s" $name) "values" dict "enforcement" $enforcement "out" $out) -}}
+  {{- $_ := include "policy.normalize" (dict "def" $def "tier" "custom" "path" (printf "custom.%s" $name) "values" (pick $entry "enabled" "action") "enforcement" $enforcement "rel" $rel "out" $out) -}}
   {{- $_ := set $byName $name $out -}}
 {{- end -}}
 
@@ -100,13 +122,14 @@ Usage: include "policy.modelFor" . | fromJson
 {{- range $name := keys $byName | sortAlpha -}}
   {{- $policies = append $policies (get $byName $name) -}}
 {{- end -}}
-{{- dict "policies" $policies "excludedNamespaces" (include "policy.excludedNamespaces" . | fromJsonArray) | toJson -}}
+{{- dict "policies" $policies "release" $release "excludedNamespaces" (include "policy.excludedNamespaces" . | fromJsonArray) | toJson -}}
 {{- end -}}
 
 {{/*
 Normalize one policy into out.
 Input: dict "def" <definition> "tier" <baked-in|optional|custom> "path" <values path>
-            "values" <policies.<name>, or nil> "enforcement" <enforce|audit> "out" <dict>
+            "values" <policies.<name> (custom: the entry's enabled and action), or nil>
+            "enforcement" <enforce|audit> "rel" <dict "release" "0.N" "chartVersion" ...> "out" <dict>
 */}}
 {{- define "policy.normalize" -}}
 {{- $def := .def -}}
@@ -124,6 +147,58 @@ Input: dict "def" <definition> "tier" <baked-in|optional|custom> "path" <values 
   {{- if ne (base $src | trimSuffix ".yaml") $name -}}
     {{- fail (printf "policy: %s: name is %q; it must match the file name" $src $name) -}}
   {{- end -}}
+{{- end -}}
+
+{{- /* since: the chart minor that introduced the policy (absent: the original catalog). An
+       optional policy audits by default in that minor; see "enabled and action" below. */ -}}
+{{- $since := "" -}}
+{{- $introducing := false -}}
+{{- if hasKey $def "since" -}}
+  {{- if eq $tier "custom" -}}
+    {{- fail (printf "policy: %s: since: only built-in policies have since (it marks the chart release that introduced them)" $src) -}}
+  {{- end -}}
+  {{- if not (and (kindIs "string" $def.since) (regexMatch "^[0-9]+\\.[0-9]+$" $def.since)) -}}
+    {{- fail (printf "policy: %s: since: must be \"MAJOR.MINOR\" (the chart version that introduced it), not %v" $src $def.since) -}}
+  {{- end -}}
+  {{- $since = $def.since -}}
+  {{- $s := splitList "." $since -}}
+  {{- $r := splitList "." .rel.release -}}
+  {{- $later := or (gt (atoi (index $s 0)) (atoi (index $r 0))) (and (eq (atoi (index $s 0)) (atoi (index $r 0))) (gt (atoi (index $s 1)) (atoi (index $r 1)))) -}}
+  {{- if $later -}}
+    {{- fail (printf "policy: %s: since %s is later than this chart (%s); bump Chart.yaml's version in the same change" $src $since .rel.chartVersion) -}}
+  {{- end -}}
+  {{- $introducing = eq $since .rel.release -}}
+{{- end -}}
+
+{{- /* What resources is (its shape), and whether the policy takes exceptions. */ -}}
+{{- $resources := $def.resources | default "workloads" -}}
+{{- $shape := "" -}}
+{{- if kindIs "map" $resources -}}
+  {{- $shape = "custom" -}}
+  {{- range $key := list "namespaceSelector" "objectSelector" -}}
+    {{- if hasKey $resources $key -}}
+      {{- fail (printf "policy: %s: resources.%s: not allowed; which namespaces are never evaluated is the chart's decision (kube-system only). Use posture exceptions for individual workloads" $src $key) -}}
+    {{- end -}}
+  {{- end -}}
+  {{- range $key := keys $resources | sortAlpha -}}
+    {{- if not (has $key (list "resourceRules" "excludeResourceRules" "matchPolicy")) -}}
+      {{- fail (printf "policy: %s: resources.%s: unknown key; a matchConstraints block takes resourceRules, excludeResourceRules, matchPolicy" $src $key) -}}
+    {{- end -}}
+  {{- end -}}
+  {{- if not $resources.resourceRules -}}
+    {{- fail (printf "policy: %s: resources.resourceRules: required (at least one rule)" $src) -}}
+  {{- end -}}
+{{- else if has (toString $resources) (list "workloads" "services" "rbac") -}}
+  {{- $shape = toString $resources -}}
+{{- else -}}
+  {{- fail (printf "policy: %s: resources must be workloads, services, rbac, or a matchConstraints block, not %q" $src (toString $resources)) -}}
+{{- end -}}
+{{- $exceptions := $def.exceptions | default (ternary "none" "labels" (eq $shape "rbac")) -}}
+{{- if not (has $exceptions (list "labels" "none")) -}}
+  {{- fail (printf "policy: %s: exceptions must be labels or none, not %q" $src $exceptions) -}}
+{{- end -}}
+{{- if and (eq $shape "rbac") (ne $exceptions "none") -}}
+  {{- fail (printf "policy: %s: exceptions: rbac objects are cluster-scoped or have no labels to match, so rbac policies take exceptions: none (allowlist settings instead)" $src) -}}
 {{- end -}}
 
 {{- /* Definitions stay portable CEL: no params (exceptions are injected), no authorizer. */ -}}
@@ -153,7 +228,7 @@ Input: dict "def" <definition> "tier" <baked-in|optional|custom> "path" <values 
 
 {{- /* Every key the user set must be a setting the definition declares (or enabled/action on an optional policy). */ -}}
 {{- $allowed := keys $settingsSpec -}}
-{{- if eq $tier "optional" -}}{{- $allowed = concat $allowed (list "enabled" "action") -}}{{- end -}}
+{{- if has $tier (list "optional" "custom") -}}{{- $allowed = concat $allowed (list "enabled" "action") -}}{{- end -}}
 {{- range $key := keys $userValues | sortAlpha -}}
   {{- if not (has $key $allowed) -}}
     {{- if eq $tier "baked-in" -}}
@@ -187,15 +262,23 @@ Input: dict "def" <definition> "tier" <baked-in|optional|custom> "path" <values 
 {{- /* enabled and action. */ -}}
 {{- $enabled := true -}}
 {{- $action := "inherit" -}}
+{{- $newAudit := false -}}
 {{- if eq $tier "baked-in" -}}
   {{- $action = "enforce" -}}
-{{- else if eq $tier "optional" -}}
-  {{- $dflt := get $def "default" | default dict -}}
-  {{- if not (and (hasKey $dflt "enabled") (hasKey $dflt "action")) -}}
-    {{- fail (printf "policy: %s: an optional policy needs default.enabled and default.action" $src) -}}
+{{- else -}}
+  {{- if eq $tier "optional" -}}
+    {{- $dflt := get $def "default" | default dict -}}
+    {{- if not (and (hasKey $dflt "enabled") (hasKey $dflt "action")) -}}
+      {{- fail (printf "policy: %s: an optional policy needs default.enabled and default.action" $src) -}}
+    {{- end -}}
+    {{- $enabled = get $dflt "enabled" -}}
+    {{- $action = get $dflt "action" -}}
+    {{- /* New in this minor: audit first, so an upgrade never starts denying what already runs. */ -}}
+    {{- if and $introducing (ne $action "audit") (not (hasKey $userValues "action")) -}}
+      {{- $action = "audit" -}}
+      {{- $newAudit = true -}}
+    {{- end -}}
   {{- end -}}
-  {{- $enabled = get $dflt "enabled" -}}
-  {{- $action = get $dflt "action" -}}
   {{- if hasKey $userValues "enabled" -}}{{- $enabled = get $userValues "enabled" -}}{{- end -}}
   {{- if hasKey $userValues "action" -}}{{- $action = get $userValues "action" -}}{{- end -}}
   {{- if not (kindIs "bool" $enabled) -}}
@@ -207,11 +290,13 @@ Input: dict "def" <definition> "tier" <baked-in|optional|custom> "path" <values 
 {{- end -}}
 {{- if eq $action "inherit" -}}{{- $action = .enforcement -}}{{- end -}}
 
-{{- /* Variables: shared (workloads), then settings, then the definition's own. */ -}}
-{{- $resources := $def.resources | default "workloads" -}}
+{{- /* Variables: shared (workloads; workloadLabels alone for other objects that take
+       exceptions), then settings, then the definition's own. */ -}}
 {{- $variables := list -}}
-{{- if eq (toString $resources) "workloads" -}}
+{{- if eq $shape "workloads" -}}
   {{- $variables = include "policy.workloadVariables" . | fromJsonArray -}}
+{{- else if eq $exceptions "labels" -}}
+  {{- $variables = include "policy.objectVariables" . | fromJsonArray -}}
 {{- end -}}
 {{- $variables = concat $variables (include "policy.settingVariables" $settings | fromJsonArray) ($def.variables | default list) -}}
 
@@ -223,11 +308,15 @@ Input: dict "def" <definition> "tier" <baked-in|optional|custom> "path" <values 
 {{- $_ := set $out "description" ($def.description | default "") -}}
 {{- $_ := set $out "controls" ($def.controls | default dict) -}}
 {{- $_ := set $out "resources" $resources -}}
+{{- $_ := set $out "shape" $shape -}}
 {{- $_ := set $out "operations" ($def.operations | default (list "CREATE" "UPDATE")) -}}
-{{- $_ := set $out "scope" (ternary "cluster" "namespaced" (eq (toString $resources) "rbac")) -}}
+{{- $_ := set $out "exceptions" $exceptions -}}
+{{- if $since -}}{{- $_ := set $out "since" $since -}}{{- end -}}
+{{- if $introducing -}}{{- $_ := set $out "introducing" true -}}{{- end -}}
+{{- if $newAudit -}}{{- $_ := set $out "newAudit" true -}}{{- end -}}
 {{- $_ := set $out "enabled" $enabled -}}
 {{- $_ := set $out "action" $action -}}
-{{- $_ := set $out "actions" (include "policy.actions" $action | fromJson) -}}
+{{- $_ := set $out "actions" (include "policy.actions" (dict "action" $action "workloads" (eq $shape "workloads")) | fromJson) -}}
 {{- $_ := set $out "settings" $settings -}}
 {{- $_ := set $out "variables" (default list $variables) -}}
 {{- $_ := set $out "validations" ($def.validations | default list) -}}

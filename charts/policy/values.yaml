@@ -1,20 +1,41 @@
 # policy: the cluster's admission policies.
 #
-# Install once per cluster, before anything else. Every key below is documented; keys for
-# features that aren't built yet are not accepted, so the chart never silently ignores a
-# setting. (`enforcement`, optional policies, `custom`, and `mutations` arrive in later
-# phases; see docs/PLAN.md.)
+# Install once per cluster, before anything else. Every key is checked by values.schema.json
+# (generated from the policy definitions), so the chart never silently ignores a setting.
+# Mutations arrive in a later phase; see docs/PLAN.md.
 #
 # The baked-in baseline is fixed: those policies are always on, always enforced, and take no
 # settings, except restrict-image-registries, which needs the site's registry list. A
 # workload that genuinely needs more gets a per-workload exception through the posture chart
 # (reviewed and visible), never a cluster-wide loosening.
 
-# -- Settings for each policy, under the policy's name. Only policies that declare settings
-#    accept any.
+# -- How optional and custom policies with action inherit act: enforce (deny and audit Pods,
+#    warn on controllers) or audit (audit Pods, warn on controllers). Baked-in policies always
+#    enforce.
+enforcement: enforce
+
+# -- Each policy's settings, under its name.
+#    Baked-in policies take only their own settings (restrict-image-registries: registries).
+#    Optional policies also take:
+#      enabled: true | false                # default from the policy's definition
+#      action: inherit | enforce | audit    # default from the policy's definition
+#    plus their own settings, for example:
+#      restrict-wildcard-rbac: { allowedRoles: [my-operator-role] }
+#      disallow-pod-exec: { enabled: true, namespaces: [debug] }
+#    Every policy, its default, and its settings are listed in values.schema.json.
 policies:
   # -- Baked-in. Every container image must start with one of these prefixes.
   restrict-image-registries:
     # -- Required: image prefixes, including the trailing "/", e.g.
     #    ["registry.site.mil/", "127.0.0.1:31999/"].
     registries: []
+
+# -- Your own policies, in the definition format (CLAUDE.md, "Definition format"), keyed by
+#    name. Exceptions, bindings, and enforcement apply to them as to built-in optional
+#    policies. For example:
+#      require-team-label:
+#        description: Every workload carries a team label.
+#        validations:
+#          - expression: "'team' in variables.workloadLabels"
+#            message: "Add a 'team' label to the pod template."
+custom: {}

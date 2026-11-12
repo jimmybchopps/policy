@@ -1,0 +1,33 @@
+name: require-resource-limits
+tier: optional
+default: { enabled: true, action: inherit }
+description: Every container sets a memory limit and CPU and memory requests.
+controls:
+  nist: [SC-5]
+resources: workloads
+operations: [CREATE, UPDATE]
+variables:
+  # Ephemeral containers can't set resources, so they aren't checked.
+  - name: resourceContainers
+    expression: >-
+      variables.podSpec.containers +
+      (has(variables.podSpec.initContainers) ? variables.podSpec.initContainers : [])
+validations:
+  - expression: >-
+      variables.resourceContainers.all(c, has(c.resources) && has(c.resources.limits) &&
+        'memory' in c.resources.limits)
+    message: >-
+      containers[*].resources.limits.memory must be set (init containers too). If this
+      workload needs it unset, add a posture exception for require-resource-limits.
+  - expression: >-
+      variables.resourceContainers.all(c, has(c.resources) && has(c.resources.requests) &&
+        'cpu' in c.resources.requests)
+    message: >-
+      containers[*].resources.requests.cpu must be set (init containers too). If this workload
+      needs it unset, add a posture exception for require-resource-limits.
+  - expression: >-
+      variables.resourceContainers.all(c, has(c.resources) && has(c.resources.requests) &&
+        'memory' in c.resources.requests)
+    message: >-
+      containers[*].resources.requests.memory must be set (init containers too). If this
+      workload needs it unset, add a posture exception for require-resource-limits.

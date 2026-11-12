@@ -1,0 +1,31 @@
+# A registry port is not a tag.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deployment-port-untagged
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app.kubernetes.io/name: deployment-port-untagged }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: deployment-port-untagged, e2e.test/fixture: "true" }
+    spec:
+      automountServiceAccountToken: false
+      serviceAccountName: app
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: app
+          image: 127.0.0.1:31999/app
+          readinessProbe: { tcpSocket: { port: 8080 } }
+          livenessProbe: { tcpSocket: { port: 8080 } }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { memory: 16Mi }

@@ -1,0 +1,25 @@
+name: restrict-seccomp
+tier: baked-in
+description: Every container runs under a RuntimeDefault or Localhost seccomp profile.
+controls:
+  pss: restricted
+  nist: [CM-7, SC-39]
+resources: workloads
+operations: [CREATE, UPDATE]
+variables:
+  # The pod-level default; a container's own profile wins over it (PSS restricted).
+  - name: podSeccompAllowed
+    expression: >-
+      has(variables.podSpec.securityContext) &&
+      has(variables.podSpec.securityContext.seccompProfile) &&
+      variables.podSpec.securityContext.seccompProfile.type in ['RuntimeDefault', 'Localhost']
+validations:
+  - expression: >-
+      variables.allContainers.all(c,
+        has(c.securityContext) && has(c.securityContext.seccompProfile)
+          ? c.securityContext.seccompProfile.type in ['RuntimeDefault', 'Localhost']
+          : variables.podSeccompAllowed)
+    message: >-
+      securityContext.seccompProfile.type must be RuntimeDefault or Localhost, set on the pod
+      (spec.securityContext) or on every container, and no container may set Unconfined. If
+      this workload needs it, add a posture exception for restrict-seccomp.

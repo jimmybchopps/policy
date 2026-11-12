@@ -1,0 +1,18 @@
+name: restrict-volume-types
+tier: baked-in
+description: Volumes are only of the Pod Security restricted types.
+controls:
+  pss: restricted
+  nist: [CM-7]
+resources: workloads
+operations: [CREATE, UPDATE]
+validations:
+  - expression: >-
+      !has(variables.podSpec.volumes) ||
+      variables.podSpec.volumes.all(v,
+        has(v.configMap) || has(v.csi) || has(v.downwardAPI) || has(v.emptyDir) ||
+        has(v.ephemeral) || has(v.persistentVolumeClaim) || has(v.projected) || has(v.secret))
+    message: >-
+      spec.volumes[*] must be configMap, csi, downwardAPI, emptyDir, ephemeral,
+      persistentVolumeClaim, projected, or secret. If this workload needs another volume type,
+      add a posture exception for restrict-volume-types.

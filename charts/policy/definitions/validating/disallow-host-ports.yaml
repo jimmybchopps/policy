@@ -1,0 +1,16 @@
+name: disallow-host-ports
+tier: baked-in
+description: Containers may not bind ports on the node (hostPort).
+controls:
+  pss: baseline
+  nist: [CM-7, SC-7]
+resources: workloads
+operations: [CREATE, UPDATE]
+validations:
+  - expression: >-
+      !variables.allContainers.exists(c, has(c.ports) &&
+        c.ports.exists(p, has(p.hostPort) && p.hostPort != 0))
+    message: >-
+      containers[*].ports[*].hostPort must be 0 or unset; expose the port through a Service
+      instead. If this workload needs a host port, add a posture exception for
+      disallow-host-ports.

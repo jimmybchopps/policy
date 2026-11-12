@@ -1,0 +1,7 @@
+# Ordinary verbs: admitted.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: e2e-clusterrole
+rules:
+  - { apiGroups: [""], resources: [configmaps], verbs: [get, list, watch] }

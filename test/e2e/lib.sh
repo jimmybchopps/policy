@@ -65,9 +65,17 @@ delete_cluster() {
 
 NAMESPACES=()
 
-namespace() { # namespace <name>: created fresh, removed after the scenario
+namespace() { # namespace <name>: created fresh, with the fixtures' service account; removed after the scenario
   "$KUBECTL" create namespace "$1" >/dev/null
   NAMESPACES+=("$1")
+  fixture_service_account "$1"
+}
+
+# fixture_service_account <namespace>: ServiceAccount app, which every workload fixture runs as
+# (disallow-default-service-account). The ServiceAccount admission plugin refuses a Pod whose
+# service account doesn't exist, before any policy runs. Idempotent.
+fixture_service_account() {
+  "$KUBECTL" create serviceaccount app -n "$1" --dry-run=client -o yaml | quiet "$KUBECTL" apply -f -
 }
 
 RELEASE=${RELEASE:-policy}
@@ -76,7 +84,8 @@ CRD=policyexceptions.policy.posture.dev
 
 # install_chart <example file under examples/> [helm args...]
 # Installs the chart cluster-wide (release "policy" in namespace "policy"). Extra arguments go
-# to helm install after the example, e.g. --set-json 'policies.x={}'.
+# to helm install after the example, e.g. --set-json 'policies.x={}' or
+# -f "$ROOT/test/e2e/values/<file>.yaml".
 install_chart() {
   local example=$1
   shift
@@ -107,15 +116,17 @@ cleanup_namespaces() {
 # Checks
 #
 # Scenarios declare checks with
-#   expect admit <namespace> <fixture>             admitted, no warning
+#   expect admit <namespace> <fixture>             admitted, no policy warning
 #   expect deny  <namespace> <fixture> [policy]    refused, and the message names the policy
-#   expect warn  <namespace> <fixture> [policy]    admitted with a "Warning:" naming the policy
+#   expect warn  <namespace> <fixture> [policy]    admitted with a policy warning naming the policy
+# A policy warning is a "Warning:" line from a ValidatingAdmissionPolicy. Other warnings are the
+# API server's own (deprecations such as spec.externalIPs on 1.37+) and don't count either way.
 # <fixture> is relative to the repo root. [policy] defaults to the <policy> in
 # fixtures/<policy>/<allow|deny>/<file>.yaml.
 #
 # run_checks then runs them:
 #   baseline (before the chart is installed): every fixture, whatever it expects, must be
-#     admitted with no warning, so a deny can't pass for the wrong reason (a malformed fixture,
+#     admitted with no policy warning, so a deny can't pass for the wrong reason (a malformed fixture,
 #     a missing namespace, a typo'd field).
 #   policy (after install): every deny and warn first, each retried until it fires (bindings
 #     take a few seconds to become active), then every admit.
@@ -146,9 +157,12 @@ dry_run() { # dry_run <namespace> <fixture>: sets DRY_OUT (stdout+stderr) and DR
   DRY_OUT=$("$KUBECTL" apply --dry-run=server -n "$1" -f "$ROOT/$2" 2>&1) || DRY_RC=$?
 }
 
-warned() { # warned [policy]: DRY_OUT has a warning (naming the policy, if given)
-  grep -E '^Warning:' <<<"$DRY_OUT" | grep -qF -- "${1:-Warning:}"
+# policy_warned [policy] < output: a ValidatingAdmissionPolicy warned (the named one, if given).
+policy_warned() {
+  grep -E '^Warning:' | grep -F 'ValidatingAdmissionPolicy' | grep -qF -- "${1:-Warning:}"
 }
+
+warned() { policy_warned "$@" <<<"$DRY_OUT"; } # warned [policy]: on DRY_OUT
 
 check_once() { # check_once <admit|deny|warn> <namespace> <fixture> <policy>
   dry_run "$2" "$3"
@@ -191,6 +205,51 @@ fixture_policies() {
   for d in "$ROOT"/fixtures/*/; do basename "$d"; done | sort
 }
 
+DEFINITIONS_DIR=charts/policy/definitions/validating
+
+# policy_exceptions_mode <policy>: labels, or none for a policy that takes no posture exceptions
+# (resources: rbac, or exceptions: none), read from its definition.
+policy_exceptions_mode() {
+  local def="$ROOT/$DEFINITIONS_DIR/$1.yaml"
+  if grep -qx 'resources: rbac' "$def" || grep -qx 'exceptions: none' "$def"; then
+    echo none
+  else
+    echo labels
+  fi
+}
+
+# exception_policies: every built-in policy that takes posture exceptions, sorted.
+exception_policies() {
+  local f p
+  for f in "$ROOT/$DEFINITIONS_DIR"/*.yaml; do
+    p=$(basename "$f" .yaml)
+    [[ $(policy_exceptions_mode "$p") == labels ]] && echo "$p"
+  done | sort
+}
+
+# optional_policy_flags [action]: helm flags turning on every optional policy at <action>
+# (default enforce), read from the definitions, so a new optional policy is tested without
+# editing any list.
+optional_policy_flags() {
+  local action=${1:-enforce} f
+  for f in "$ROOT/$DEFINITIONS_DIR"/*.yaml; do
+    if grep -qx 'tier: optional' "$f"; then
+      printf -- '--set policies.%s.enabled=true --set policies.%s.action=%s\n' \
+        "$(basename "$f" .yaml)" "$(basename "$f" .yaml)" "$action"
+    fi
+  done
+}
+
+# require_exempt_covers <posture-exceptions file>: the hand-written exempt object must except
+# every policy that takes exceptions, or its admit checks would fail for the wrong reason.
+require_exempt_covers() {
+  local p missing=""
+  for p in $(exception_policies); do
+    grep -q "kind: ValidatingAdmissionPolicy, name: ${p} }" "$ROOT/$1" || missing+=" $p"
+  done
+  [[ -z $missing ]] || die "$1 doesn't except:$missing"
+}
+
 # exceptions_object <namespace> [policy...]: applies a posture-exceptions in exactly the shape
 # posture renders (one entry per policy, sorted), excepting each listed ValidatingAdmissionPolicy
 # for the fixtures (e2e.test/fixture=true). With no policies it is empty, as posture renders it
@@ -216,56 +275,79 @@ spec:
 EOT
 }
 
-# policy_namespaces: one namespace per policy, only-<policy>, for that policy's deny fixtures.
-policy_namespaces() {
-  local p
-  for p in $(fixture_policies); do namespace "only-${p}"; done
+# policy_test_namespace <policy>: where its deny fixtures are checked, with every other policy
+# excepted: only-<policy>, or default for disallow-default-namespace (whose deny fixtures are
+# compliant objects; the namespace is what it refuses).
+policy_test_namespace() {
+  if [[ $1 == disallow-default-namespace ]]; then echo default; else echo "only-$1"; fi
 }
 
-# policy_exceptions: in each only-<policy>, every OTHER policy is excepted for the fixtures, so
-# a deny fixture there is refused by its own policy alone (some, like a HostProcess pod, can't
-# help breaking two).
+# policy_namespaces: one namespace per policy that takes exceptions, for that policy's deny
+# fixtures (default already exists; it only gets the service account).
+policy_namespaces() {
+  local p ns
+  for p in $(fixture_policies); do
+    [[ $(policy_exceptions_mode "$p") == labels ]] || continue
+    ns=$(policy_test_namespace "$p")
+    if [[ $ns == default ]]; then fixture_service_account default; else namespace "$ns"; fi
+  done
+  return 0
+}
+
+# policy_exceptions: in each only-<policy>, every OTHER policy that takes exceptions is excepted
+# for the fixtures, so a deny fixture there is refused by its own policy alone (some, like a
+# HostProcess pod, can't help breaking two).
 policy_exceptions() {
   local p
   local -a all
-  mapfile -t all < <(fixture_policies)
-  for p in "${all[@]}"; do
+  mapfile -t all < <(exception_policies)
+  for p in $(fixture_policies); do
+    [[ $(policy_exceptions_mode "$p") == labels ]] || continue
     # shellcheck disable=SC2046 # word splitting of policy names is intended
-    exceptions_object "only-${p}" $(printf '%s\n' "${all[@]}" | grep -vxF "$p")
+    exceptions_object "$(policy_test_namespace "$p")" $(printf '%s\n' "${all[@]}" | grep -vxF "$p")
   done
 }
 
 # expect_policy_fixtures: declares every fixture's expectations (CLAUDE.md, "Testing"):
-#   allow/*            admitted, with no warning, in apps (an empty posture-exceptions)
-#   deny/* Pods        denied by the policy in only-<policy>; admitted in exempt (every policy
-#                      excepted) and in kube-system (never evaluated)
-#   deny/* controllers admitted with a warning naming the policy in only-<policy>; admitted
-#                      with no warning in exempt
+#   allow/*               admitted, with no policy warning, in apps (an empty posture-exceptions)
+#   deny/* controllers    admitted with a warning naming the policy in only-<policy>; admitted
+#                         with no policy warning in exempt
+#   deny/* anything else  (Pods, Services, RBAC objects) denied by the policy in only-<policy>;
+#                         admitted in exempt (every policy excepted), and in kube-system
+#                         (never evaluated) unless it's cluster-scoped
+# A policy without exceptions (rbac, exceptions: none) has no only-<policy> or exempt case: its
+# deny fixtures are denied in apps, and nothing but its allowlist settings can admit them.
 fixture_kind() { awk '/^kind:/ { print $2; exit }' "$ROOT/$1"; }
 
+is_controller() { [[ $1 =~ ^(Deployment|StatefulSet|DaemonSet|ReplicaSet|Job|CronJob)$ ]]; }
+is_cluster_scoped() { [[ $1 =~ ^(ClusterRole|ClusterRoleBinding)$ ]]; }
+
 expect_policy_fixtures() {
-  local p f rel
+  local p f rel kind ns
   for p in $(fixture_policies); do
     for f in "$ROOT/fixtures/$p"/allow/*.yaml; do
       expect admit apps "fixtures/$p/allow/$(basename "$f")"
     done
+    if [[ $(policy_exceptions_mode "$p") == labels ]]; then ns=$(policy_test_namespace "$p"); else ns=apps; fi
     for f in "$ROOT/fixtures/$p"/deny/*.yaml; do
       rel="fixtures/$p/deny/$(basename "$f")"
-      if [[ $(fixture_kind "$rel") == Pod ]]; then
-        expect deny "only-${p}" "$rel" "$p"
-        expect admit kube-system "$rel"
+      kind=$(fixture_kind "$rel")
+      if is_controller "$kind"; then
+        expect warn "$ns" "$rel" "$p"
       else
-        expect warn "only-${p}" "$rel" "$p"
+        expect deny "$ns" "$rel" "$p"
+        is_cluster_scoped "$kind" || expect admit kube-system "$rel"
       fi
-      expect admit exempt "$rel"
+      if [[ $(policy_exceptions_mode "$p") == labels ]]; then expect admit exempt "$rel"; fi
     done
   done
 }
 
-# check_command <admit|deny> <substring> <description> -- <command...>: runs a command that
-# makes an admission request (e.g. a --dry-run=server patch) and records whether it was
-# admitted with no warning, or refused with a message containing <substring>. Retried like
-# the other checks.
+# check_command <admit|deny|not-denied> <substring> <description> -- <command...>: runs a
+# command that makes an admission request (e.g. a --dry-run=server patch) and records whether
+# it was admitted with no policy warning, refused with a message containing <substring>, or (not-denied)
+# not refused by <substring>, whether or not it fails afterwards for another reason (kubectl
+# exec on a pod whose container never started). Retried like the other checks.
 check_command() {
   local want=$1 sub=$2 desc=$3 out="" rc _attempt ok
   shift 4
@@ -274,8 +356,9 @@ check_command() {
     out=$("$@" 2>&1) || rc=$?
     ok=0
     case $want in
-      admit) [[ $rc -eq 0 ]] && ! grep -q '^Warning:' <<<"$out" && ok=1 ;;
+      admit) [[ $rc -eq 0 ]] && ! policy_warned <<<"$out" && ok=1 ;;
       deny) [[ $rc -ne 0 ]] && grep -qF -- "$sub" <<<"$out" && ok=1 ;;
+      not-denied) ! grep -qF -- "$sub" <<<"$out" && ok=1 ;;
     esac
     [[ $ok == 1 ]] && break
     sleep 2

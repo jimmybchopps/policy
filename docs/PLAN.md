@@ -58,20 +58,20 @@ authoritative mapping; confirm them with your ISSM before citing them.
 | `require-read-only-root-filesystem` | enforce | workloads | `readOnlyRootFilesystem: true` on every container | CM-7, SI-7 |
 | `require-resource-limits` | enforce | workloads | memory limit, plus CPU and memory requests, on every container | SC-5 |
 | `require-standard-labels` | enforce | workloads | pod template has `app.kubernetes.io/name` (what `posture` selects on) | CM-8 |
-| `disallow-default-namespace` | enforce | workloads, services | nothing runs in `default` | CM-7 |
+| `disallow-default-namespace` | enforce | workloads | nothing runs in `default` (Services there are already refused: `default` has no `posture-exceptions`, so every Services policy fails closed) | CM-7 |
 | `disallow-mesh-opt-out` | enforce | workloads | none of the policy's `markers` present | SC-7, SC-8 |
 | `disallow-nodeport-services` | enforce | services | no `type: NodePort` | SC-7 |
-| `restrict-loadbalancer-services` | enforce | services | `type: LoadBalancer` only in the policy's `namespaces` | SC-7 |
+| `restrict-loadbalancer-services` | enforce | services | `type: LoadBalancer` only in the policy's `namespaces` (none by default) | SC-7 |
 | `restrict-externalname-services` | enforce | services | no `type: ExternalName` | SC-7 |
 | `restrict-wildcard-rbac` | enforce | rbac | Roles and ClusterRoles don't use `*` in verbs, resources, or apiGroups (allowlist: `allowedRoles`) | AC-6 |
-| `restrict-cluster-admin-binding` | enforce | rbac | bindings to `cluster-admin` only for the policy's `allowedSubjects` | AC-2, AC-6 |
-| `disallow-rbac-escalation-verbs` | audit | rbac | no `escalate`, `bind`, or `impersonate` verbs outside `allowedRoles` | AC-6 |
+| `restrict-cluster-admin-binding` | enforce | rbac | bindings to `cluster-admin` only for the policy's `allowedSubjects` (`{kind, name}`, plus `namespace` for a ServiceAccount); Group `system:masters` always allowed (the API server's own binding) | AC-2, AC-6 |
+| `disallow-rbac-escalation-verbs` | audit | rbac | no `escalate`, `bind`, or `impersonate` verbs outside `allowedRoles`; `cluster-admin`, `admin`, and `edit` always allowed (built in, rewritten by the API server); `*` is left to `restrict-wildcard-rbac` | AC-6 |
 | `disallow-automount-service-account-token` | audit | workloads | `automountServiceAccountToken: false` unless excepted | AC-6 |
 | `disallow-default-service-account` | audit | workloads | pods don't run as the `default` service account | AC-6 |
 | `disallow-secrets-in-env` | audit | workloads | no `secretKeyRef` in env; mount secrets as files instead | SC-28 |
 | `disallow-shared-process-namespace` | audit | workloads | `shareProcessNamespace` unset or false | SC-39 |
-| `require-probes` | audit | workloads | readiness and liveness probes on long-running containers | — |
-| `disallow-ephemeral-containers` | off | workloads | no `kubectl debug` ephemeral containers | AC-6, CM-7 |
+| `require-probes` | audit | workloads | readiness and liveness probes on long-running containers (regular containers unless the pod runs to completion, as a Job's do; sidecar init containers always) | — |
+| `disallow-ephemeral-containers` | off | pods/ephemeralcontainers (UPDATE) | no `kubectl debug` ephemeral containers | AC-6, CM-7 |
 | `disallow-pod-exec` | off | pods/exec, pods/attach (CONNECT) | no interactive exec or attach | AC-6 |
 
 Services and RBAC objects have no controller in front of them, so those policies use a single
@@ -221,24 +221,86 @@ listed.
 
 ## Phase 2: full catalog and custom policies
 
-- [ ] Remaining baked-in definitions (11) and all 20 optional ones, each with allow and deny
-      fixtures.
-- [ ] `resources: services` and `resources: rbac` match rules, with a single binding each.
-- [ ] RBAC policies: cluster-scoped objects have no namespace to read exceptions from, so they
-      render without `paramKind`/`paramRef`, use their own allowlist settings, and always skip
-      names starting with `system:`.
-- [ ] `disallow-pod-exec`: matches `CONNECT` on `pods/exec` and `pods/attach`.
-- [ ] `enforcement` and `policies.<name>.enabled` / `.action` for optional policies, defaults
-      from the table; unit tests for every combination.
-- [ ] `custom.<name>` in the definition format, validated by the values schema and rendered the
-      same way (exceptions, the two bindings, and enforcement apply automatically). Custom
-      policies may set `resources` to a full `matchConstraints` block for kinds the shortcuts
-      don't cover.
-- [ ] One e2e custom policy (`require-team-label`).
-- [ ] Upgrade safety: a policy added in a release ships as `audit` for one minor version before
-      `enforce`, so an upgrade can't suddenly deny workloads already running. Baked-in
-      additions follow the same rule: they appear in the release notes one version before they
-      become part of the baseline.
+Split like Phase 1; each subphase ends with a green `make e2e`.
+
+### 2a. Every shape, optional and custom policies, the values schema
+
+- [x] `resources: services` and `resources: rbac` match rules, with a single binding each
+      (`policy.posture.dev/binding: services | rbac`), and custom `matchConstraints` blocks
+      (`custom`): `resourceRules`, `excludeResourceRules`, `matchPolicy`, never a
+      `namespaceSelector` or `objectSelector`. Single bindings act `[Deny, Audit]` (enforce) or
+      `[Audit, Warn]` (audit).
+- [x] `exceptions: labels | none` in the definition format. RBAC policies (cluster-scoped
+      objects, no namespace to read exceptions from) and `disallow-pod-exec` (the request has
+      no pod labels) are `none`: no `paramKind`/`paramRef`, no exempt rewrite; they use their
+      own allowlist settings, and RBAC policies always skip names starting with `system:`.
+      Services take exceptions by the Service's own labels.
+- [x] `enforcement` and `policies.<name>.enabled` / `.action` for optional policies, defaults
+      from each definition; unit tests for every combination (`test/model-probe/tests/`).
+- [x] `custom.<name>` in the definition format, with its own `enabled` and `action`, rendered
+      the same way (exceptions, bindings, and enforcement apply automatically).
+- [x] `values.schema.json` generated from the definitions (`make values-schema`,
+      `test/values-schema/`); `make check-values-schema` (in `make test` and CI) fails if it's
+      stale.
+- [x] Definitions: `restrict-external-ips` (baked-in, services),
+      `require-read-only-root-filesystem` (optional, workloads), `restrict-wildcard-rbac`
+      (optional, rbac; `cluster-admin` always allowed), `disallow-pod-exec` (optional, off;
+      CONNECT on `pods/exec` and `pods/attach`; `namespaces` setting), with fixtures.
+      `make check-fixtures` requires the kinds each `resources` covers.
+- [x] e2e: catalog with every optional policy on at enforce (Services and RBAC fixtures, the
+      allowlists, kubectl exec), and the `settings` scenario (`enforcement: audit`, custom
+      `require-team-label`). Green.
+
+### 2b. Remaining baked-in workload policies
+
+- [x] `disallow-host-ports`, `disallow-privilege-escalation`, `require-drop-all-capabilities`,
+      `restrict-seccomp`, `restrict-apparmor`, `restrict-selinux`, `restrict-proc-mount`,
+      `restrict-sysctls`, `restrict-volume-types`, each with allow and deny fixtures. No
+      Windows carve-out: a Windows pod can't set the Linux-only fields, so it needs posture
+      exceptions.
+- [x] The exception-path e2e fixtures use `hostPID` instead of `hostPath` (which
+      restrict-volume-types now also refuses), so each breaks exactly one policy.
+- [x] e2e: green.
+
+### 2c. Optional workload policies
+
+- [x] `require-image-digest`, `disallow-latest-tag`, `require-resource-limits`,
+      `require-standard-labels`, `disallow-default-namespace`, `disallow-mesh-opt-out`,
+      `disallow-automount-service-account-token`, `disallow-default-service-account`,
+      `disallow-secrets-in-env`, `disallow-shared-process-namespace`, `require-probes`, each
+      with allow and deny fixtures; `disallow-ephemeral-containers` (a `matchConstraints`
+      policy on `pods/ephemeralcontainers`: a Pod can't be created with ephemeral containers,
+      so it's covered by kubectl debug checks instead).
+- [x] The fixture base gains ServiceAccount `app` (created in every e2e namespace and
+      kube-system), probes on long-running containers, and digest-pinned images everywhere;
+      the kubectl debug checks move to `debug-allowed`, which excepts
+      `disallow-ephemeral-containers`. disallow-default-namespace's deny fixtures are checked
+      in `default`.
+- [x] e2e: green.
+
+### 2d. Optional Services and RBAC policies
+
+- [x] `disallow-nodeport-services`, `restrict-loadbalancer-services`,
+      `restrict-externalname-services`, `restrict-cluster-admin-binding`,
+      `disallow-rbac-escalation-verbs`, each with allow and deny fixtures; e2e checks for
+      each allowlist (`lb-allowed`, `allowedSubjects`, `system:masters`, `allowedRoles`).
+- [x] `make check-fixtures` takes a binding as an RBAC policy's fixture: one cluster-scoped
+      (ClusterRole or ClusterRoleBinding) and one namespaced (Role or RoleBinding).
+- [x] e2e: green.
+
+### 2e. Upgrade safety
+
+- [x] Definitions may carry `since: "0.N"`, the chart minor version that introduced them
+      (absent: the original catalog). While the chart's minor equals `since`, an optional
+      policy's default action is `audit` unless the user sets `action`, so an upgrade can't
+      suddenly deny workloads already running; NOTES.txt lists them, and the policy carries
+      `policy.posture.dev/since`. Baked-in policies can't be audit: `make check-release`
+      (`test/release/`, in `make test` and CI) fails unless every baked-in policy whose
+      `since` is the chart's minor is named in `CHANGELOG.md` under the previous minor.
+      Unit tests for both (`test/model-probe/tests/since_test.yaml`, `notes_test.yaml`;
+      `test/release/cases/`).
+- [x] `CHANGELOG.md`, starting with 0.1.0.
+- [ ] e2e: a regression run (nothing sets `since` yet, so nothing should change).
 
 **Done when** every policy in the catalog passes its fixtures in k3d.
 

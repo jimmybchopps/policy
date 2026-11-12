@@ -19,8 +19,9 @@ tests:
       - equal: { path: description, value: A baked-in workload policy. }
       - equal: { path: controls, value: { pss: baseline, nist: [AC-6] } }
       - equal: { path: resources, value: workloads }
+      - equal: { path: shape, value: workloads }
       - equal: { path: operations, value: [CREATE, UPDATE] }
-      - equal: { path: scope, value: namespaced }
+      - equal: { path: exceptions, value: labels }
       - equal: { path: validations, value: [{ expression: "!variables.privileged", message: "baked message" }] }
 
   - it: a baked-in policy is enabled and enforced
@@ -70,11 +71,19 @@ tests:
     asserts:
       - equal: { path: action, value: enforce }
 
-  - it: a default action of audit holds under enforcement enforce
+  - it: a default action of audit holds under enforcement enforce (single binding audits and warns)
     documentSelector: { path: name, value: opt-audit }
     asserts:
       - equal: { path: action, value: audit }
-      - equal: { path: actions, value: { pods: [Audit], controllers: [Warn] } }
+      - equal: { path: actions, value: { single: [Audit, Warn] } }
+
+  - it: a single binding under enforce denies and audits
+    set:
+      input:
+        policies: { opt-audit: { action: enforce } }
+    documentSelector: { path: name, value: opt-audit }
+    asserts:
+      - equal: { path: actions, value: { single: [Deny, Audit] } }
 
   - it: an optional policy off by default is kept, disabled
     documentSelector: { path: name, value: opt-off }
@@ -98,16 +107,78 @@ tests:
     asserts:
       - equal: { path: enabled, value: false }
 
-  - it: rbac policies are cluster-scoped (no namespace to read exceptions from)
+  - it: rbac policies take no exceptions (no namespace to read them from)
     documentSelector: { path: name, value: opt-off }
     asserts:
       - equal: { path: resources, value: rbac }
-      - equal: { path: scope, value: cluster }
+      - equal: { path: shape, value: rbac }
+      - equal: { path: exceptions, value: none }
 
-  - it: services policies are namespaced
+  - it: services policies take exceptions by label
     documentSelector: { path: name, value: opt-audit }
     asserts:
-      - equal: { path: scope, value: namespaced }
+      - equal: { path: shape, value: services }
+      - equal: { path: exceptions, value: labels }
+
+  - it: a matchConstraints block is shape custom, with exceptions by label unless it says none
+    set:
+      input:
+        custom:
+          by-label: { description: x, resources: { resourceRules: [{ apiGroups: [""], apiVersions: [v1], resources: [configmaps] }] }, validations: [{ expression: "true", message: x }] }
+          no-exc: { description: x, exceptions: none, resources: { resourceRules: [{ apiGroups: [""], apiVersions: [v1], resources: [configmaps] }] }, validations: [{ expression: "true", message: x }] }
+    asserts:
+      - equal: { path: shape, value: custom }
+        documentSelector: { path: name, value: by-label }
+      - equal: { path: exceptions, value: labels }
+        documentSelector: { path: name, value: by-label }
+      - equal: { path: actions, value: { single: [Deny, Audit] } }
+        documentSelector: { path: name, value: by-label }
+      - equal: { path: exceptions, value: none }
+        documentSelector: { path: name, value: no-exc }
+
+  - it: a custom policy's own action beats enforcement
+    set:
+      input:
+        enforcement: enforce
+        custom:
+          gentle: { description: x, action: audit, validations: [{ expression: "true", message: x }] }
+    documentSelector: { path: name, value: gentle }
+    asserts:
+      - equal: { path: action, value: audit }
+      - equal: { path: actions, value: { pods: [Audit], controllers: [Warn] } }
+
+  - it: a custom policy can be turned off
+    set:
+      input:
+        custom:
+          parked: { description: x, enabled: false, validations: [{ expression: "true", message: x }] }
+    documentSelector: { path: name, value: parked }
+    asserts:
+      - equal: { path: enabled, value: false }
+
+  - it: every combination of tier, enforcement, and action resolves as the actions table says
+    set:
+      input:
+        enforcement: audit
+        policies:
+          opt-on: { action: inherit }
+          opt-audit: { action: enforce }
+        custom:
+          c-inherit: { description: x, validations: [{ expression: "true", message: x }] }
+          c-enforce: { description: x, action: enforce, validations: [{ expression: "true", message: x }] }
+    asserts:
+      - equal: { path: action, value: enforce }
+        documentSelector: { path: name, value: baked }
+      - equal: { path: action, value: audit }
+        documentSelector: { path: name, value: opt-on }
+      - equal: { path: action, value: enforce }
+        documentSelector: { path: name, value: opt-audit }
+      - equal: { path: action, value: audit }
+        documentSelector: { path: name, value: c-inherit }
+      - equal: { path: action, value: enforce }
+        documentSelector: { path: name, value: c-enforce }
+      - equal: { path: actions, value: { pods: [Deny, Audit], controllers: [Warn] } }
+        documentSelector: { path: name, value: c-enforce }
 
   - it: a custom policy is enabled, tier custom, and inherits enforcement
     set:

@@ -1,0 +1,13 @@
+name: disallow-default-namespace
+tier: optional
+default: { enabled: true, action: inherit }
+description: Nothing runs in the default namespace.
+controls:
+  nist: [CM-7]
+resources: workloads
+operations: [CREATE, UPDATE]
+validations:
+  - expression: "request.namespace != 'default'"
+    message: >-
+      Workloads may not run in the default namespace; deploy into a namespace of their own. If
+      this workload needs it, add a posture exception for disallow-default-namespace.

@@ -1,0 +1,14 @@
+name: require-standard-labels
+tier: optional
+default: { enabled: true, action: inherit }
+description: Every pod carries the app.kubernetes.io/name label.
+controls:
+  nist: [CM-8]
+resources: workloads
+operations: [CREATE, UPDATE]
+validations:
+  - expression: "'app.kubernetes.io/name' in variables.workloadLabels"
+    message: >-
+      The pod (or pod template) must carry the label app.kubernetes.io/name; posture selects
+      workloads by it. If this workload can't, add a posture exception for
+      require-standard-labels.

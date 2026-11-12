@@ -1,0 +1,17 @@
+name: require-read-only-root-filesystem
+tier: optional
+default: { enabled: true, action: inherit }
+description: Every container runs with a read-only root filesystem.
+controls:
+  nist: [CM-7, SI-7]
+resources: workloads
+operations: [CREATE, UPDATE]
+validations:
+  - expression: >-
+      variables.allContainers.all(c,
+        has(c.securityContext) && has(c.securityContext.readOnlyRootFilesystem) &&
+        c.securityContext.readOnlyRootFilesystem)
+    message: >-
+      containers[*].securityContext.readOnlyRootFilesystem must be true; mount an emptyDir
+      where the container needs to write. If this workload needs a writable root filesystem,
+      add a posture exception for require-read-only-root-filesystem.

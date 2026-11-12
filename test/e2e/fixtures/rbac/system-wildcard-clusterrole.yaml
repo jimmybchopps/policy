@@ -1,0 +1,9 @@
+# "*" verbs on a ClusterRole whose name starts with system: (Kubernetes' own): never evaluated.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: "system:e2e-wildcard"
+rules:
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["*"]

@@ -24,7 +24,10 @@ The build order is in `docs/PLAN.md`. Work through it phase by phase.
   without the site's registry list, so it takes exactly that and nothing else. Any other key
   on a baked-in policy fails the render. A workload that genuinely needs more gets a
   per-workload exception through `posture`, which is reviewed and visible, instead of a
-  cluster-wide loosening.
+  cluster-wide loosening. That includes Windows pods: the API server forbids the Linux-only
+  securityContext fields on them (`allowPrivilegeEscalation`, `capabilities`, `seccompProfile`,
+  `readOnlyRootFilesystem`), so unlike Pod Security Admission there's no built-in Windows
+  carve-out; they get exceptions.
 - **Settings live with their policy.** A policy that takes configuration declares it in its
   definition, and users set it under `policies.<name>`. There's no separate global settings
   block, so it's always clear which policy a value affects.
@@ -53,6 +56,13 @@ The build order is in `docs/PLAN.md`. Work through it phase by phase.
 - **Policy names are a contract.** `posture` exceptions refer to policies by name and kind. A
   rename is a breaking change: keep the old name working for one minor version (or longer)
   and document it.
+- **New policies arrive in audit.** An upgrade never starts denying workloads that already
+  run. A definition added after the first release carries `since: "MAJOR.MINOR"`, the chart
+  minor that introduced it. An optional policy whose `since` is the chart's own minor
+  defaults to `audit` for that whole minor (unless the user sets `action`), and NOTES.txt
+  lists it; from the next minor its definition's default applies. A baked-in policy can't
+  audit, so it's announced instead: `make check-release` fails unless every baked-in policy
+  whose `since` is the chart's minor is named in `CHANGELOG.md` under the previous minor.
 - **No workloads.** This chart renders policies, bindings, the CRD, and configuration only. It
   never runs a pod, so it can install before anything else exists and is never blocked by its
   own policies.
@@ -80,11 +90,11 @@ policies:
       - { kind: label, key: sidecar.istio.io/inject, value: "false" }
       - { kind: annotation, key: linkerd.io/inject, value: disabled }
   restrict-loadbalancer-services:
-    namespaces: [ingress-gateway]   # only the ingress gateway needs an external address
+    namespaces: [ingress-gateway]   # e.g.; default [], so nothing gets an external address until listed
   restrict-wildcard-rbac:        # RBAC is cluster-scoped, so it can't use namespace exceptions
     allowedRoles: []             # Role/ClusterRole names allowed to use "*"
   restrict-cluster-admin-binding:
-    allowedSubjects: []          # subjects allowed to be bound to cluster-admin
+    allowedSubjects: []          # { kind: User | Group | ServiceAccount, name, namespace (ServiceAccount only) }
   disallow-rbac-escalation-verbs:
     allowedRoles: []
 
@@ -116,21 +126,29 @@ Audit records come from Pods only, so the audit log has one entry per offending 
 duplicates from controllers. Warnings come from controllers only, so the person applying a
 Deployment sees one warning per violation rather than one per replica.
 
+Services, RBAC objects, and custom `matchConstraints` have no controller in front of them, so
+they get a single binding: `[Deny, Audit]` at `enforce`, `[Audit, Warn]` at `audit` (the API
+server doesn't allow `Deny` and `Warn` together, and under audit the person applying the
+object should still see the problem).
+
 ## Definition format (`definitions/validating/<name>.yaml`, `definitions/mutating/<name>.yaml`)
 
 ```yaml
 name: disallow-privileged-containers
 tier: baked-in                   # baked-in | optional (custom policies are tier custom automatically)
+since: "0.2"                     # the chart minor that introduced it; absent for the original catalog
 default: { enabled: true, action: inherit }   # optional tier only
 description: Containers may not run privileged or as Windows HostProcess.
 controls:                        # shown as annotations and in docs/policies.md
   pss: baseline                  # Pod Security Standard level, if any
   nist: [AC-6, CM-7]             # suggested NIST SP 800-53 mapping; confirm with your ISSM
-resources: workloads             # workloads | services | rbac | { custom matchConstraints }
-operations: [CREATE, UPDATE]
+resources: workloads             # workloads | services | rbac | { resourceRules, excludeResourceRules?, matchPolicy? }
+operations: [CREATE, UPDATE]     # also filled into any resourceRules entry without operations
+exceptions: labels               # labels (default) | none; rbac is always none
 settings: {}                     # settings this policy accepts under policies.<name>, e.g.
                                  #   registries: { type: list | string | bool, required: true,
-                                 #                 default: ..., description: "shown when missing" }
+                                 #                 default: ..., description: "shown when missing",
+                                 #                 items: { JSON schema for list items } }
                                  # baked-in policies declare none, except restrict-image-registries
 variables:
   - name: privileged
@@ -143,6 +161,16 @@ validations:
 `resources: workloads` means Pods (including the `pods/ephemeralcontainers` subresource) and
 the controllers that create them: Deployment, StatefulSet, DaemonSet, ReplicaSet, Job,
 CronJob. The renderer splits those across the two bindings described in "Actions".
+`resources: services` is core `services`; `resources: rbac` is Roles, ClusterRoles, and their
+bindings, and always skips names starting with `system:` (match condition `not-system`). A
+`matchConstraints` block takes `resourceRules`, `excludeResourceRules`, and `matchPolicy`, never
+a `namespaceSelector` or `objectSelector` (exclusions are the chart's decision); it's how
+`disallow-pod-exec` matches CONNECT on `pods/exec`, and how custom policies cover other kinds.
+
+`values.schema.json` is generated from the definitions (`make values-schema`, from
+`test/values-schema/`), so every policy's settings, `enabled`, and `action` are checked and
+documented; `make check-values-schema` fails if it's stale. Regenerate it after changing any
+definition.
 
 ### Shared variables (injected for `resources: workloads`)
 
@@ -152,6 +180,10 @@ CronJob. The renderer splits those across the two bindings described in "Actions
 | `podMeta` | the matching metadata (Pod metadata or the template's) |
 | `workloadLabels` | `podMeta.labels`, or `{}` when absent |
 | `allContainers` | containers, initContainers, and ephemeralContainers together |
+
+Other policies that take exceptions (services, custom `matchConstraints`) get only
+`workloadLabels`: the object's own `metadata.labels`, so a posture exception selects a Service
+by its labels. Policies with `exceptions: none` get no shared variables.
 
 A policy's settings are rendered into its expressions as CEL literals via `toJson`
 (`["registry.site.mil/"]`), and its definition reads them as `variables.setting_<name>`. Fixed
@@ -184,9 +216,13 @@ evaluated, as in Pod Security Admission, so a pod that predates a policy or an e
 exception can still be cleaned up. `kubectl debug` (`pods/ephemeralcontainers`) is always
 evaluated.
 
-Policies on **cluster-scoped** resources (RBAC) have no namespace to read exceptions from, so
-they get no `paramKind`; their allowlists come from their own settings
-(`policies.restrict-wildcard-rbac.allowedRoles` and so on) instead.
+Policies with `exceptions: none` get no `paramKind`, no `paramRef`, and no `exempt` rewrite;
+their allowlists come from their own settings instead, and their messages name that setting
+(`policies.<name>.<setting>`) rather than a posture exception. That's every RBAC policy
+(cluster-scoped objects have no namespace to read exceptions from:
+`policies.restrict-wildcard-rbac.allowedRoles` and so on) and `disallow-pod-exec` (a CONNECT
+request carries exec options, not the Pod, so there are no labels to match:
+`policies.disallow-pod-exec.namespaces`).
 
 ### The PolicyExceptions CRD
 
@@ -220,19 +256,21 @@ PolicyException CRD, tenants just create the objects.)
 
 - A policy's ValidatingAdmissionPolicy (or MutatingAdmissionPolicy) is named for the
   definition: `disallow-host-path`.
-- Its bindings: `disallow-host-path` (Pods) and `disallow-host-path-controllers` (warnings).
+- Its bindings: `disallow-host-path` (Pods) and `disallow-host-path-controllers` (warnings)
+  for workload policies; a single `restrict-external-ips` for every other shape.
 - Annotations on every policy: `policy.posture.dev/tier`, `policy.posture.dev/description`,
-  `policy.posture.dev/pss`, `policy.posture.dev/nist`.
+  `policy.posture.dev/pss`, `policy.posture.dev/nist`, and `policy.posture.dev/since` when
+  the definition sets it.
 - Annotations on every binding: `policy.posture.dev/tier` and `policy.posture.dev/binding`
-  (`pods` or `controllers`; the Pod binding shares its name with the policy, so this tells
-  them apart).
+  (`pods`, `controllers`, `services`, `rbac`, or `custom`; the first binding shares its name
+  with the policy, so this tells them apart).
 - Custom policy names must not collide with built-in ones; collisions fail the render.
 
 ## Layout
 
 ```
 charts/policy/
-  Chart.yaml  values.yaml  values.schema.json
+  Chart.yaml  values.yaml  values.schema.json (generated: make values-schema)
   definitions/
     validating/<name>.yaml        one file per policy (read with .Files.Glob)
     mutating/<name>.yaml
@@ -243,24 +281,30 @@ charts/policy/
     validate.yaml                  builds the model on every render, so bad values always fail
     _render.tpl                    the model -> policies and bindings (validating.yaml calls it)
     crd.yaml
-    validating.yaml                policies and their two bindings
+    validating.yaml                policies and their bindings
     mutating.yaml
     NOTES.txt
   tests/                           helm-unittest suites
 fixtures/<policy>/allow/*.yaml     objects each policy must admit
-fixtures/<policy>/deny/*.yaml      objects each policy must refuse (Pods) or warn on (controllers)
+fixtures/<policy>/deny/*.yaml      objects each policy must refuse (Pods, Services, RBAC) or warn on (controllers)
 test/e2e/run.sh                    k3d: server-side dry-run every fixture, compare to expected
+test/e2e/scenarios/                smoke, catalog, settings (enforcement audit, a custom policy)
+test/e2e/values/                   values files for scenarios (also checked by tests/schema_test)
 test/model-probe/                  test-only chart that renders the model for helm-unittest
 test/definition-schema/            JSON schema for definitions (make check-definitions)
 test/crd-schema/                   CRD -> JSON schema for kubeconform (make crd-schema)
+test/values-schema/                definitions -> charts/policy/values.schema.json (make values-schema)
+test/release/                      check-release.sh (new baked-in policies announced) and its cases
 examples/objects/                  example objects (not values files), e.g. posture-exceptions.yaml
 docs/PLAN.md                       build order
+CHANGELOG.md                       one section per release; announces baked-in policies a minor ahead
 docs/policies.md                   generated catalog (make docs); CI checks it's current
 ```
 
 ## Testing
 
-    make test           # lint, check-definitions, check-fixtures, unittest, validate (kubeconform)
+    make test           # lint, check-definitions, check-fixtures, check-values-schema,
+                        # check-release, unittest, validate (kubeconform)
     make test-all-helm  # the same under every supported Helm version
     make e2e            # k3d, Kubernetes 1.36+ (MutatingAdmissionPolicy is v1 there)
 
@@ -269,11 +313,26 @@ The API server is the source of truth for CEL: fixtures are checked with
 fixture, a Pod must be refused, and a controller must be admitted with a `Warning:` naming the
 policy.
 
-Every policy needs allow and deny fixtures, each covering a Pod, a Deployment, and a CronJob
-(`make check-fixtures` enforces it). Every fixture is compliant with every other policy. In e2e
-(`test/e2e/scenarios/catalog.sh`) a deny fixture is checked in `only-<policy>`, a namespace
-whose `posture-exceptions` excepts every other policy, so it must be refused by its own policy
-alone, and in `exempt`, where every policy is excepted, so it must be admitted with no warning.
+Every policy needs allow and deny fixtures covering the kinds it applies to: a Pod, a
+Deployment, and a CronJob for workloads; a Service for services; a cluster-scoped and a namespaced
+object for rbac (ClusterRole or ClusterRoleBinding, Role or RoleBinding; `make check-fixtures`
+enforces it). RBAC deny fixtures are checked in `apps`, with no other policy excepted, so each
+breaks only its own policy. A `matchConstraints` policy is covered by e2e
+commands instead (`check_command`). Every fixture is compliant with every other policy (a deny fixture breaks as few as it can;
+the e2e exception-path fixtures break exactly one, so a denial always names the same policy),
+optional ones included: the catalog scenario installs with every optional policy on at
+`enforce`. So every workload fixture runs as ServiceAccount `app` (the e2e `namespace` helper
+creates it, and `run.sh` creates it in kube-system), pins its images by digest, and has
+probes on long-running containers. A check that needs other policies out of the way (a
+tag-only image for `disallow-latest-tag`) goes in that policy's `only-<policy>` as an explicit
+`expect admit`. In e2e (`test/e2e/scenarios/catalog.sh`) a deny fixture is checked in
+`only-<policy>`, a namespace whose `posture-exceptions` excepts every other policy, so it must
+be refused by its own policy alone (`disallow-default-namespace` uses `default` instead: its
+deny fixtures are compliant objects, and the namespace is what it refuses), and in `exempt`, where every policy is excepted, so it must
+be admitted with no warning. Policies with `exceptions: none` skip both; their deny fixtures
+are denied in `apps`, and their allowlist settings get their own checks. "No warning" means no
+warning from a ValidatingAdmissionPolicy: the API server adds its own (deprecations such as
+`spec.externalIPs` on 1.37+), and those don't count.
 Every exception path needs an e2e case:
 exempt workload admitted with no warning, non-exempt denied, namespace without
 `posture-exceptions` denied, `kube-system` never evaluated.
@@ -283,5 +342,5 @@ exempt workload admitted with no warning, non-exempt denied, namespace without
 | Phase | Area | Status |
 |---|---|---|
 | 1 | Foundations: format, renderer, CRD, exceptions, first policies | 1a–1e done, e2e green; green CI run pending |
-| 2 | Full catalog, custom policies, enforcement controls | not started |
+| 2 | Full catalog, custom policies, enforcement controls | 2a–2d done, e2e green; 2e built, e2e run pending |
 | 3 | Mutations, reporting, docs, release | not started |

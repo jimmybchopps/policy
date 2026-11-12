@@ -13,6 +13,7 @@ spec:
         spec:
           restartPolicy: OnFailure
           automountServiceAccountToken: false
+          serviceAccountName: app
           securityContext:
             runAsNonRoot: true
             runAsUser: 0

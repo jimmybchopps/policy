@@ -1,0 +1,33 @@
+name: restrict-sysctls
+tier: baked-in
+description: Pods set only the Pod Security Standards' safe sysctls.
+controls:
+  pss: baseline
+  nist: [CM-7, SC-39]
+resources: workloads
+operations: [CREATE, UPDATE]
+validations:
+  # The safe list as of Pod Security v1.32.
+  - expression: >-
+      !has(variables.podSpec.securityContext) ||
+      !has(variables.podSpec.securityContext.sysctls) ||
+      variables.podSpec.securityContext.sysctls.all(s, s.name in [
+        'kernel.shm_rmid_forced',
+        'net.ipv4.ip_local_port_range',
+        'net.ipv4.ip_unprivileged_port_start',
+        'net.ipv4.tcp_syncookies',
+        'net.ipv4.ping_group_range',
+        'net.ipv4.ip_local_reserved_ports',
+        'net.ipv4.tcp_keepalive_time',
+        'net.ipv4.tcp_fin_timeout',
+        'net.ipv4.tcp_keepalive_intvl',
+        'net.ipv4.tcp_keepalive_probes',
+        'net.ipv4.tcp_rmem',
+        'net.ipv4.tcp_wmem'])
+    message: >-
+      spec.securityContext.sysctls may set only the Pod Security safe sysctls
+      (kernel.shm_rmid_forced, net.ipv4.ip_local_port_range, net.ipv4.ip_unprivileged_port_start,
+      net.ipv4.tcp_syncookies, net.ipv4.ping_group_range, net.ipv4.ip_local_reserved_ports,
+      net.ipv4.tcp_keepalive_time, net.ipv4.tcp_fin_timeout, net.ipv4.tcp_keepalive_intvl,
+      net.ipv4.tcp_keepalive_probes, net.ipv4.tcp_rmem, net.ipv4.tcp_wmem). If this workload
+      needs another, add a posture exception for restrict-sysctls.
