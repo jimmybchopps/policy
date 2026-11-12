@@ -5205,6 +5205,41 @@ mutations:
             resources:
               - pods
       mutations:
+        - jsonPatch:
+            expression: |-
+              (object.spec.containers.filter(c, !has(c.securityContext) ||
+                  !has(c.securityContext.capabilities) || !has(c.securityContext.capabilities.drop))
+                .map(c, !has(c.securityContext)
+                  ? JSONPatch{op: 'add',
+                      path: '/spec/containers/' + string(object.spec.containers.indexOf(c)) + '/securityContext',
+                      value: Object.spec.containers.securityContext{
+                        capabilities: Object.spec.containers.securityContext.capabilities{drop: ['ALL']}}}
+                  : !has(c.securityContext.capabilities)
+                    ? JSONPatch{op: 'add',
+                        path: '/spec/containers/' + string(object.spec.containers.indexOf(c)) + '/securityContext/capabilities',
+                        value: Object.spec.containers.securityContext.capabilities{drop: ['ALL']}}
+                    : JSONPatch{op: 'add',
+                        path: '/spec/containers/' + string(object.spec.containers.indexOf(c)) + '/securityContext/capabilities/drop',
+                        value: ['ALL']})).filter(p, !variables.exempt)
+          patchType: JSONPatch
+        - jsonPatch:
+            expression: |-
+              ((has(object.spec.initContainers) ? object.spec.initContainers : [])
+                .filter(c, !has(c.securityContext) ||
+                  !has(c.securityContext.capabilities) || !has(c.securityContext.capabilities.drop))
+                .map(c, !has(c.securityContext)
+                  ? JSONPatch{op: 'add',
+                      path: '/spec/initContainers/' + string(object.spec.initContainers.indexOf(c)) + '/securityContext',
+                      value: Object.spec.initContainers.securityContext{
+                        capabilities: Object.spec.initContainers.securityContext.capabilities{drop: ['ALL']}}}
+                  : !has(c.securityContext.capabilities)
+                    ? JSONPatch{op: 'add',
+                        path: '/spec/initContainers/' + string(object.spec.initContainers.indexOf(c)) + '/securityContext/capabilities',
+                        value: Object.spec.initContainers.securityContext.capabilities{drop: ['ALL']}}
+                    : JSONPatch{op: 'add',
+                        path: '/spec/initContainers/' + string(object.spec.initContainers.indexOf(c)) + '/securityContext/capabilities/drop',
+                        value: ['ALL']})).filter(p, !variables.exempt)
+          patchType: JSONPatch
         - applyConfiguration:
             expression: |-
               variables.exempt ? Object{} : (!has(object.spec.securityContext) || !has(object.spec.securityContext.runAsNonRoot)
@@ -5234,24 +5269,6 @@ mutations:
                       securityContext: Object.spec.initContainers.securityContext{allowPrivilegeEscalation: false}})}}
                 : Object{})
           patchType: ApplyConfiguration
-        - applyConfiguration:
-            expression: |-
-              variables.exempt ? Object{} : (size(variables.containersWithoutDrop) > 0
-                ? Object{spec: Object.spec{containers: variables.containersWithoutDrop.map(c,
-                    Object.spec.containers{name: c.name,
-                      securityContext: Object.spec.containers.securityContext{
-                        capabilities: Object.spec.containers.securityContext.capabilities{drop: ['ALL']}}})}}
-                : Object{})
-          patchType: ApplyConfiguration
-        - applyConfiguration:
-            expression: |-
-              variables.exempt ? Object{} : (size(variables.initContainersWithoutDrop) > 0
-                ? Object{spec: Object.spec{initContainers: variables.initContainersWithoutDrop.map(c,
-                    Object.spec.initContainers{name: c.name,
-                      securityContext: Object.spec.initContainers.securityContext{
-                        capabilities: Object.spec.initContainers.securityContext.capabilities{drop: ['ALL']}}})}}
-                : Object{})
-          patchType: ApplyConfiguration
       paramKind:
         apiVersion: policy.posture.dev/v1alpha1
         kind: PolicyExceptions
@@ -5269,14 +5286,6 @@ mutations:
             variables.initContainers.filter(c,
               !has(c.securityContext) || !has(c.securityContext.allowPrivilegeEscalation))
           name: initContainersWithoutEscalation
-        - expression: |-
-            object.spec.containers.filter(c, !has(c.securityContext) ||
-              !has(c.securityContext.capabilities) || !has(c.securityContext.capabilities.drop))
-          name: containersWithoutDrop
-        - expression: |-
-            variables.initContainers.filter(c, !has(c.securityContext) ||
-              !has(c.securityContext.capabilities) || !has(c.securityContext.capabilities.drop))
-          name: initContainersWithoutDrop
         - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'MutatingAdmissionPolicy' && e.policy.name == 'add-default-security-context' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
           name: exempt
   5: |

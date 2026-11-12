@@ -57,22 +57,27 @@ tests:
       - equal: { path: "spec.variables[0]", value: { name: workloadLabels, expression: "has(object.metadata.labels) ? object.metadata.labels : {}" } }
       - matchRegex: { path: "metadata.annotations['policy.posture.dev/description']", pattern: "never changed" }
 
-  - it: the exempt check names the MutatingAdmissionPolicy, and every apply configuration is skipped for an excepted Pod
+  - it: the exempt check names the MutatingAdmissionPolicy, and every mutation is skipped for an excepted Pod
     set:
       mutations: { enabled: true }
     documentSelector: { path: kind, value: MutatingAdmissionPolicy }
     asserts:
-      - matchRegex: { path: "spec.variables[6].expression", pattern: "e.policy.kind == 'MutatingAdmissionPolicy' && e.policy.name == 'add-default-security-context'" }
-      - equal: { path: "spec.variables[6].name", value: exempt }
-      - matchRegex: { path: "spec.mutations[0].applyConfiguration.expression", pattern: "^variables\\.exempt \\? Object\\{\\} : \\(" }
-      - equal: { path: "spec.mutations[0].patchType", value: ApplyConfiguration }
+      - equal: { path: "spec.variables[4].name", value: exempt }
+      - matchRegex: { path: "spec.variables[4].expression", pattern: "e.policy.kind == 'MutatingAdmissionPolicy' && e.policy.name == 'add-default-security-context'" }
       - lengthEqual: { path: spec.mutations, count: 6 }
+      # capabilities.drop is an atomic list, which an apply configuration may not set: JSON patches.
+      - equal: { path: "spec.mutations[0].patchType", value: JSONPatch }
+      - matchRegex: { path: "spec.mutations[0].jsonPatch.expression", pattern: "\\)\\.filter\\(p, !variables\\.exempt\\)$" }
+      - equal: { path: "spec.mutations[1].patchType", value: JSONPatch }
+      - equal: { path: "spec.mutations[2].patchType", value: ApplyConfiguration }
+      - matchRegex: { path: "spec.mutations[2].applyConfiguration.expression", pattern: "^variables\\.exempt \\? Object\\{\\} : \\(" }
 
-  - it: a JSON patch is filtered out for an excepted Pod
+  - it: disable-service-account-token-automount removes the token with a JSON patch, then sets the field
     values: [../../../../examples/mutations.yaml]
-    documentSelector: { path: "spec.mutations[0].patchType", value: JSONPatch }
+    documentSelector: { path: "spec.variables[1].name", value: tokenVolumes }
     asserts:
       - equal: { path: metadata.name, value: disable-service-account-token-automount }
+      - equal: { path: "spec.mutations[0].patchType", value: JSONPatch }
       - matchRegex: { path: "spec.mutations[0].jsonPatch.expression", pattern: "\\)\\.filter\\(p, !variables\\.exempt\\)$" }
       - equal: { path: "spec.mutations[1].patchType", value: ApplyConfiguration }
 

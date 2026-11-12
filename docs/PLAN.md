@@ -316,7 +316,8 @@ Split like Phase 1; each subphase ends with a green `make e2e`.
 - [x] `definitions/mutating/` for the three mutations (`set-image-pull-policy` dropped; see
       the table), using ApplyConfiguration where it can express "only when unset" (one
       mutation per field, returning `Object{}` when it's set) and JSONPatch where it can't
-      (removing the service account token volume). Their own schema, `test/mutation-schema/`.
+      (removing the service account token volume; `capabilities.drop`, an atomic list an
+      apply configuration may not set). Their own schema, `test/mutation-schema/`.
 - [x] `MutatingAdmissionPolicy` and binding per mutation (`mutations.apiVersion`), Pods on
       CREATE only, `reinvocationPolicy: IfNeeded`, the same exclusion list, exceptions via
       `paramRef` (`parameterNotFoundAction: Deny`). The exemption check is a variable, and each

@@ -186,8 +186,11 @@ check_expectations() {
   while IFS= read -r line; do
     [[ $line =~ ^\#\ expect:\ (\{[^}]*\})\ (=|~|!~)\ ?(.*)$ ]] || continue
     jsonpath=${BASH_REMATCH[1]} op=${BASH_REMATCH[2]} value=${BASH_REMATCH[3]}
-    got=$("$KUBECTL" apply --dry-run=server -n "$ns" -f "$ROOT/$fixture" -o "jsonpath=$jsonpath" 2>&1) || {
-      DRY_OUT="$jsonpath: $got"; return 1; }
+    # stdout only: warnings (a policy's, or the API server's) go to stderr and aren't the value.
+    got=$("$KUBECTL" apply --dry-run=server -n "$ns" -f "$ROOT/$fixture" -o "jsonpath=$jsonpath" 2>/dev/null) || {
+      DRY_OUT="$jsonpath: $("$KUBECTL" apply --dry-run=server -n "$ns" -f "$ROOT/$fixture" -o "jsonpath=$jsonpath" 2>&1)"
+      return 1
+    }
     case $op in
       =) [[ $got == "$value" ]] ;;
       '~') [[ $got == *"$value"* ]] ;;

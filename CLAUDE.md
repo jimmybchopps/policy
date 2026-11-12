@@ -195,7 +195,9 @@ immutable; a controller's template would fight with Helm or Flux), `failurePolic
 `reinvocationPolicy: IfNeeded`, at `mutations.apiVersion`. It **never overwrites a set value**:
 an apply configuration sets whatever it names, so each expression builds only the fields that
 are unset (one mutation per field, containers filtered and merged by `name`) and returns
-`Object{}` otherwise. It gets one shared variable, `workloadLabels` (the Pod's own labels), and
+`Object{}` otherwise. An apply configuration may not set an atomic list (such as
+`capabilities.drop`) even when it's unset, and can't remove anything; those take JSON patches,
+which compute their indexes from the object they patch. It gets one shared variable, `workloadLabels` (the Pod's own labels), and
 its settings as `setting_<name>`; the same portability rules apply (no `params`, no
 `authorizer`). Exceptions work like a policy's, with kind `MutatingAdmissionPolicy`: the binding
 reads `posture-exceptions` (`parameterNotFoundAction: Deny`, so it fails closed too), and the
