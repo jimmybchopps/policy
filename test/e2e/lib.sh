@@ -225,7 +225,10 @@ verify() {
 # fixture_policies: every policy with fixtures (fixtures/<policy>/), sorted.
 fixture_policies() {
   local d
-  for d in "$ROOT"/fixtures/*/; do basename "$d"; done | sort
+  # fixtures/mutations/ holds the mutations' fixtures (test/e2e/scenarios/mutations.sh), not a policy's.
+  for d in "$ROOT"/fixtures/*/; do
+    [[ $(basename "$d") == mutations ]] || basename "$d"
+  done | sort
 }
 
 DEFINITIONS_DIR=charts/policy/definitions/validating
