@@ -7,7 +7,7 @@ optional policies audit for their first minor instead (CLAUDE.md, "New policies 
 audit"). A version's section stays marked `(unreleased)` until the release commit; the release
 workflow refuses a tag whose section still is.
 
-## 0.2.1 (unreleased)
+## 0.2.1
 
 - `restrict-route-hostnames` takes `namespaces`: routes there aren't checked, for the ingress
   gateways' own namespace (boundary's HTTP-to-HTTPS redirect route has no hostnames, so it
