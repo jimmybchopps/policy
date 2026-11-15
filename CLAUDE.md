@@ -91,6 +91,8 @@ policies:
       - { kind: annotation, key: linkerd.io/inject, value: disabled }
   restrict-loadbalancer-services:
     namespaces: [ingress-gateway]   # e.g.; default [], so nothing gets an external address until listed
+  restrict-route-hostnames:      # 0.2; off by default. Gateway API routes claim <ns>.<domain> and below
+    domains: [apps.site.mil]     # required once enabled
   restrict-wildcard-rbac:        # RBAC is cluster-scoped, so it can't use namespace exceptions
     allowedRoles: []             # Role/ClusterRole names allowed to use "*"
   restrict-cluster-admin-binding:
@@ -159,6 +161,7 @@ exceptions: labels               # labels (default) | none; rbac is always none
 settings: {}                     # settings this policy accepts under policies.<name>, e.g.
                                  #   registries: { type: list | string | bool, required: true,
                                  #                 default: ..., description: "shown when missing",
+                                 #                 (required: only while the policy is enabled)
                                  #                 items: { JSON schema for list items } }
                                  # baked-in policies declare none, except restrict-image-registries
 variables:
@@ -265,7 +268,8 @@ their allowlists come from their own settings instead, and their messages name t
 (cluster-scoped objects have no namespace to read exceptions from:
 `policies.restrict-wildcard-rbac.allowedRoles` and so on) and `disallow-pod-exec` (a CONNECT
 request carries exec options, not the Pod, so there are no labels to match:
-`policies.disallow-pod-exec.namespaces`).
+`policies.disallow-pod-exec.namespaces`), and `restrict-route-hostnames` (a route outside its
+namespace's hostnames is fixed, not excepted: `policies.restrict-route-hostnames.domains`).
 
 ### The PolicyExceptions CRD
 
@@ -376,7 +380,9 @@ Deployment, and a CronJob for workloads; a Service for services; a cluster-scope
 object for rbac (ClusterRole or ClusterRoleBinding, Role or RoleBinding; `make check-fixtures`
 enforces it). RBAC deny fixtures are checked in `apps`, with no other policy excepted, so each
 breaks only its own policy. A `matchConstraints` policy is covered by e2e
-commands instead (`check_command`). Every fixture is compliant with every other policy (a deny fixture breaks as few as it can;
+commands instead (`check_command`), or by objects under `test/e2e/fixtures/` with explicit
+`expect` lines (`restrict-route-hostnames`: `test/e2e/fixtures/routes/`, on the Gateway API CRDs
+that `run.sh` installs at `GATEWAY_API_VERSION`). Every fixture is compliant with every other policy (a deny fixture breaks as few as it can;
 the e2e exception-path fixtures break exactly one, so a denial always names the same policy),
 optional ones included: the catalog scenario installs with every optional policy on at
 `enforce`. So every workload fixture runs as ServiceAccount `app` (the e2e `namespace` helper

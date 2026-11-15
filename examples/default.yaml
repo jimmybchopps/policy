@@ -12,6 +12,12 @@ policies:
   # restrict-loadbalancer-services:
   #   namespaces: [ingress-gateway]
 
+  # Gateway API routes (for example from boundary) claim only <namespace>.<domain> and names
+  # under it. Off by default; needs your domains. New in 0.2, so it audits until 0.3.
+  # restrict-route-hostnames:
+  #   enabled: true
+  #   domains: [apps.example.mil]
+
   # Who may hold cluster-admin besides system:masters, e.g. your platform team's group.
   # restrict-cluster-admin-binding:
   #   allowedSubjects:

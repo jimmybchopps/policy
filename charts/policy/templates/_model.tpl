@@ -295,8 +295,6 @@ Input: dict "def" <definition> "tier" <baked-in|optional|custom> "path" <values 
     {{- end -}}
   {{- end -}}
 {{- end -}}
-{{- $settings := include "policy.resolveSettings" (dict "spec" $settingsSpec "values" $userValues "path" $path "src" $src) | fromJson -}}
-
 {{- /* enabled and action. */ -}}
 {{- $enabled := true -}}
 {{- $action := "inherit" -}}
@@ -327,6 +325,8 @@ Input: dict "def" <definition> "tier" <baked-in|optional|custom> "path" <values 
   {{- fail (printf "policy: %s.action: must be inherit, enforce, or audit, not %q" $path $action) -}}
 {{- end -}}
 {{- if eq $action "inherit" -}}{{- $action = .enforcement -}}{{- end -}}
+{{- /* Settings, after enabled: a required setting is required only when the policy is on. */ -}}
+{{- $settings := include "policy.resolveSettings" (dict "spec" $settingsSpec "values" $userValues "path" $path "src" $src "enabled" $enabled) | fromJson -}}
 
 {{- /* Variables: shared (workloads; workloadLabels alone for other objects that take
        exceptions), then settings, then the definition's own. */ -}}
@@ -391,8 +391,10 @@ Input: dict "src" <source> "variables" <the definition's variables>
 
 {{/*
 A definition's settings, resolved: each declared setting's default, overridden by the user's
-value, type-checked, and required ones present. The caller checks for undeclared keys.
+value, type-checked, and required ones present when the policy is enabled (so an optional
+policy that's off doesn't need them). The caller checks for undeclared keys.
 Input: dict "spec" <settings> "values" <the user's values> "path" <values path> "src" <source>
+            "enabled" <whether the policy is on; default true>
 Output: JSON object { <name>: value }
 */}}
 {{- define "policy.resolveSettings" -}}
@@ -400,6 +402,7 @@ Output: JSON object { <name>: value }
 {{- $userValues := .values | default dict -}}
 {{- $path := .path -}}
 {{- $src := .src -}}
+{{- $enabled := ternary .enabled true (hasKey . "enabled") -}}
 {{- $settings := dict -}}
 {{- range $s := keys $settingsSpec | sortAlpha -}}
   {{- $spec := get $settingsSpec $s -}}
@@ -414,7 +417,7 @@ Output: JSON object { <name>: value }
   {{- if not (kindIs $kind $value) -}}
     {{- fail (printf "policy: %s.%s: must be a %s" $path $s $spec.type) -}}
   {{- end -}}
-  {{- if and $spec.required (ne $spec.type "bool") (eq (len $value) 0) -}}
+  {{- if and $enabled $spec.required (ne $spec.type "bool") (eq (len $value) 0) -}}
     {{- fail (printf "policy: %s.%s is required%s" $path $s (ternary (printf ": %s" $spec.description) "" (not (empty $spec.description)))) -}}
   {{- end -}}
   {{- if and $spec.pattern (eq $spec.type "string") (not (regexMatch $spec.pattern $value)) -}}

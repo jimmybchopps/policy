@@ -25,6 +25,7 @@ policies:
   restrict-cluster-admin-binding:           { enabled: true, action: enforce }
   restrict-externalname-services:           { enabled: true, action: enforce }
   restrict-loadbalancer-services:           { enabled: true, action: enforce }
+  restrict-route-hostnames:                 { enabled: true, action: enforce, domains: [apps.example.mil] }
   restrict-wildcard-rbac:                   { enabled: true, action: enforce }
 
 mutations:

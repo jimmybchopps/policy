@@ -9,5 +9,5 @@ type: application
 version: 0.0.0
 dependencies:
   - name: policy
-    version: 0.1.0
+    version: ">=0.0.0" # whatever charts/policy is at; the probe follows every release
     repository: file://../../charts/policy

@@ -23,7 +23,7 @@ tests:
       - matchRegexRaw: { pattern: "Baked-in policies, always enforced: 15\\." }
       - matchRegexRaw: { pattern: "Optional policies on: 18\\.\\n  enforce: disallow-default-namespace, " }
       - matchRegexRaw: { pattern: "\\n  audit: disallow-automount-service-account-token, " }
-      - matchRegexRaw: { pattern: "Optional policies off: disallow-ephemeral-containers, disallow-pod-exec\\." }
+      - matchRegexRaw: { pattern: "Optional policies off: disallow-ephemeral-containers, disallow-pod-exec, restrict-route-hostnames\\." }
       - matchRegexRaw: { pattern: "Mutations: off\\." }
       - matchRegexRaw: { pattern: "Never evaluated: kube-system\\." }
       - matchRegexRaw: { pattern: "needs its posture-exceptions object" }

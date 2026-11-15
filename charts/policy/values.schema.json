@@ -962,6 +962,34 @@
           "properties": {},
           "type": "object"
         },
+        "restrict-route-hostnames": {
+          "additionalProperties": false,
+          "description": "Optional (default: off, inherit). Gateway API routes claim only hostnames under their own namespace in an allowed domain, and always name at least one. New in 0.2: audits by default while the chart is 0.2.x.",
+          "properties": {
+            "action": {
+              "description": "inherit (take enforcement), enforce, or audit (default: inherit).",
+              "enum": [
+                "inherit",
+                "enforce",
+                "audit"
+              ],
+              "type": "string"
+            },
+            "domains": {
+              "description": "The domains routes may use; a route in namespace \u003cns\u003e may claim \u003cns\u003e.\u003cdomain\u003e and names under it, e.g. apps.site.mil.",
+              "items": {
+                "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$",
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "enabled": {
+              "description": "Whether the policy is installed (default: false).",
+              "type": "boolean"
+            }
+          },
+          "type": "object"
+        },
         "restrict-seccomp": {
           "additionalProperties": false,
           "description": "Baked-in: always on and enforced; takes no settings. Every container runs under a RuntimeDefault or Localhost seccomp profile.",

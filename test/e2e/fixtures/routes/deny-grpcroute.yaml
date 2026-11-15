@@ -1,0 +1,15 @@
+# restrict-route-hostnames, checked in apps with domains example.mil and svc.example.org
+# (test/e2e/scenarios/catalog.sh). The parent Gateway needn't exist: admission doesn't look.
+# Deny: a GRPCRoute under another namespace.
+apiVersion: gateway.networking.k8s.io/v1
+kind: GRPCRoute
+metadata:
+  name: grpc-other
+spec:
+  parentRefs:
+    - { name: e2e-gateway, namespace: gateway }
+  hostnames:
+    - "grpc.other.example.mil"
+  rules:
+    - backendRefs:
+        - { name: grpc, port: 9090 }

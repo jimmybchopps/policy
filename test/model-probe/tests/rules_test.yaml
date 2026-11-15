@@ -127,6 +127,54 @@ tests:
       - failedTemplate:
           errorPattern: "policy: policies.needs-list.things is required: list the things"
 
+  # Required only while the policy is on: an optional policy that's off needs nothing.
+  - it: accepts a required list left empty on an optional policy that's off by default
+    set:
+      definitions:
+        - name: needs-list
+          source: definitions/validating/needs-list.yaml
+          tier: optional
+          default: { enabled: false, action: inherit }
+          description: x
+          resources: workloads
+          settings: { things: { type: list, required: true } }
+          validations: [{ expression: "true", message: x }]
+    asserts:
+      - notFailedTemplate: {}
+
+  - it: accepts a required list left empty on an optional policy the user turned off
+    set:
+      definitions:
+        - name: needs-list
+          source: definitions/validating/needs-list.yaml
+          tier: optional
+          default: { enabled: true, action: inherit }
+          description: x
+          resources: workloads
+          settings: { things: { type: list, required: true } }
+          validations: [{ expression: "true", message: x }]
+      input:
+        policies: { needs-list: { enabled: false } }
+    asserts:
+      - notFailedTemplate: {}
+
+  - it: rejects a required list left empty once the user turns the policy on
+    set:
+      definitions:
+        - name: needs-list
+          source: definitions/validating/needs-list.yaml
+          tier: optional
+          default: { enabled: false, action: inherit }
+          description: x
+          resources: workloads
+          settings: { things: { type: list, required: true } }
+          validations: [{ expression: "true", message: x }]
+      input:
+        policies: { needs-list: { enabled: true } }
+    asserts:
+      - failedTemplate:
+          errorPattern: "policy: policies.needs-list.things is required"
+
   - it: rejects a required string left empty
     set:
       definitions:

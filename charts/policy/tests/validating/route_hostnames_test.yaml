@@ -1,0 +1,124 @@
+# restrict-route-hostnames (0.2, for boundary): off by default, domains required once it's on,
+# audit through 0.2 unless action is set, one binding and no posture exceptions. What the CEL
+# admits and refuses (exact names, wildcards, no hostnames, several domains) is checked by the
+# API server in the catalog e2e scenario (test/e2e/fixtures/routes/).
+suite: restrict-route-hostnames
+templates:
+  - templates/validating.yaml
+  - templates/NOTES.txt
+release:
+  name: policy
+values:
+  - ../../../../examples/minimal.yaml
+tests:
+  - it: is off by default, and needs no domains while off
+    template: templates/validating.yaml
+    asserts:
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: restrict-route-hostnames, any: true }
+        not: true
+
+  - it: stays off when disabled explicitly, with no domains
+    template: templates/validating.yaml
+    set:
+      policies:
+        restrict-route-hostnames: { enabled: false }
+    asserts:
+      - notFailedTemplate: {}
+      - containsDocument: { kind: ValidatingAdmissionPolicy, apiVersion: admissionregistration.k8s.io/v1, name: restrict-route-hostnames, any: true }
+        not: true
+
+  - it: needs domains once enabled
+    template: templates/validating.yaml
+    set:
+      policies:
+        restrict-route-hostnames: { enabled: true }
+    asserts:
+      - failedTemplate:
+          errorPattern: "policies.restrict-route-hostnames.domains is required"
+
+  - it: matches HTTPRoutes, GRPCRoutes, and TLSRoutes, without params or match conditions
+    template: templates/validating.yaml
+    set:
+      policies:
+        restrict-route-hostnames: { enabled: true, domains: [apps.example.mil] }
+    documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Gateway API routes claim only hostnames under their own namespace in an allowed domain, and always name at least one." }
+    asserts:
+      - equal:
+          path: spec.matchConstraints.resourceRules
+          value:
+            - { apiGroups: [gateway.networking.k8s.io], apiVersions: ["*"], operations: [CREATE, UPDATE], resources: [httproutes, grpcroutes, tlsroutes] }
+      - notExists: { path: spec.paramKind }
+      - notExists: { path: spec.matchConditions }
+      - equal: { path: "metadata.annotations['policy.posture.dev/since']", value: "0.2" }
+
+  - it: renders several domains, in order, as a CEL list, and no exempt rewrite
+    template: templates/validating.yaml
+    set:
+      policies:
+        restrict-route-hostnames: { enabled: true, domains: [apps.example.mil, svc.example.org] }
+    documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Gateway API routes claim only hostnames under their own namespace in an allowed domain, and always name at least one." }
+    asserts:
+      - equal:
+          path: spec.variables
+          value:
+            - { name: setting_domains, expression: '["apps.example.mil","svc.example.org"]' }
+            - { name: hostnames, expression: "has(object.spec.hostnames) ? object.spec.hostnames : []" }
+      - equal: { path: "spec.validations[0].expression", value: "size(variables.hostnames) > 0" }
+      - notMatchRegex: { path: "spec.validations[1].expression", pattern: "exempt" }
+      - exists: { path: "spec.validations[1].messageExpression" }
+
+  - it: has one binding, without paramRef, auditing through 0.2
+    template: templates/validating.yaml
+    set:
+      policies:
+        restrict-route-hostnames: { enabled: true, domains: [apps.example.mil] }
+    documentSelector: { path: spec.policyName, value: restrict-route-hostnames }
+    asserts:
+      - isKind: { of: ValidatingAdmissionPolicyBinding }
+      - equal: { path: spec.validationActions, value: [Audit, Warn] }
+      - notExists: { path: spec.paramRef }
+      - equal: { path: "metadata.annotations['policy.posture.dev/binding']", value: custom }
+
+  - it: denies once its action is enforce
+    template: templates/validating.yaml
+    set:
+      policies:
+        restrict-route-hostnames: { enabled: true, action: enforce, domains: [apps.example.mil] }
+    documentSelector: { path: spec.policyName, value: restrict-route-hostnames }
+    asserts:
+      - equal: { path: spec.validationActions, value: [Deny, Audit] }
+
+  - it: is listed in NOTES as new in this minor when it audits by default
+    template: templates/NOTES.txt
+    set:
+      policies:
+        restrict-route-hostnames: { enabled: true, domains: [apps.example.mil] }
+    asserts:
+      - matchRegexRaw: { pattern: "restrict-route-hostnames" }
+
+  - it: rejects a domain that isn't a lowercase DNS name
+    template: templates/NOTES.txt
+    set:
+      policies:
+        restrict-route-hostnames: { enabled: true, domains: ["*.example.mil"] }
+    asserts:
+      - failedTemplate:
+          errorPattern: "domains"
+
+  - it: rejects a domain with a leading dot
+    template: templates/NOTES.txt
+    set:
+      policies:
+        restrict-route-hostnames: { enabled: true, domains: [".example.mil"] }
+    asserts:
+      - failedTemplate:
+          errorPattern: "domains"
+
+  - it: rejects an uppercase domain
+    template: templates/NOTES.txt
+    set:
+      policies:
+        restrict-route-hostnames: { enabled: true, domains: [Example.mil] }
+    asserts:
+      - failedTemplate:
+          errorPattern: "domains"

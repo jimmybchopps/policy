@@ -1,0 +1,49 @@
+name: restrict-route-hostnames
+tier: optional
+since: "0.2"
+default: { enabled: false, action: inherit }
+description: >-
+  Gateway API routes claim only hostnames under their own namespace in an allowed domain,
+  and always name at least one.
+controls:
+  nist: [SC-7, AC-4]
+# Routes are matched by resourceRules (Gateway API is a CRD), so this takes no posture
+# exceptions: the domains setting decides, and a route outside it is fixed, not excepted.
+resources:
+  resourceRules:
+    - apiGroups: [gateway.networking.k8s.io]
+      apiVersions: ["*"]
+      resources: [httproutes, grpcroutes, tlsroutes]
+operations: [CREATE, UPDATE]
+exceptions: none
+settings:
+  domains:
+    type: list
+    required: true
+    description: >-
+      the domains routes may use; a route in namespace <ns> may claim <ns>.<domain> and names
+      under it, e.g. apps.site.mil
+    items:
+      type: string
+      pattern: "^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$"
+variables:
+  - name: hostnames
+    expression: "has(object.spec.hostnames) ? object.spec.hostnames : []"
+validations:
+  - expression: "size(variables.hostnames) > 0"
+    message: >-
+      spec.hostnames must list at least one hostname; a route without hostnames claims every
+      hostname on its listener. Use <namespace>.<domain>, or a name under it, for a domain in
+      policies.restrict-route-hostnames.domains.
+  - expression: >-
+      variables.hostnames.all(h, variables.setting_domains.exists(d,
+        h == request.namespace + '.' + d || h.endsWith('.' + request.namespace + '.' + d)))
+    message: >-
+      spec.hostnames must each be <namespace>.<domain> or end in .<namespace>.<domain>
+      (wildcards included), for a domain in policies.restrict-route-hostnames.domains. A
+      hostname under another namespace or a bare domain may not be claimed.
+    messageExpression: >-
+      'spec.hostnames must each be ' + request.namespace + '.<domain> or end in .' +
+      request.namespace + '.<domain> (wildcards included), for <domain> one of: ' +
+      variables.setting_domains.join(', ') +
+      ' (policies.restrict-route-hostnames.domains). A hostname under another namespace or a bare domain may not be claimed.'

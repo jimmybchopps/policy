@@ -6,7 +6,7 @@ description: >-
   MutatingAdmissionPolicy (no webhook), and the PolicyExceptions CRD that the posture chart
   fills in each namespace. Requires Kubernetes 1.30+.
 type: application
-version: 0.1.0
+version: 0.2.0
 home: https://github.com/jimmybchopps/policy
 sources:
   - https://github.com/jimmybchopps/policy
