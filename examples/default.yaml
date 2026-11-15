@@ -17,6 +17,7 @@ policies:
   # restrict-route-hostnames:
   #   enabled: true
   #   domains: [apps.example.mil]
+  #   namespaces: [ingress-gateway]   # the gateways' own routes (e.g. an HTTP-to-HTTPS redirect)
 
   # Who may hold cluster-admin besides system:masters, e.g. your platform team's group.
   # restrict-cluster-admin-binding:

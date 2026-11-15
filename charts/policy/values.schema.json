@@ -964,7 +964,7 @@
         },
         "restrict-route-hostnames": {
           "additionalProperties": false,
-          "description": "Optional (default: off, inherit). Gateway API routes claim only hostnames under their own namespace in an allowed domain, and always name at least one. New in 0.2: audits by default while the chart is 0.2.x.",
+          "description": "Optional (default: off, inherit). Gateway API routes claim only hostnames under their own namespace in an allowed domain, and always name at least one, outside the namespaces listed. New in 0.2: audits by default while the chart is 0.2.x.",
           "properties": {
             "action": {
               "description": "inherit (take enforcement), enforce, or audit (default: inherit).",
@@ -986,6 +986,14 @@
             "enabled": {
               "description": "Whether the policy is installed (default: false).",
               "type": "boolean"
+            },
+            "namespaces": {
+              "description": "Namespaces whose routes aren't checked: the ingress gateways' own namespace (e.g. ingress-gateway), where the gateway chart's routes, such as boundary's HTTP-to-HTTPS redirect, cover every hostname of their own listeners.",
+              "items": {
+                "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$",
+                "type": "string"
+              },
+              "type": "array"
             }
           },
           "type": "object"
