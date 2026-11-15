@@ -407,8 +407,8 @@ hostnames, or every hostname on its listener.
 - [x] Unit tests (`tests/validating/route_hostnames_test.yaml`, probe `rules_test`).
 - [x] e2e: Gateway API CRDs installed in the cluster (`GATEWAY_API_VERSION`); allow and deny
       routes in the catalog scenario (`test/e2e/fixtures/routes/`).
-- [ ] e2e: green.
-- [ ] 0.2.0 released, and the item removed from `boundary`'s "Changes needed in other repos".
+- [x] e2e: green.
+- [x] 0.2.0 released, and the item removed from `boundary`'s "Changes needed in other repos".
 
 ---
 
