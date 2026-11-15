@@ -16,11 +16,13 @@
 #   default          every other policy excepted disallow-default-namespace's deny fixtures
 #                                                (only-<policy> doesn't apply: the namespace
 #                                                is what it refuses)
+#   other            none                        restrict-route-hostnames: other's own names
+#                                                are admitted there (routes take no exceptions)
 #
-# Policies without exceptions (the RBAC policies, disallow-pod-exec) have no only-<policy> or
-# exempt case: their deny fixtures are denied in apps (so each breaks only its own policy), and
-# their allowlist settings are checked instead (allowedRoles, allowedSubjects, a system: name,
-# the exec namespaces).
+# Policies without exceptions (the RBAC policies, disallow-pod-exec, restrict-route-hostnames)
+# have no only-<policy> or exempt case: their deny fixtures are denied in apps (so each breaks
+# only its own policy), and their allowlist settings are checked instead (allowedRoles,
+# allowedSubjects, a system: name, the exec namespaces, the route domains).
 #
 # A namespace with no posture-exceptions at all is covered by the smoke scenario (bare).
 #
@@ -29,6 +31,7 @@
 
 EXC=test/e2e/fixtures/exceptions
 RBAC=test/e2e/fixtures/rbac
+ROUTES=test/e2e/fixtures/routes
 
 setup() {
   require_exempt_covers "$EXC/posture-exceptions-exempt.yaml"
@@ -37,6 +40,7 @@ setup() {
   namespace exec-allowed
   namespace debug-allowed
   namespace lb-allowed
+  namespace other
   policy_namespaces
   # A pod that predates the policies: created for real now, never scheduled.
   quiet "$KUBECTL" apply -n apps -f "$ROOT/test/e2e/fixtures/old-bad-pod.yaml"
@@ -69,6 +73,17 @@ checks() {
   # excepted; in apps both apply, so these can't be allow fixtures.
   expect admit only-disallow-latest-tag test/e2e/fixtures/optional/pod-tag-only.yaml
   expect admit only-disallow-latest-tag test/e2e/fixtures/optional/pod-port-tag.yaml
+  # restrict-route-hostnames, with domains example.mil and svc.example.org: in apps, only
+  # apps.<domain> and names under it (wildcards included); never no hostnames, a bare domain,
+  # another namespace's names, a look-alike without the dot, or an unlisted domain.
+  local f
+  for f in "$ROOT/$ROUTES"/allow-*.yaml; do expect admit apps "$ROUTES/$(basename "$f")"; done
+  for f in "$ROOT/$ROUTES"/deny-*.yaml; do
+    expect deny apps "$ROUTES/$(basename "$f")" restrict-route-hostnames
+  done
+  # The names apps may not claim belong to other, where they're admitted.
+  expect admit other "$ROUTES/deny-other-namespace.yaml"
+  expect admit other "$ROUTES/deny-grpcroute.yaml"
 }
 
 install() {
@@ -77,6 +92,7 @@ install() {
     --set-json 'policies.restrict-wildcard-rbac.allowedRoles=["e2e-allowed-wildcard"]' \
     --set-json 'policies.disallow-pod-exec.namespaces=["exec-allowed"]' \
     --set-json 'policies.restrict-loadbalancer-services.namespaces=["lb-allowed"]' \
+    --set-json 'policies.restrict-route-hostnames.domains=["example.mil","svc.example.org"]' \
     --set-json 'policies.restrict-cluster-admin-binding.allowedSubjects=[{"kind":"Group","name":"e2e-admins"}]' \
     --set-json 'policies.disallow-rbac-escalation-verbs.allowedRoles=["e2e-allowed-escalation"]'
   exceptions_object apps

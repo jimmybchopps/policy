@@ -49,7 +49,7 @@ authoritative mapping; confirm them with your ISSM before citing them.
 | `restrict-image-registries` | every image starts with a prefix in `policies.restrict-image-registries.registries` (the only configurable baked-in policy; render fails if empty) | — | CM-7, SR-3 |
 | `restrict-external-ips` | Services have no `spec.externalIPs` (CVE-2020-8554) | — | SC-7 |
 
-### Optional (20)
+### Optional (21)
 
 | Policy | Default | Applies to | Rule | NIST |
 |---|---|---|---|---|
@@ -73,6 +73,7 @@ authoritative mapping; confirm them with your ISSM before citing them.
 | `require-probes` | audit | workloads | readiness and liveness probes on long-running containers (regular containers unless the pod runs to completion, as a Job's do; sidecar init containers always) | — |
 | `disallow-ephemeral-containers` | off | pods/ephemeralcontainers (UPDATE) | no `kubectl debug` ephemeral containers | AC-6, CM-7 |
 | `disallow-pod-exec` | off | pods/exec, pods/attach (CONNECT) | no interactive exec or attach | AC-6 |
+| `restrict-route-hostnames` (0.2) | off | Gateway API HTTPRoutes, GRPCRoutes, TLSRoutes | every `spec.hostnames` entry is `<namespace>.<domain>` or ends in `.<namespace>.<domain>` for one of the policy's `domains`; a route with no hostnames is refused (it would claim every hostname on its listener) | SC-7, AC-4 |
 
 Services and RBAC objects have no controller in front of them, so those policies use a single
 binding with the policy's own actions.
@@ -388,6 +389,26 @@ exceptions refer to) is stable. It depends on work in `posture`, so it's its own
       version.
 
 **Done when** posture's integration is green on `v1beta1` and 1.0.0 is released.
+
+---
+
+## 0.2.0: restrict-route-hostnames (for `boundary`)
+
+`boundary` gives namespaces Gateway API routes; a route mustn't claim another namespace's
+hostnames, or every hostname on its listener.
+
+- [x] `definitions/validating/restrict-route-hostnames.yaml`: optional, `since: "0.2"`, off by
+      default (`domains` is required once it's on; an upgrade from 0.1 never fails), audits
+      through 0.2 once enabled; `resourceRules` for HTTPRoute, GRPCRoute, TLSRoute;
+      `exceptions: none`.
+- [x] A required setting is required only while its policy is enabled (`policy.resolveSettings`).
+- [x] Chart 0.2.0; `CHANGELOG.md` 0.2.0 (unreleased); the values schema and catalog
+      regenerated; `strict.yaml` and `default.yaml`.
+- [x] Unit tests (`tests/validating/route_hostnames_test.yaml`, probe `rules_test`).
+- [x] e2e: Gateway API CRDs installed in the cluster (`GATEWAY_API_VERSION`); allow and deny
+      routes in the catalog scenario (`test/e2e/fixtures/routes/`).
+- [x] e2e: green.
+- [x] 0.2.0 released, and the item removed from `boundary`'s "Changes needed in other repos".
 
 ---
 

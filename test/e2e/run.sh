@@ -9,6 +9,7 @@
 # Environment:
 #   K3D, KUBECTL, HELM    tool binaries (default: from PATH)
 #   K3S_IMAGE             pinned k3s image (set by the Makefile)
+#   GATEWAY_API_VERSION   pinned Gateway API release whose CRDs are installed (set by the Makefile)
 #   E2E_CLUSTER           cluster name (default policy-e2e)
 #   E2E_KEEP=1            keep the cluster afterwards (and stop at the first failing scenario)
 #   E2E_REUSE=1           use an existing cluster of that name (skips setup)
@@ -21,7 +22,8 @@ K3D=${K3D:-k3d}
 KUBECTL=${KUBECTL:-kubectl}
 HELM=${HELM:-helm}
 : "${K3S_IMAGE:?set K3S_IMAGE (make e2e sets it)}"
-export HERE ROOT CLUSTER K3D KUBECTL HELM
+: "${GATEWAY_API_VERSION:?set GATEWAY_API_VERSION (make e2e sets it)}"
+export HERE ROOT CLUSTER K3D KUBECTL HELM GATEWAY_API_VERSION
 
 # shellcheck source=test/e2e/lib.sh
 source "$HERE/lib.sh"
@@ -42,6 +44,8 @@ else
   delete_cluster
   create_cluster
 fi
+# The Gateway API CRDs, for restrict-route-hostnames (idempotent, so a reused cluster gets them too).
+install_gateway_api
 # kube-system is never evaluated, but the ServiceAccount admission plugin still looks up the
 # fixtures' service account there.
 fixture_service_account kube-system

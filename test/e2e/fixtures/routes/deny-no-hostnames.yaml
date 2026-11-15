@@ -1,0 +1,13 @@
+# restrict-route-hostnames, checked in apps with domains example.mil and svc.example.org
+# (test/e2e/scenarios/catalog.sh). The parent Gateway needn't exist: admission doesn't look.
+# Deny: no hostnames claims every hostname on the listener.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: no-hostnames
+spec:
+  parentRefs:
+    - { name: e2e-gateway, namespace: gateway }
+  rules:
+    - backendRefs:
+        - { name: web, port: 8080 }

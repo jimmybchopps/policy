@@ -48,7 +48,7 @@ authoritative mapping; confirm them with your ISSM before citing them.
 | [`restrict-sysctls`](#restrict-sysctls) | Pods set only the Pod Security Standards' safe sysctls. | baseline | CM-7, SC-39 |
 | [`restrict-volume-types`](#restrict-volume-types) | Volumes are only of the Pod Security restricted types. | restricted | CM-7 |
 
-## Optional policies (20)
+## Optional policies (21)
 
 | Policy | Default | Applies to | Rule | NIST |
 |---|---|---|---|---|
@@ -71,6 +71,7 @@ authoritative mapping; confirm them with your ISSM before citing them.
 | [`restrict-cluster-admin-binding`](#restrict-cluster-admin-binding) | on, inherit | rbac | Only the subjects listed are bound to cluster-admin. | AC-2, AC-6 |
 | [`restrict-externalname-services`](#restrict-externalname-services) | on, inherit | services | Services are not of type ExternalName. | SC-7 |
 | [`restrict-loadbalancer-services`](#restrict-loadbalancer-services) | on, inherit | services | Services of type LoadBalancer only in the namespaces listed. | SC-7 |
+| [`restrict-route-hostnames`](#restrict-route-hostnames) | off | httproutes, grpcroutes, tlsroutes (CREATE, UPDATE) | Gateway API routes claim only hostnames under their own namespace in an allowed domain, and always name at least one. | SC-7, AC-4 |
 | [`restrict-wildcard-rbac`](#restrict-wildcard-rbac) | on, inherit | rbac | Roles and ClusterRoles don't grant "*" verbs, resources, or API groups. | AC-6 |
 
 ## Mutations (3)
@@ -607,6 +608,28 @@ Services of type LoadBalancer only in the namespaces listed.
 **What it checks:**
 
 - spec.type must not be LoadBalancer in this namespace; only the namespaces in policies.restrict-loadbalancer-services.namespaces get an external address. If this Service needs one, add a posture exception for restrict-loadbalancer-services.
+
+### restrict-route-hostnames
+
+Gateway API routes claim only hostnames under their own namespace in an allowed domain, and always name at least one.
+
+- **Tier:** optional (off)
+- **Since:** 0.2 (audits by default while the chart is 0.2.x)
+- **Applies to:** httproutes, grpcroutes, tlsroutes (CREATE, UPDATE)
+- **Exceptions:** none; the settings below are the allowlist
+- **Pod Security Standard:** —
+- **NIST SP 800-53:** SC-7, AC-4
+
+**Settings** (under `policies.restrict-route-hostnames`):
+
+| Setting | Type | Default | Description |
+|---|---|---|---|
+| `domains` | list, required | `[]` | the domains routes may use; a route in namespace <ns> may claim <ns>.<domain> and names under it, e.g. apps.site.mil |
+
+**What it checks:**
+
+- spec.hostnames must list at least one hostname; a route without hostnames claims every hostname on its listener. Use <namespace>.<domain>, or a name under it, for a domain in policies.restrict-route-hostnames.domains.
+- spec.hostnames must each be <namespace>.<domain> or end in .<namespace>.<domain> (wildcards included), for a domain in policies.restrict-route-hostnames.domains. A hostname under another namespace or a bare domain may not be claimed.
 
 ### restrict-wildcard-rbac
 

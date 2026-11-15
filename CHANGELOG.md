@@ -7,6 +7,15 @@ optional policies audit for their first minor instead (CLAUDE.md, "New policies 
 audit"). A version's section stays marked `(unreleased)` until the release commit; the release
 workflow refuses a tag whose section still is.
 
+## 0.2.0
+
+- New optional policy `restrict-route-hostnames`: Gateway API HTTPRoutes, GRPCRoutes, and
+  TLSRoutes may claim only `<namespace>.<domain>` and names under it (wildcards included), for
+  a domain in `policies.restrict-route-hostnames.domains`, and must name at least one
+  hostname. Off by default; turning it on requires `domains`. New in 0.2, so it audits
+  through 0.2 unless you set its `action`, and enforces (by default, once on) from 0.3.
+- A setting a policy marks required is now required only while that policy is enabled.
+
 ## 0.1.0
 
 First release.

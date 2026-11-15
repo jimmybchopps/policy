@@ -9,7 +9,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: policyexceptions.policy.posture.dev
     spec:
       group: policy.posture.dev
@@ -945,7 +945,7 @@ default:
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
         grafana_dashboard: "1"
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: policy-dashboard
       namespace: NAMESPACE
   3: |
@@ -959,7 +959,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: add-default-security-context
     spec:
       failurePolicy: Fail
@@ -1068,7 +1068,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: add-default-security-context
     spec:
       matchResources:
@@ -1103,7 +1103,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-automount-service-account-token
     spec:
       failurePolicy: Fail
@@ -1172,7 +1172,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-automount-service-account-token
     spec:
       matchResources:
@@ -1210,7 +1210,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-automount-service-account-token-controllers
     spec:
       matchResources:
@@ -1261,7 +1261,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-default-namespace
     spec:
       failurePolicy: Fail
@@ -1330,7 +1330,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-default-namespace
     spec:
       matchResources:
@@ -1369,7 +1369,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-default-namespace-controllers
     spec:
       matchResources:
@@ -1420,7 +1420,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-default-service-account
     spec:
       failurePolicy: Fail
@@ -1489,7 +1489,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-default-service-account
     spec:
       matchResources:
@@ -1527,7 +1527,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-default-service-account-controllers
     spec:
       matchResources:
@@ -1579,7 +1579,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-host-namespaces
     spec:
       failurePolicy: Fail
@@ -1652,7 +1652,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-host-namespaces
     spec:
       matchResources:
@@ -1691,7 +1691,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-host-namespaces-controllers
     spec:
       matchResources:
@@ -1743,7 +1743,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-host-path
     spec:
       failurePolicy: Fail
@@ -1812,7 +1812,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-host-path
     spec:
       matchResources:
@@ -1851,7 +1851,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-host-path-controllers
     spec:
       matchResources:
@@ -1903,7 +1903,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-host-ports
     spec:
       failurePolicy: Fail
@@ -1974,7 +1974,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-host-ports
     spec:
       matchResources:
@@ -2013,7 +2013,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-host-ports-controllers
     spec:
       matchResources:
@@ -2064,7 +2064,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-latest-tag
     spec:
       failurePolicy: Fail
@@ -2135,7 +2135,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-latest-tag
     spec:
       matchResources:
@@ -2174,7 +2174,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-latest-tag-controllers
     spec:
       matchResources:
@@ -2225,7 +2225,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-mesh-opt-out
     spec:
       failurePolicy: Fail
@@ -2301,7 +2301,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-mesh-opt-out
     spec:
       matchResources:
@@ -2340,7 +2340,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-mesh-opt-out-controllers
     spec:
       matchResources:
@@ -2391,7 +2391,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-nodeport-services
     spec:
       failurePolicy: Fail
@@ -2428,7 +2428,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-nodeport-services
     spec:
       matchResources:
@@ -2468,7 +2468,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-privilege-escalation
     spec:
       failurePolicy: Fail
@@ -2540,7 +2540,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-privilege-escalation
     spec:
       matchResources:
@@ -2579,7 +2579,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-privilege-escalation-controllers
     spec:
       matchResources:
@@ -2631,7 +2631,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-privileged-containers
     spec:
       failurePolicy: Fail
@@ -2712,7 +2712,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-privileged-containers
     spec:
       matchResources:
@@ -2751,7 +2751,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-privileged-containers-controllers
     spec:
       matchResources:
@@ -2802,7 +2802,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-rbac-escalation-verbs
     spec:
       failurePolicy: Fail
@@ -2846,7 +2846,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-rbac-escalation-verbs
     spec:
       matchResources:
@@ -2885,7 +2885,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-secrets-in-env
     spec:
       failurePolicy: Fail
@@ -2957,7 +2957,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-secrets-in-env
     spec:
       matchResources:
@@ -2995,7 +2995,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-secrets-in-env-controllers
     spec:
       matchResources:
@@ -3046,7 +3046,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-shared-process-namespace
     spec:
       failurePolicy: Fail
@@ -3115,7 +3115,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-shared-process-namespace
     spec:
       matchResources:
@@ -3153,7 +3153,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-shared-process-namespace-controllers
     spec:
       matchResources:
@@ -3205,7 +3205,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-drop-all-capabilities
     spec:
       failurePolicy: Fail
@@ -3284,7 +3284,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-drop-all-capabilities
     spec:
       matchResources:
@@ -3323,7 +3323,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-drop-all-capabilities-controllers
     spec:
       matchResources:
@@ -3374,7 +3374,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-image-digest
     spec:
       failurePolicy: Fail
@@ -3443,7 +3443,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-image-digest
     spec:
       matchResources:
@@ -3482,7 +3482,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-image-digest-controllers
     spec:
       matchResources:
@@ -3532,7 +3532,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-probes
     spec:
       failurePolicy: Fail
@@ -3611,7 +3611,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-probes
     spec:
       matchResources:
@@ -3649,7 +3649,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-probes-controllers
     spec:
       matchResources:
@@ -3700,7 +3700,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-read-only-root-filesystem
     spec:
       failurePolicy: Fail
@@ -3772,7 +3772,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-read-only-root-filesystem
     spec:
       matchResources:
@@ -3811,7 +3811,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-read-only-root-filesystem-controllers
     spec:
       matchResources:
@@ -3862,7 +3862,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-resource-limits
     spec:
       failurePolicy: Fail
@@ -3943,7 +3943,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-resource-limits
     spec:
       matchResources:
@@ -3982,7 +3982,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-resource-limits-controllers
     spec:
       matchResources:
@@ -4034,7 +4034,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-run-as-non-root
     spec:
       failurePolicy: Fail
@@ -4117,7 +4117,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-run-as-non-root
     spec:
       matchResources:
@@ -4156,7 +4156,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-run-as-non-root-controllers
     spec:
       matchResources:
@@ -4207,7 +4207,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-standard-labels
     spec:
       failurePolicy: Fail
@@ -4276,7 +4276,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-standard-labels
     spec:
       matchResources:
@@ -4315,7 +4315,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-standard-labels-controllers
     spec:
       matchResources:
@@ -4367,7 +4367,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-apparmor
     spec:
       failurePolicy: Fail
@@ -4448,7 +4448,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-apparmor
     spec:
       matchResources:
@@ -4487,7 +4487,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-apparmor-controllers
     spec:
       matchResources:
@@ -4538,7 +4538,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-cluster-admin-binding
     spec:
       failurePolicy: Fail
@@ -4585,7 +4585,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-cluster-admin-binding
     spec:
       matchResources:
@@ -4624,7 +4624,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-external-ips
     spec:
       failurePolicy: Fail
@@ -4661,7 +4661,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-external-ips
     spec:
       matchResources:
@@ -4700,7 +4700,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-externalname-services
     spec:
       failurePolicy: Fail
@@ -4737,7 +4737,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-externalname-services
     spec:
       matchResources:
@@ -4776,7 +4776,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-image-registries
     spec:
       failurePolicy: Fail
@@ -4849,7 +4849,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-image-registries
     spec:
       matchResources:
@@ -4888,7 +4888,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-image-registries-controllers
     spec:
       matchResources:
@@ -4939,7 +4939,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-loadbalancer-services
     spec:
       failurePolicy: Fail
@@ -4978,7 +4978,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-loadbalancer-services
     spec:
       matchResources:
@@ -5018,7 +5018,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-proc-mount
     spec:
       failurePolicy: Fail
@@ -5090,7 +5090,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-proc-mount
     spec:
       matchResources:
@@ -5129,7 +5129,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-proc-mount-controllers
     spec:
       matchResources:
@@ -5181,7 +5181,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-seccomp
     spec:
       failurePolicy: Fail
@@ -5256,7 +5256,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-seccomp
     spec:
       matchResources:
@@ -5295,7 +5295,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-seccomp-controllers
     spec:
       matchResources:
@@ -5347,7 +5347,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-selinux
     spec:
       failurePolicy: Fail
@@ -5430,7 +5430,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-selinux
     spec:
       matchResources:
@@ -5469,7 +5469,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-selinux-controllers
     spec:
       matchResources:
@@ -5521,7 +5521,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-sysctls
     spec:
       failurePolicy: Fail
@@ -5603,7 +5603,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-sysctls
     spec:
       matchResources:
@@ -5642,7 +5642,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-sysctls-controllers
     spec:
       matchResources:
@@ -5694,7 +5694,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-volume-types
     spec:
       failurePolicy: Fail
@@ -5766,7 +5766,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-volume-types
     spec:
       matchResources:
@@ -5805,7 +5805,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-volume-types-controllers
     spec:
       matchResources:
@@ -5856,7 +5856,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-wildcard-rbac
     spec:
       failurePolicy: Fail
@@ -5902,7 +5902,7 @@ default:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-wildcard-rbac
     spec:
       matchResources:
@@ -5940,7 +5940,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: policyexceptions.policy.posture.dev
     spec:
       group: policy.posture.dev
@@ -6034,7 +6034,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-automount-service-account-token
     spec:
       failurePolicy: Fail
@@ -6103,7 +6103,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-automount-service-account-token
     spec:
       matchResources:
@@ -6141,7 +6141,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-automount-service-account-token-controllers
     spec:
       matchResources:
@@ -6192,7 +6192,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-default-namespace
     spec:
       failurePolicy: Fail
@@ -6261,7 +6261,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-default-namespace
     spec:
       matchResources:
@@ -6300,7 +6300,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-default-namespace-controllers
     spec:
       matchResources:
@@ -6351,7 +6351,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-default-service-account
     spec:
       failurePolicy: Fail
@@ -6420,7 +6420,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-default-service-account
     spec:
       matchResources:
@@ -6458,7 +6458,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-default-service-account-controllers
     spec:
       matchResources:
@@ -6510,7 +6510,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-host-namespaces
     spec:
       failurePolicy: Fail
@@ -6583,7 +6583,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-host-namespaces
     spec:
       matchResources:
@@ -6622,7 +6622,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-host-namespaces-controllers
     spec:
       matchResources:
@@ -6674,7 +6674,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-host-path
     spec:
       failurePolicy: Fail
@@ -6743,7 +6743,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-host-path
     spec:
       matchResources:
@@ -6782,7 +6782,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-host-path-controllers
     spec:
       matchResources:
@@ -6834,7 +6834,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-host-ports
     spec:
       failurePolicy: Fail
@@ -6905,7 +6905,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-host-ports
     spec:
       matchResources:
@@ -6944,7 +6944,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-host-ports-controllers
     spec:
       matchResources:
@@ -6995,7 +6995,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-latest-tag
     spec:
       failurePolicy: Fail
@@ -7066,7 +7066,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-latest-tag
     spec:
       matchResources:
@@ -7105,7 +7105,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-latest-tag-controllers
     spec:
       matchResources:
@@ -7156,7 +7156,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-mesh-opt-out
     spec:
       failurePolicy: Fail
@@ -7232,7 +7232,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-mesh-opt-out
     spec:
       matchResources:
@@ -7271,7 +7271,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-mesh-opt-out-controllers
     spec:
       matchResources:
@@ -7322,7 +7322,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-nodeport-services
     spec:
       failurePolicy: Fail
@@ -7359,7 +7359,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-nodeport-services
     spec:
       matchResources:
@@ -7399,7 +7399,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-privilege-escalation
     spec:
       failurePolicy: Fail
@@ -7471,7 +7471,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-privilege-escalation
     spec:
       matchResources:
@@ -7510,7 +7510,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-privilege-escalation-controllers
     spec:
       matchResources:
@@ -7562,7 +7562,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-privileged-containers
     spec:
       failurePolicy: Fail
@@ -7643,7 +7643,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-privileged-containers
     spec:
       matchResources:
@@ -7682,7 +7682,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-privileged-containers-controllers
     spec:
       matchResources:
@@ -7733,7 +7733,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-rbac-escalation-verbs
     spec:
       failurePolicy: Fail
@@ -7777,7 +7777,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-rbac-escalation-verbs
     spec:
       matchResources:
@@ -7816,7 +7816,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-secrets-in-env
     spec:
       failurePolicy: Fail
@@ -7888,7 +7888,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-secrets-in-env
     spec:
       matchResources:
@@ -7926,7 +7926,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-secrets-in-env-controllers
     spec:
       matchResources:
@@ -7977,7 +7977,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-shared-process-namespace
     spec:
       failurePolicy: Fail
@@ -8046,7 +8046,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-shared-process-namespace
     spec:
       matchResources:
@@ -8084,7 +8084,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-shared-process-namespace-controllers
     spec:
       matchResources:
@@ -8136,7 +8136,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-drop-all-capabilities
     spec:
       failurePolicy: Fail
@@ -8215,7 +8215,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-drop-all-capabilities
     spec:
       matchResources:
@@ -8254,7 +8254,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-drop-all-capabilities-controllers
     spec:
       matchResources:
@@ -8305,7 +8305,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-image-digest
     spec:
       failurePolicy: Fail
@@ -8374,7 +8374,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-image-digest
     spec:
       matchResources:
@@ -8413,7 +8413,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-image-digest-controllers
     spec:
       matchResources:
@@ -8463,7 +8463,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-probes
     spec:
       failurePolicy: Fail
@@ -8542,7 +8542,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-probes
     spec:
       matchResources:
@@ -8580,7 +8580,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-probes-controllers
     spec:
       matchResources:
@@ -8631,7 +8631,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-read-only-root-filesystem
     spec:
       failurePolicy: Fail
@@ -8703,7 +8703,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-read-only-root-filesystem
     spec:
       matchResources:
@@ -8742,7 +8742,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-read-only-root-filesystem-controllers
     spec:
       matchResources:
@@ -8793,7 +8793,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-resource-limits
     spec:
       failurePolicy: Fail
@@ -8874,7 +8874,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-resource-limits
     spec:
       matchResources:
@@ -8913,7 +8913,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-resource-limits-controllers
     spec:
       matchResources:
@@ -8965,7 +8965,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-run-as-non-root
     spec:
       failurePolicy: Fail
@@ -9048,7 +9048,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-run-as-non-root
     spec:
       matchResources:
@@ -9087,7 +9087,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-run-as-non-root-controllers
     spec:
       matchResources:
@@ -9138,7 +9138,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-standard-labels
     spec:
       failurePolicy: Fail
@@ -9207,7 +9207,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-standard-labels
     spec:
       matchResources:
@@ -9246,7 +9246,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-standard-labels-controllers
     spec:
       matchResources:
@@ -9298,7 +9298,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-apparmor
     spec:
       failurePolicy: Fail
@@ -9379,7 +9379,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-apparmor
     spec:
       matchResources:
@@ -9418,7 +9418,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-apparmor-controllers
     spec:
       matchResources:
@@ -9469,7 +9469,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-cluster-admin-binding
     spec:
       failurePolicy: Fail
@@ -9516,7 +9516,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-cluster-admin-binding
     spec:
       matchResources:
@@ -9555,7 +9555,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-external-ips
     spec:
       failurePolicy: Fail
@@ -9592,7 +9592,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-external-ips
     spec:
       matchResources:
@@ -9631,7 +9631,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-externalname-services
     spec:
       failurePolicy: Fail
@@ -9668,7 +9668,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-externalname-services
     spec:
       matchResources:
@@ -9707,7 +9707,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-image-registries
     spec:
       failurePolicy: Fail
@@ -9780,7 +9780,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-image-registries
     spec:
       matchResources:
@@ -9819,7 +9819,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-image-registries-controllers
     spec:
       matchResources:
@@ -9870,7 +9870,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-loadbalancer-services
     spec:
       failurePolicy: Fail
@@ -9909,7 +9909,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-loadbalancer-services
     spec:
       matchResources:
@@ -9949,7 +9949,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-proc-mount
     spec:
       failurePolicy: Fail
@@ -10021,7 +10021,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-proc-mount
     spec:
       matchResources:
@@ -10060,7 +10060,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-proc-mount-controllers
     spec:
       matchResources:
@@ -10112,7 +10112,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-seccomp
     spec:
       failurePolicy: Fail
@@ -10187,7 +10187,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-seccomp
     spec:
       matchResources:
@@ -10226,7 +10226,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-seccomp-controllers
     spec:
       matchResources:
@@ -10278,7 +10278,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-selinux
     spec:
       failurePolicy: Fail
@@ -10361,7 +10361,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-selinux
     spec:
       matchResources:
@@ -10400,7 +10400,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-selinux-controllers
     spec:
       matchResources:
@@ -10452,7 +10452,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-sysctls
     spec:
       failurePolicy: Fail
@@ -10534,7 +10534,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-sysctls
     spec:
       matchResources:
@@ -10573,7 +10573,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-sysctls-controllers
     spec:
       matchResources:
@@ -10625,7 +10625,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-volume-types
     spec:
       failurePolicy: Fail
@@ -10697,7 +10697,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-volume-types
     spec:
       matchResources:
@@ -10736,7 +10736,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-volume-types-controllers
     spec:
       matchResources:
@@ -10787,7 +10787,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-wildcard-rbac
     spec:
       failurePolicy: Fail
@@ -10833,7 +10833,7 @@ minimal:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-wildcard-rbac
     spec:
       matchResources:
@@ -10871,7 +10871,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: policyexceptions.policy.posture.dev
     spec:
       group: policy.posture.dev
@@ -10964,7 +10964,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: add-default-resources
     spec:
       failurePolicy: Fail
@@ -11087,7 +11087,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: add-default-resources
     spec:
       matchResources:
@@ -11121,7 +11121,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: add-default-security-context
     spec:
       failurePolicy: Fail
@@ -11230,7 +11230,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: add-default-security-context
     spec:
       matchResources:
@@ -11264,7 +11264,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disable-service-account-token-automount
     spec:
       failurePolicy: Fail
@@ -11326,7 +11326,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disable-service-account-token-automount
     spec:
       matchResources:
@@ -11361,7 +11361,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-automount-service-account-token
     spec:
       failurePolicy: Fail
@@ -11430,7 +11430,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-automount-service-account-token
     spec:
       matchResources:
@@ -11468,7 +11468,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-automount-service-account-token-controllers
     spec:
       matchResources:
@@ -11519,7 +11519,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-default-namespace
     spec:
       failurePolicy: Fail
@@ -11588,7 +11588,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-default-namespace
     spec:
       matchResources:
@@ -11627,7 +11627,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-default-namespace-controllers
     spec:
       matchResources:
@@ -11678,7 +11678,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-default-service-account
     spec:
       failurePolicy: Fail
@@ -11747,7 +11747,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-default-service-account
     spec:
       matchResources:
@@ -11785,7 +11785,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-default-service-account-controllers
     spec:
       matchResources:
@@ -11837,7 +11837,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-host-namespaces
     spec:
       failurePolicy: Fail
@@ -11910,7 +11910,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-host-namespaces
     spec:
       matchResources:
@@ -11949,7 +11949,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-host-namespaces-controllers
     spec:
       matchResources:
@@ -12001,7 +12001,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-host-path
     spec:
       failurePolicy: Fail
@@ -12070,7 +12070,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-host-path
     spec:
       matchResources:
@@ -12109,7 +12109,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-host-path-controllers
     spec:
       matchResources:
@@ -12161,7 +12161,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-host-ports
     spec:
       failurePolicy: Fail
@@ -12232,7 +12232,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-host-ports
     spec:
       matchResources:
@@ -12271,7 +12271,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-host-ports-controllers
     spec:
       matchResources:
@@ -12322,7 +12322,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-latest-tag
     spec:
       failurePolicy: Fail
@@ -12393,7 +12393,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-latest-tag
     spec:
       matchResources:
@@ -12432,7 +12432,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-latest-tag-controllers
     spec:
       matchResources:
@@ -12483,7 +12483,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-mesh-opt-out
     spec:
       failurePolicy: Fail
@@ -12559,7 +12559,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-mesh-opt-out
     spec:
       matchResources:
@@ -12598,7 +12598,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-mesh-opt-out-controllers
     spec:
       matchResources:
@@ -12649,7 +12649,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-nodeport-services
     spec:
       failurePolicy: Fail
@@ -12686,7 +12686,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-nodeport-services
     spec:
       matchResources:
@@ -12726,7 +12726,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-privilege-escalation
     spec:
       failurePolicy: Fail
@@ -12798,7 +12798,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-privilege-escalation
     spec:
       matchResources:
@@ -12837,7 +12837,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-privilege-escalation-controllers
     spec:
       matchResources:
@@ -12889,7 +12889,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-privileged-containers
     spec:
       failurePolicy: Fail
@@ -12970,7 +12970,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-privileged-containers
     spec:
       matchResources:
@@ -13009,7 +13009,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-privileged-containers-controllers
     spec:
       matchResources:
@@ -13060,7 +13060,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-rbac-escalation-verbs
     spec:
       failurePolicy: Fail
@@ -13104,7 +13104,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-rbac-escalation-verbs
     spec:
       matchResources:
@@ -13143,7 +13143,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-secrets-in-env
     spec:
       failurePolicy: Fail
@@ -13215,7 +13215,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-secrets-in-env
     spec:
       matchResources:
@@ -13253,7 +13253,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-secrets-in-env-controllers
     spec:
       matchResources:
@@ -13304,7 +13304,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-shared-process-namespace
     spec:
       failurePolicy: Fail
@@ -13373,7 +13373,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-shared-process-namespace
     spec:
       matchResources:
@@ -13411,7 +13411,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-shared-process-namespace-controllers
     spec:
       matchResources:
@@ -13463,7 +13463,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-drop-all-capabilities
     spec:
       failurePolicy: Fail
@@ -13542,7 +13542,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-drop-all-capabilities
     spec:
       matchResources:
@@ -13581,7 +13581,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-drop-all-capabilities-controllers
     spec:
       matchResources:
@@ -13632,7 +13632,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-image-digest
     spec:
       failurePolicy: Fail
@@ -13701,7 +13701,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-image-digest
     spec:
       matchResources:
@@ -13740,7 +13740,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-image-digest-controllers
     spec:
       matchResources:
@@ -13790,7 +13790,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-probes
     spec:
       failurePolicy: Fail
@@ -13869,7 +13869,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-probes
     spec:
       matchResources:
@@ -13907,7 +13907,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-probes-controllers
     spec:
       matchResources:
@@ -13958,7 +13958,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-read-only-root-filesystem
     spec:
       failurePolicy: Fail
@@ -14030,7 +14030,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-read-only-root-filesystem
     spec:
       matchResources:
@@ -14069,7 +14069,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-read-only-root-filesystem-controllers
     spec:
       matchResources:
@@ -14120,7 +14120,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-resource-limits
     spec:
       failurePolicy: Fail
@@ -14201,7 +14201,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-resource-limits
     spec:
       matchResources:
@@ -14240,7 +14240,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-resource-limits-controllers
     spec:
       matchResources:
@@ -14292,7 +14292,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-run-as-non-root
     spec:
       failurePolicy: Fail
@@ -14375,7 +14375,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-run-as-non-root
     spec:
       matchResources:
@@ -14414,7 +14414,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-run-as-non-root-controllers
     spec:
       matchResources:
@@ -14465,7 +14465,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-standard-labels
     spec:
       failurePolicy: Fail
@@ -14534,7 +14534,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-standard-labels
     spec:
       matchResources:
@@ -14573,7 +14573,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-standard-labels-controllers
     spec:
       matchResources:
@@ -14625,7 +14625,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-apparmor
     spec:
       failurePolicy: Fail
@@ -14706,7 +14706,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-apparmor
     spec:
       matchResources:
@@ -14745,7 +14745,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-apparmor-controllers
     spec:
       matchResources:
@@ -14796,7 +14796,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-cluster-admin-binding
     spec:
       failurePolicy: Fail
@@ -14843,7 +14843,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-cluster-admin-binding
     spec:
       matchResources:
@@ -14882,7 +14882,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-external-ips
     spec:
       failurePolicy: Fail
@@ -14919,7 +14919,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-external-ips
     spec:
       matchResources:
@@ -14958,7 +14958,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-externalname-services
     spec:
       failurePolicy: Fail
@@ -14995,7 +14995,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-externalname-services
     spec:
       matchResources:
@@ -15034,7 +15034,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-image-registries
     spec:
       failurePolicy: Fail
@@ -15107,7 +15107,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-image-registries
     spec:
       matchResources:
@@ -15146,7 +15146,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-image-registries-controllers
     spec:
       matchResources:
@@ -15197,7 +15197,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-loadbalancer-services
     spec:
       failurePolicy: Fail
@@ -15236,7 +15236,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-loadbalancer-services
     spec:
       matchResources:
@@ -15276,7 +15276,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-proc-mount
     spec:
       failurePolicy: Fail
@@ -15348,7 +15348,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-proc-mount
     spec:
       matchResources:
@@ -15387,7 +15387,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-proc-mount-controllers
     spec:
       matchResources:
@@ -15439,7 +15439,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-seccomp
     spec:
       failurePolicy: Fail
@@ -15514,7 +15514,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-seccomp
     spec:
       matchResources:
@@ -15553,7 +15553,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-seccomp-controllers
     spec:
       matchResources:
@@ -15605,7 +15605,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-selinux
     spec:
       failurePolicy: Fail
@@ -15688,7 +15688,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-selinux
     spec:
       matchResources:
@@ -15727,7 +15727,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-selinux-controllers
     spec:
       matchResources:
@@ -15779,7 +15779,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-sysctls
     spec:
       failurePolicy: Fail
@@ -15861,7 +15861,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-sysctls
     spec:
       matchResources:
@@ -15900,7 +15900,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-sysctls-controllers
     spec:
       matchResources:
@@ -15952,7 +15952,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-volume-types
     spec:
       failurePolicy: Fail
@@ -16024,7 +16024,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-volume-types
     spec:
       matchResources:
@@ -16063,7 +16063,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-volume-types-controllers
     spec:
       matchResources:
@@ -16114,7 +16114,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-wildcard-rbac
     spec:
       failurePolicy: Fail
@@ -16160,7 +16160,7 @@ mutations:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-wildcard-rbac
     spec:
       matchResources:
@@ -16198,7 +16198,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: policyexceptions.policy.posture.dev
     spec:
       group: policy.posture.dev
@@ -17134,7 +17134,7 @@ reporting:
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
         grafana_dashboard: "1"
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: policy-dashboard
       namespace: NAMESPACE
   3: |
@@ -17149,7 +17149,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-automount-service-account-token
     spec:
       failurePolicy: Fail
@@ -17218,7 +17218,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-automount-service-account-token
     spec:
       matchResources:
@@ -17256,7 +17256,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-automount-service-account-token-controllers
     spec:
       matchResources:
@@ -17307,7 +17307,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-default-namespace
     spec:
       failurePolicy: Fail
@@ -17376,7 +17376,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-default-namespace
     spec:
       matchResources:
@@ -17415,7 +17415,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-default-namespace-controllers
     spec:
       matchResources:
@@ -17466,7 +17466,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-default-service-account
     spec:
       failurePolicy: Fail
@@ -17535,7 +17535,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-default-service-account
     spec:
       matchResources:
@@ -17573,7 +17573,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-default-service-account-controllers
     spec:
       matchResources:
@@ -17625,7 +17625,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-host-namespaces
     spec:
       failurePolicy: Fail
@@ -17698,7 +17698,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-host-namespaces
     spec:
       matchResources:
@@ -17737,7 +17737,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-host-namespaces-controllers
     spec:
       matchResources:
@@ -17789,7 +17789,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-host-path
     spec:
       failurePolicy: Fail
@@ -17858,7 +17858,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-host-path
     spec:
       matchResources:
@@ -17897,7 +17897,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-host-path-controllers
     spec:
       matchResources:
@@ -17949,7 +17949,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-host-ports
     spec:
       failurePolicy: Fail
@@ -18020,7 +18020,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-host-ports
     spec:
       matchResources:
@@ -18059,7 +18059,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-host-ports-controllers
     spec:
       matchResources:
@@ -18110,7 +18110,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-latest-tag
     spec:
       failurePolicy: Fail
@@ -18181,7 +18181,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-latest-tag
     spec:
       matchResources:
@@ -18220,7 +18220,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-latest-tag-controllers
     spec:
       matchResources:
@@ -18271,7 +18271,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-mesh-opt-out
     spec:
       failurePolicy: Fail
@@ -18347,7 +18347,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-mesh-opt-out
     spec:
       matchResources:
@@ -18386,7 +18386,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-mesh-opt-out-controllers
     spec:
       matchResources:
@@ -18437,7 +18437,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-nodeport-services
     spec:
       failurePolicy: Fail
@@ -18474,7 +18474,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-nodeport-services
     spec:
       matchResources:
@@ -18514,7 +18514,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-privilege-escalation
     spec:
       failurePolicy: Fail
@@ -18586,7 +18586,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-privilege-escalation
     spec:
       matchResources:
@@ -18625,7 +18625,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-privilege-escalation-controllers
     spec:
       matchResources:
@@ -18677,7 +18677,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-privileged-containers
     spec:
       failurePolicy: Fail
@@ -18758,7 +18758,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-privileged-containers
     spec:
       matchResources:
@@ -18797,7 +18797,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-privileged-containers-controllers
     spec:
       matchResources:
@@ -18848,7 +18848,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-rbac-escalation-verbs
     spec:
       failurePolicy: Fail
@@ -18892,7 +18892,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-rbac-escalation-verbs
     spec:
       matchResources:
@@ -18931,7 +18931,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-secrets-in-env
     spec:
       failurePolicy: Fail
@@ -19003,7 +19003,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-secrets-in-env
     spec:
       matchResources:
@@ -19041,7 +19041,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-secrets-in-env-controllers
     spec:
       matchResources:
@@ -19092,7 +19092,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-shared-process-namespace
     spec:
       failurePolicy: Fail
@@ -19161,7 +19161,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-shared-process-namespace
     spec:
       matchResources:
@@ -19199,7 +19199,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-shared-process-namespace-controllers
     spec:
       matchResources:
@@ -19251,7 +19251,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-drop-all-capabilities
     spec:
       failurePolicy: Fail
@@ -19330,7 +19330,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-drop-all-capabilities
     spec:
       matchResources:
@@ -19369,7 +19369,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-drop-all-capabilities-controllers
     spec:
       matchResources:
@@ -19420,7 +19420,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-image-digest
     spec:
       failurePolicy: Fail
@@ -19489,7 +19489,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-image-digest
     spec:
       matchResources:
@@ -19528,7 +19528,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-image-digest-controllers
     spec:
       matchResources:
@@ -19578,7 +19578,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-probes
     spec:
       failurePolicy: Fail
@@ -19657,7 +19657,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-probes
     spec:
       matchResources:
@@ -19695,7 +19695,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-probes-controllers
     spec:
       matchResources:
@@ -19746,7 +19746,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-read-only-root-filesystem
     spec:
       failurePolicy: Fail
@@ -19818,7 +19818,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-read-only-root-filesystem
     spec:
       matchResources:
@@ -19857,7 +19857,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-read-only-root-filesystem-controllers
     spec:
       matchResources:
@@ -19908,7 +19908,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-resource-limits
     spec:
       failurePolicy: Fail
@@ -19989,7 +19989,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-resource-limits
     spec:
       matchResources:
@@ -20028,7 +20028,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-resource-limits-controllers
     spec:
       matchResources:
@@ -20080,7 +20080,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-run-as-non-root
     spec:
       failurePolicy: Fail
@@ -20163,7 +20163,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-run-as-non-root
     spec:
       matchResources:
@@ -20202,7 +20202,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-run-as-non-root-controllers
     spec:
       matchResources:
@@ -20253,7 +20253,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-standard-labels
     spec:
       failurePolicy: Fail
@@ -20322,7 +20322,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-standard-labels
     spec:
       matchResources:
@@ -20361,7 +20361,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-standard-labels-controllers
     spec:
       matchResources:
@@ -20413,7 +20413,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-apparmor
     spec:
       failurePolicy: Fail
@@ -20494,7 +20494,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-apparmor
     spec:
       matchResources:
@@ -20533,7 +20533,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-apparmor-controllers
     spec:
       matchResources:
@@ -20584,7 +20584,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-cluster-admin-binding
     spec:
       failurePolicy: Fail
@@ -20631,7 +20631,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-cluster-admin-binding
     spec:
       matchResources:
@@ -20670,7 +20670,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-external-ips
     spec:
       failurePolicy: Fail
@@ -20707,7 +20707,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-external-ips
     spec:
       matchResources:
@@ -20746,7 +20746,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-externalname-services
     spec:
       failurePolicy: Fail
@@ -20783,7 +20783,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-externalname-services
     spec:
       matchResources:
@@ -20822,7 +20822,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-image-registries
     spec:
       failurePolicy: Fail
@@ -20895,7 +20895,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-image-registries
     spec:
       matchResources:
@@ -20934,7 +20934,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-image-registries-controllers
     spec:
       matchResources:
@@ -20985,7 +20985,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-loadbalancer-services
     spec:
       failurePolicy: Fail
@@ -21024,7 +21024,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-loadbalancer-services
     spec:
       matchResources:
@@ -21064,7 +21064,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-proc-mount
     spec:
       failurePolicy: Fail
@@ -21136,7 +21136,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-proc-mount
     spec:
       matchResources:
@@ -21175,7 +21175,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-proc-mount-controllers
     spec:
       matchResources:
@@ -21227,7 +21227,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-seccomp
     spec:
       failurePolicy: Fail
@@ -21302,7 +21302,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-seccomp
     spec:
       matchResources:
@@ -21341,7 +21341,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-seccomp-controllers
     spec:
       matchResources:
@@ -21393,7 +21393,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-selinux
     spec:
       failurePolicy: Fail
@@ -21476,7 +21476,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-selinux
     spec:
       matchResources:
@@ -21515,7 +21515,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-selinux-controllers
     spec:
       matchResources:
@@ -21567,7 +21567,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-sysctls
     spec:
       failurePolicy: Fail
@@ -21649,7 +21649,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-sysctls
     spec:
       matchResources:
@@ -21688,7 +21688,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-sysctls-controllers
     spec:
       matchResources:
@@ -21740,7 +21740,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-volume-types
     spec:
       failurePolicy: Fail
@@ -21812,7 +21812,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-volume-types
     spec:
       matchResources:
@@ -21851,7 +21851,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-volume-types-controllers
     spec:
       matchResources:
@@ -21902,7 +21902,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-wildcard-rbac
     spec:
       failurePolicy: Fail
@@ -21948,7 +21948,7 @@ reporting:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-wildcard-rbac
     spec:
       matchResources:
@@ -21986,7 +21986,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: policyexceptions.policy.posture.dev
     spec:
       group: policy.posture.dev
@@ -22079,7 +22079,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: add-default-resources
     spec:
       failurePolicy: Fail
@@ -22202,7 +22202,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: add-default-resources
     spec:
       matchResources:
@@ -22236,7 +22236,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: add-default-security-context
     spec:
       failurePolicy: Fail
@@ -22345,7 +22345,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: add-default-security-context
     spec:
       matchResources:
@@ -22379,7 +22379,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disable-service-account-token-automount
     spec:
       failurePolicy: Fail
@@ -22441,7 +22441,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disable-service-account-token-automount
     spec:
       matchResources:
@@ -22476,7 +22476,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-automount-service-account-token
     spec:
       failurePolicy: Fail
@@ -22545,7 +22545,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-automount-service-account-token
     spec:
       matchResources:
@@ -22584,7 +22584,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-automount-service-account-token-controllers
     spec:
       matchResources:
@@ -22635,7 +22635,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-default-namespace
     spec:
       failurePolicy: Fail
@@ -22704,7 +22704,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-default-namespace
     spec:
       matchResources:
@@ -22743,7 +22743,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-default-namespace-controllers
     spec:
       matchResources:
@@ -22794,7 +22794,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-default-service-account
     spec:
       failurePolicy: Fail
@@ -22863,7 +22863,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-default-service-account
     spec:
       matchResources:
@@ -22902,7 +22902,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-default-service-account-controllers
     spec:
       matchResources:
@@ -22953,7 +22953,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-ephemeral-containers
     spec:
       failurePolicy: Fail
@@ -22989,7 +22989,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-ephemeral-containers
     spec:
       matchResources:
@@ -23028,7 +23028,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-host-namespaces
     spec:
       failurePolicy: Fail
@@ -23101,7 +23101,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-host-namespaces
     spec:
       matchResources:
@@ -23140,7 +23140,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-host-namespaces-controllers
     spec:
       matchResources:
@@ -23192,7 +23192,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-host-path
     spec:
       failurePolicy: Fail
@@ -23261,7 +23261,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-host-path
     spec:
       matchResources:
@@ -23300,7 +23300,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-host-path-controllers
     spec:
       matchResources:
@@ -23352,7 +23352,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-host-ports
     spec:
       failurePolicy: Fail
@@ -23423,7 +23423,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-host-ports
     spec:
       matchResources:
@@ -23462,7 +23462,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-host-ports-controllers
     spec:
       matchResources:
@@ -23513,7 +23513,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-latest-tag
     spec:
       failurePolicy: Fail
@@ -23584,7 +23584,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-latest-tag
     spec:
       matchResources:
@@ -23623,7 +23623,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-latest-tag-controllers
     spec:
       matchResources:
@@ -23674,7 +23674,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-mesh-opt-out
     spec:
       failurePolicy: Fail
@@ -23750,7 +23750,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-mesh-opt-out
     spec:
       matchResources:
@@ -23789,7 +23789,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-mesh-opt-out-controllers
     spec:
       matchResources:
@@ -23840,7 +23840,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-nodeport-services
     spec:
       failurePolicy: Fail
@@ -23877,7 +23877,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-nodeport-services
     spec:
       matchResources:
@@ -23916,7 +23916,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-pod-exec
     spec:
       failurePolicy: Fail
@@ -23948,7 +23948,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-pod-exec
     spec:
       matchResources:
@@ -23985,7 +23985,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-privilege-escalation
     spec:
       failurePolicy: Fail
@@ -24057,7 +24057,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-privilege-escalation
     spec:
       matchResources:
@@ -24096,7 +24096,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-privilege-escalation-controllers
     spec:
       matchResources:
@@ -24148,7 +24148,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-privileged-containers
     spec:
       failurePolicy: Fail
@@ -24229,7 +24229,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-privileged-containers
     spec:
       matchResources:
@@ -24268,7 +24268,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-privileged-containers-controllers
     spec:
       matchResources:
@@ -24319,7 +24319,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-rbac-escalation-verbs
     spec:
       failurePolicy: Fail
@@ -24363,7 +24363,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-rbac-escalation-verbs
     spec:
       matchResources:
@@ -24402,7 +24402,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-secrets-in-env
     spec:
       failurePolicy: Fail
@@ -24474,7 +24474,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-secrets-in-env
     spec:
       matchResources:
@@ -24513,7 +24513,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-secrets-in-env-controllers
     spec:
       matchResources:
@@ -24564,7 +24564,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-shared-process-namespace
     spec:
       failurePolicy: Fail
@@ -24633,7 +24633,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-shared-process-namespace
     spec:
       matchResources:
@@ -24672,7 +24672,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: disallow-shared-process-namespace-controllers
     spec:
       matchResources:
@@ -24724,7 +24724,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-drop-all-capabilities
     spec:
       failurePolicy: Fail
@@ -24803,7 +24803,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-drop-all-capabilities
     spec:
       matchResources:
@@ -24842,7 +24842,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-drop-all-capabilities-controllers
     spec:
       matchResources:
@@ -24893,7 +24893,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-image-digest
     spec:
       failurePolicy: Fail
@@ -24962,7 +24962,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-image-digest
     spec:
       matchResources:
@@ -25001,7 +25001,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-image-digest-controllers
     spec:
       matchResources:
@@ -25051,7 +25051,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-probes
     spec:
       failurePolicy: Fail
@@ -25130,7 +25130,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-probes
     spec:
       matchResources:
@@ -25169,7 +25169,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-probes-controllers
     spec:
       matchResources:
@@ -25220,7 +25220,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-read-only-root-filesystem
     spec:
       failurePolicy: Fail
@@ -25292,7 +25292,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-read-only-root-filesystem
     spec:
       matchResources:
@@ -25331,7 +25331,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-read-only-root-filesystem-controllers
     spec:
       matchResources:
@@ -25382,7 +25382,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-resource-limits
     spec:
       failurePolicy: Fail
@@ -25463,7 +25463,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-resource-limits
     spec:
       matchResources:
@@ -25502,7 +25502,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-resource-limits-controllers
     spec:
       matchResources:
@@ -25554,7 +25554,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-run-as-non-root
     spec:
       failurePolicy: Fail
@@ -25637,7 +25637,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-run-as-non-root
     spec:
       matchResources:
@@ -25676,7 +25676,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-run-as-non-root-controllers
     spec:
       matchResources:
@@ -25727,7 +25727,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-standard-labels
     spec:
       failurePolicy: Fail
@@ -25796,7 +25796,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-standard-labels
     spec:
       matchResources:
@@ -25835,7 +25835,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: require-standard-labels-controllers
     spec:
       matchResources:
@@ -25887,7 +25887,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-apparmor
     spec:
       failurePolicy: Fail
@@ -25968,7 +25968,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-apparmor
     spec:
       matchResources:
@@ -26007,7 +26007,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-apparmor-controllers
     spec:
       matchResources:
@@ -26058,7 +26058,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-cluster-admin-binding
     spec:
       failurePolicy: Fail
@@ -26105,7 +26105,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-cluster-admin-binding
     spec:
       matchResources:
@@ -26144,7 +26144,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-external-ips
     spec:
       failurePolicy: Fail
@@ -26181,7 +26181,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-external-ips
     spec:
       matchResources:
@@ -26220,7 +26220,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-externalname-services
     spec:
       failurePolicy: Fail
@@ -26257,7 +26257,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-externalname-services
     spec:
       matchResources:
@@ -26296,7 +26296,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-image-registries
     spec:
       failurePolicy: Fail
@@ -26369,7 +26369,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-image-registries
     spec:
       matchResources:
@@ -26408,7 +26408,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-image-registries-controllers
     spec:
       matchResources:
@@ -26459,7 +26459,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-loadbalancer-services
     spec:
       failurePolicy: Fail
@@ -26498,7 +26498,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-loadbalancer-services
     spec:
       matchResources:
@@ -26538,7 +26538,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-proc-mount
     spec:
       failurePolicy: Fail
@@ -26610,7 +26610,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-proc-mount
     spec:
       matchResources:
@@ -26649,7 +26649,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-proc-mount-controllers
     spec:
       matchResources:
@@ -26693,6 +26693,86 @@ strict:
     kind: ValidatingAdmissionPolicy
     metadata:
       annotations:
+        policy.posture.dev/description: Gateway API routes claim only hostnames under their own namespace in an allowed domain, and always name at least one.
+        policy.posture.dev/nist: SC-7, AC-4
+        policy.posture.dev/since: "0.2"
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.2.0
+      name: restrict-route-hostnames
+    spec:
+      failurePolicy: Fail
+      matchConstraints:
+        resourceRules:
+          - apiGroups:
+              - gateway.networking.k8s.io
+            apiVersions:
+              - '*'
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - httproutes
+              - grpcroutes
+              - tlsroutes
+      validations:
+        - expression: size(variables.hostnames) > 0
+          message: spec.hostnames must list at least one hostname; a route without hostnames claims every hostname on its listener. Use <namespace>.<domain>, or a name under it, for a domain in policies.restrict-route-hostnames.domains.
+        - expression: |-
+            variables.hostnames.all(h, variables.setting_domains.exists(d,
+              h == request.namespace + '.' + d || h.endsWith('.' + request.namespace + '.' + d)))
+          message: spec.hostnames must each be <namespace>.<domain> or end in .<namespace>.<domain> (wildcards included), for a domain in policies.restrict-route-hostnames.domains. A hostname under another namespace or a bare domain may not be claimed.
+          messageExpression: '''spec.hostnames must each be '' + request.namespace + ''.<domain> or end in .'' + request.namespace + ''.<domain> (wildcards included), for <domain> one of: '' + variables.setting_domains.join('', '') + '' (policies.restrict-route-hostnames.domains). A hostname under another namespace or a bare domain may not be claimed.'''
+      variables:
+        - expression: '["apps.example.mil"]'
+          name: setting_domains
+        - expression: 'has(object.spec.hostnames) ? object.spec.hostnames : []'
+          name: hostnames
+  91: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicyBinding
+    metadata:
+      annotations:
+        policy.posture.dev/binding: custom
+        policy.posture.dev/tier: optional
+      labels:
+        app.kubernetes.io/instance: policy
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: policy
+        helm.sh/chart: policy-0.2.0
+      name: restrict-route-hostnames
+    spec:
+      matchResources:
+        namespaceSelector:
+          matchExpressions:
+            - key: kubernetes.io/metadata.name
+              operator: NotIn
+              values:
+                - kube-system
+        resourceRules:
+          - apiGroups:
+              - gateway.networking.k8s.io
+            apiVersions:
+              - '*'
+            operations:
+              - CREATE
+              - UPDATE
+            resources:
+              - httproutes
+              - grpcroutes
+              - tlsroutes
+      policyName: restrict-route-hostnames
+      validationActions:
+        - Deny
+        - Audit
+  92: |
+    apiVersion: admissionregistration.k8s.io/v1
+    kind: ValidatingAdmissionPolicy
+    metadata:
+      annotations:
         policy.posture.dev/description: Every container runs under a RuntimeDefault or Localhost seccomp profile.
         policy.posture.dev/nist: CM-7, SC-39
         policy.posture.dev/pss: restricted
@@ -26701,7 +26781,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-seccomp
     spec:
       failurePolicy: Fail
@@ -26765,7 +26845,7 @@ strict:
           name: podSeccompAllowed
         - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'restrict-seccomp' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
           name: exempt
-  91: |
+  93: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -26776,7 +26856,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-seccomp
     spec:
       matchResources:
@@ -26804,7 +26884,7 @@ strict:
       validationActions:
         - Deny
         - Audit
-  92: |
+  94: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -26815,7 +26895,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-seccomp-controllers
     spec:
       matchResources:
@@ -26854,7 +26934,7 @@ strict:
       policyName: restrict-seccomp
       validationActions:
         - Warn
-  93: |
+  95: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicy
     metadata:
@@ -26867,7 +26947,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-selinux
     spec:
       failurePolicy: Fail
@@ -26939,7 +27019,7 @@ strict:
           name: seLinuxOptions
         - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'restrict-selinux' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
           name: exempt
-  94: |
+  96: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -26950,7 +27030,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-selinux
     spec:
       matchResources:
@@ -26978,7 +27058,7 @@ strict:
       validationActions:
         - Deny
         - Audit
-  95: |
+  97: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -26989,7 +27069,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-selinux-controllers
     spec:
       matchResources:
@@ -27028,7 +27108,7 @@ strict:
       policyName: restrict-selinux
       validationActions:
         - Warn
-  96: |
+  98: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicy
     metadata:
@@ -27041,7 +27121,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-sysctls
     spec:
       failurePolicy: Fail
@@ -27112,7 +27192,7 @@ strict:
           name: allContainers
         - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'restrict-sysctls' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
           name: exempt
-  97: |
+  99: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -27123,7 +27203,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-sysctls
     spec:
       matchResources:
@@ -27151,7 +27231,7 @@ strict:
       validationActions:
         - Deny
         - Audit
-  98: |
+  100: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -27162,7 +27242,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-sysctls-controllers
     spec:
       matchResources:
@@ -27201,7 +27281,7 @@ strict:
       policyName: restrict-sysctls
       validationActions:
         - Warn
-  99: |
+  101: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicy
     metadata:
@@ -27214,7 +27294,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-volume-types
     spec:
       failurePolicy: Fail
@@ -27275,7 +27355,7 @@ strict:
           name: allContainers
         - expression: has(params.spec) && has(params.spec.exceptions) && params.spec.exceptions.exists(e, e.policy.kind == 'ValidatingAdmissionPolicy' && e.policy.name == 'restrict-volume-types' && has(e.workloads) && e.workloads.exists(w, has(w.matchLabels) && size(w.matchLabels) > 0 && w.matchLabels.all(k, k in variables.workloadLabels && variables.workloadLabels[k] == w.matchLabels[k])))
           name: exempt
-  100: |
+  102: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -27286,7 +27366,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-volume-types
     spec:
       matchResources:
@@ -27314,7 +27394,7 @@ strict:
       validationActions:
         - Deny
         - Audit
-  101: |
+  103: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -27325,7 +27405,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-volume-types-controllers
     spec:
       matchResources:
@@ -27364,7 +27444,7 @@ strict:
       policyName: restrict-volume-types
       validationActions:
         - Warn
-  102: |
+  104: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicy
     metadata:
@@ -27376,7 +27456,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-wildcard-rbac
     spec:
       failurePolicy: Fail
@@ -27411,7 +27491,7 @@ strict:
           name: rules
         - expression: object.metadata.name in ['cluster-admin'] + variables.setting_allowedRoles
           name: allowed
-  103: |
+  105: |
     apiVersion: admissionregistration.k8s.io/v1
     kind: ValidatingAdmissionPolicyBinding
     metadata:
@@ -27422,7 +27502,7 @@ strict:
         app.kubernetes.io/instance: policy
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: policy
-        helm.sh/chart: policy-0.1.0
+        helm.sh/chart: policy-0.2.0
       name: restrict-wildcard-rbac
     spec:
       matchResources:

@@ -56,6 +56,18 @@ create_cluster() {
   quiet "$KUBECTL" -n kube-system rollout status deployment/coredns --timeout=120s
 }
 
+# install_gateway_api: the pinned Gateway API release's standard CRDs (HTTPRoute, GRPCRoute,
+# TLSRoute, ...), so restrict-route-hostnames has routes to judge and its CEL is type-checked
+# against their schemas. No Gateway controller: admission doesn't need one.
+install_gateway_api() {
+  log "installing Gateway API ${GATEWAY_API_VERSION} CRDs"
+  quiet "$KUBECTL" apply --server-side --force-conflicts \
+    -f "https://github.com/kubernetes-sigs/gateway-api/releases/download/v${GATEWAY_API_VERSION}/standard-install.yaml"
+  quiet "$KUBECTL" wait --for=condition=Established --timeout=60s \
+    crd/httproutes.gateway.networking.k8s.io crd/grpcroutes.gateway.networking.k8s.io \
+    crd/tlsroutes.gateway.networking.k8s.io
+}
+
 delete_cluster() {
   "$K3D" cluster delete "$CLUSTER" >/dev/null 2>&1 || true
 }

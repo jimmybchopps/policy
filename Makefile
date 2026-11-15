@@ -11,6 +11,8 @@ K3D_VERSION           := 5.9.0
 KUBECTL_VERSION       := 1.37.2
 # e2e (test/e2e/run.sh). 1.36+ so MutatingAdmissionPolicy is v1 (phase 3).
 K3S_IMAGE             := rancher/k3s:v1.37.2-k3s1
+# Gateway API CRDs (standard channel, which has TLSRoute from 1.5) for restrict-route-hostnames' e2e.
+GATEWAY_API_VERSION   := 1.6.3
 
 # Every Helm version this chart supports; `make test-all-helm` runs the suite under each.
 HELM_VERSIONS := $(HELM_MIN_VERSION) $(HELM3_LATEST_VERSION) $(HELM_VERSION)
@@ -302,7 +304,7 @@ test-all-helm:
 # Needs Docker. Extra arguments go to run.sh via E2E_ARGS (e.g. E2E_ARGS=smoke).
 e2e: $(HELM) tools-e2e
 	K3D=$(K3D) KUBECTL=$(KUBECTL) HELM=$(HELM) K3S_IMAGE=$(K3S_IMAGE) \
-	  test/e2e/run.sh $(E2E_ARGS)
+	  GATEWAY_API_VERSION=$(GATEWAY_API_VERSION) test/e2e/run.sh $(E2E_ARGS)
 
 # Builds a release's assets into dist/ exactly as .github/workflows/release.yml does
 # (test/release/build-dist.sh), so a release can be rehearsed before tagging:
