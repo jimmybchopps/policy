@@ -18,6 +18,8 @@
 #                                                is what it refuses)
 #   other            none                        restrict-route-hostnames: other's own names
 #                                                are admitted there (routes take no exceptions)
+#   ingress-gateway  none                        listed in restrict-route-hostnames.namespaces:
+#                                                routes there aren't checked
 #
 # Policies without exceptions (the RBAC policies, disallow-pod-exec, restrict-route-hostnames)
 # have no only-<policy> or exempt case: their deny fixtures are denied in apps (so each breaks
@@ -41,6 +43,7 @@ setup() {
   namespace debug-allowed
   namespace lb-allowed
   namespace other
+  namespace ingress-gateway
   policy_namespaces
   # A pod that predates the policies: created for real now, never scheduled.
   quiet "$KUBECTL" apply -n apps -f "$ROOT/test/e2e/fixtures/old-bad-pod.yaml"
@@ -84,6 +87,11 @@ checks() {
   # The names apps may not claim belong to other, where they're admitted.
   expect admit other "$ROUTES/deny-other-namespace.yaml"
   expect admit other "$ROUTES/deny-grpcroute.yaml"
+  # The ingress gateways' own namespace (restrict-route-hostnames.namespaces) isn't checked: a
+  # route with no hostnames (boundary's HTTP-to-HTTPS redirect) and one under another namespace
+  # are both admitted there, while apps still refuses them (above).
+  expect admit ingress-gateway "$ROUTES/deny-no-hostnames.yaml"
+  expect admit ingress-gateway "$ROUTES/deny-other-namespace.yaml"
 }
 
 install() {
@@ -93,6 +101,7 @@ install() {
     --set-json 'policies.disallow-pod-exec.namespaces=["exec-allowed"]' \
     --set-json 'policies.restrict-loadbalancer-services.namespaces=["lb-allowed"]' \
     --set-json 'policies.restrict-route-hostnames.domains=["example.mil","svc.example.org"]' \
+    --set-json 'policies.restrict-route-hostnames.namespaces=["ingress-gateway"]' \
     --set-json 'policies.restrict-cluster-admin-binding.allowedSubjects=[{"kind":"Group","name":"e2e-admins"}]' \
     --set-json 'policies.disallow-rbac-escalation-verbs.allowedRoles=["e2e-allowed-escalation"]'
   exceptions_object apps

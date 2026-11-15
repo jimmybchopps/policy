@@ -4,11 +4,15 @@ since: "0.2"
 default: { enabled: false, action: inherit }
 description: >-
   Gateway API routes claim only hostnames under their own namespace in an allowed domain,
-  and always name at least one.
+  and always name at least one, outside the namespaces listed.
 controls:
   nist: [SC-7, AC-4]
 # Routes are matched by resourceRules (Gateway API is a CRD), so this takes no posture
-# exceptions: the domains setting decides, and a route outside it is fixed, not excepted.
+# exceptions: the domains setting decides, and a route outside it is fixed, not excepted. The
+# ingress gateways' own namespace is the one place that can't comply (its routes, such as an
+# HTTP-to-HTTPS redirect, cover every hostname of its listeners), so the namespaces setting
+# skips it, as restrict-loadbalancer-services' does. (The variable isn't called exempt: the
+# renderer reserves that name for posture exceptions.)
 resources:
   resourceRules:
     - apiGroups: [gateway.networking.k8s.io]
@@ -26,24 +30,40 @@ settings:
     items:
       type: string
       pattern: "^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$"
+  namespaces:
+    type: list
+    default: []
+    description: >-
+      namespaces whose routes aren't checked: the ingress gateways' own namespace (e.g.
+      ingress-gateway), where the gateway chart's routes, such as boundary's HTTP-to-HTTPS
+      redirect, cover every hostname of their own listeners
+    items:
+      type: string
+      pattern: "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
 variables:
   - name: hostnames
     expression: "has(object.spec.hostnames) ? object.spec.hostnames : []"
+  - name: unchecked
+    expression: "request.namespace in variables.setting_namespaces"
 validations:
-  - expression: "size(variables.hostnames) > 0"
+  - expression: "variables.unchecked || size(variables.hostnames) > 0"
     message: >-
       spec.hostnames must list at least one hostname; a route without hostnames claims every
       hostname on its listener. Use <namespace>.<domain>, or a name under it, for a domain in
-      policies.restrict-route-hostnames.domains.
+      policies.restrict-route-hostnames.domains. Routes in the namespaces listed in
+      policies.restrict-route-hostnames.namespaces (the ingress gateways' own) are not checked.
   - expression: >-
-      variables.hostnames.all(h, variables.setting_domains.exists(d,
+      variables.unchecked || variables.hostnames.all(h, variables.setting_domains.exists(d,
         h == request.namespace + '.' + d || h.endsWith('.' + request.namespace + '.' + d)))
     message: >-
       spec.hostnames must each be <namespace>.<domain> or end in .<namespace>.<domain>
       (wildcards included), for a domain in policies.restrict-route-hostnames.domains. A
-      hostname under another namespace or a bare domain may not be claimed.
+      hostname under another namespace or a bare domain may not be claimed. Routes in the
+      namespaces listed in policies.restrict-route-hostnames.namespaces (the ingress gateways'
+      own) are not checked.
     messageExpression: >-
       'spec.hostnames must each be ' + request.namespace + '.<domain> or end in .' +
       request.namespace + '.<domain> (wildcards included), for <domain> one of: ' +
       variables.setting_domains.join(', ') +
-      ' (policies.restrict-route-hostnames.domains). A hostname under another namespace or a bare domain may not be claimed.'
+      ' (policies.restrict-route-hostnames.domains). A hostname under another namespace or a bare domain may not be claimed.' +
+      " Routes in the namespaces listed in policies.restrict-route-hostnames.namespaces (the ingress gateways' own) are not checked."

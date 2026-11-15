@@ -93,6 +93,7 @@ policies:
     namespaces: [ingress-gateway]   # e.g.; default [], so nothing gets an external address until listed
   restrict-route-hostnames:      # 0.2; off by default. Gateway API routes claim <ns>.<domain> and below
     domains: [apps.site.mil]     # required once enabled
+    namespaces: [ingress-gateway]   # not checked: the gateways' own routes; default []
   restrict-wildcard-rbac:        # RBAC is cluster-scoped, so it can't use namespace exceptions
     allowedRoles: []             # Role/ClusterRole names allowed to use "*"
   restrict-cluster-admin-binding:

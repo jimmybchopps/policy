@@ -68,6 +68,7 @@ policies:
   # Optional policies take enabled, action (inherit | enforce | audit), and their own settings.
   disallow-pod-exec: { enabled: true, namespaces: [debug] }
   restrict-loadbalancer-services: { namespaces: [ingress-gateway] }
+  restrict-route-hostnames: { enabled: true, domains: [apps.site.mil], namespaces: [ingress-gateway] }
 
 # Your own policies, in the definition format (docs/policies.md describes the built-in ones).
 custom:

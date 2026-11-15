@@ -71,7 +71,7 @@ authoritative mapping; confirm them with your ISSM before citing them.
 | [`restrict-cluster-admin-binding`](#restrict-cluster-admin-binding) | on, inherit | rbac | Only the subjects listed are bound to cluster-admin. | AC-2, AC-6 |
 | [`restrict-externalname-services`](#restrict-externalname-services) | on, inherit | services | Services are not of type ExternalName. | SC-7 |
 | [`restrict-loadbalancer-services`](#restrict-loadbalancer-services) | on, inherit | services | Services of type LoadBalancer only in the namespaces listed. | SC-7 |
-| [`restrict-route-hostnames`](#restrict-route-hostnames) | off | httproutes, grpcroutes, tlsroutes (CREATE, UPDATE) | Gateway API routes claim only hostnames under their own namespace in an allowed domain, and always name at least one. | SC-7, AC-4 |
+| [`restrict-route-hostnames`](#restrict-route-hostnames) | off | httproutes, grpcroutes, tlsroutes (CREATE, UPDATE) | Gateway API routes claim only hostnames under their own namespace in an allowed domain, and always name at least one, outside the namespaces listed. | SC-7, AC-4 |
 | [`restrict-wildcard-rbac`](#restrict-wildcard-rbac) | on, inherit | rbac | Roles and ClusterRoles don't grant "*" verbs, resources, or API groups. | AC-6 |
 
 ## Mutations (3)
@@ -611,7 +611,7 @@ Services of type LoadBalancer only in the namespaces listed.
 
 ### restrict-route-hostnames
 
-Gateway API routes claim only hostnames under their own namespace in an allowed domain, and always name at least one.
+Gateway API routes claim only hostnames under their own namespace in an allowed domain, and always name at least one, outside the namespaces listed.
 
 - **Tier:** optional (off)
 - **Since:** 0.2 (audits by default while the chart is 0.2.x)
@@ -625,11 +625,12 @@ Gateway API routes claim only hostnames under their own namespace in an allowed 
 | Setting | Type | Default | Description |
 |---|---|---|---|
 | `domains` | list, required | `[]` | the domains routes may use; a route in namespace <ns> may claim <ns>.<domain> and names under it, e.g. apps.site.mil |
+| `namespaces` | list | `[]` | namespaces whose routes aren't checked: the ingress gateways' own namespace (e.g. ingress-gateway), where the gateway chart's routes, such as boundary's HTTP-to-HTTPS redirect, cover every hostname of their own listeners |
 
 **What it checks:**
 
-- spec.hostnames must list at least one hostname; a route without hostnames claims every hostname on its listener. Use <namespace>.<domain>, or a name under it, for a domain in policies.restrict-route-hostnames.domains.
-- spec.hostnames must each be <namespace>.<domain> or end in .<namespace>.<domain> (wildcards included), for a domain in policies.restrict-route-hostnames.domains. A hostname under another namespace or a bare domain may not be claimed.
+- spec.hostnames must list at least one hostname; a route without hostnames claims every hostname on its listener. Use <namespace>.<domain>, or a name under it, for a domain in policies.restrict-route-hostnames.domains. Routes in the namespaces listed in policies.restrict-route-hostnames.namespaces (the ingress gateways' own) are not checked.
+- spec.hostnames must each be <namespace>.<domain> or end in .<namespace>.<domain> (wildcards included), for a domain in policies.restrict-route-hostnames.domains. A hostname under another namespace or a bare domain may not be claimed. Routes in the namespaces listed in policies.restrict-route-hostnames.namespaces (the ingress gateways' own) are not checked.
 
 ### restrict-wildcard-rbac
 

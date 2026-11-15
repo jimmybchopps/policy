@@ -73,7 +73,7 @@ authoritative mapping; confirm them with your ISSM before citing them.
 | `require-probes` | audit | workloads | readiness and liveness probes on long-running containers (regular containers unless the pod runs to completion, as a Job's do; sidecar init containers always) | — |
 | `disallow-ephemeral-containers` | off | pods/ephemeralcontainers (UPDATE) | no `kubectl debug` ephemeral containers | AC-6, CM-7 |
 | `disallow-pod-exec` | off | pods/exec, pods/attach (CONNECT) | no interactive exec or attach | AC-6 |
-| `restrict-route-hostnames` (0.2) | off | Gateway API HTTPRoutes, GRPCRoutes, TLSRoutes | every `spec.hostnames` entry is `<namespace>.<domain>` or ends in `.<namespace>.<domain>` for one of the policy's `domains`; a route with no hostnames is refused (it would claim every hostname on its listener) | SC-7, AC-4 |
+| `restrict-route-hostnames` (0.2) | off | Gateway API HTTPRoutes, GRPCRoutes, TLSRoutes | every `spec.hostnames` entry is `<namespace>.<domain>` or ends in `.<namespace>.<domain>` for one of the policy's `domains`; a route with no hostnames is refused (it would claim every hostname on its listener); routes in the policy's `namespaces` (the ingress gateways' own; 0.2.1) aren't checked | SC-7, AC-4 |
 
 Services and RBAC objects have no controller in front of them, so those policies use a single
 binding with the policy's own actions.
@@ -409,6 +409,10 @@ hostnames, or every hostname on its listener.
       routes in the catalog scenario (`test/e2e/fixtures/routes/`).
 - [x] e2e: green.
 - [x] 0.2.0 released, and the item removed from `boundary`'s "Changes needed in other repos".
+- [x] 0.2.1: `namespaces` (default `[]`), whose routes aren't checked: the ingress gateways'
+      own, where boundary's HTTP-to-HTTPS redirect route has no hostnames. Unit tests; e2e in
+      the catalog's `ingress-gateway` namespace.
+- [x] 0.2.1 e2e green, and released.
 
 ---
 

@@ -41,7 +41,7 @@ tests:
     set:
       policies:
         restrict-route-hostnames: { enabled: true, domains: [apps.example.mil] }
-    documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Gateway API routes claim only hostnames under their own namespace in an allowed domain, and always name at least one." }
+    documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Gateway API routes claim only hostnames under their own namespace in an allowed domain, and always name at least one, outside the namespaces listed." }
     asserts:
       - equal:
           path: spec.matchConstraints.resourceRules
@@ -56,16 +56,39 @@ tests:
     set:
       policies:
         restrict-route-hostnames: { enabled: true, domains: [apps.example.mil, svc.example.org] }
-    documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Gateway API routes claim only hostnames under their own namespace in an allowed domain, and always name at least one." }
+    documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Gateway API routes claim only hostnames under their own namespace in an allowed domain, and always name at least one, outside the namespaces listed." }
     asserts:
       - equal:
           path: spec.variables
           value:
             - { name: setting_domains, expression: '["apps.example.mil","svc.example.org"]' }
+            - { name: setting_namespaces, expression: "[]" }
             - { name: hostnames, expression: "has(object.spec.hostnames) ? object.spec.hostnames : []" }
-      - equal: { path: "spec.validations[0].expression", value: "size(variables.hostnames) > 0" }
+            - { name: unchecked, expression: "request.namespace in variables.setting_namespaces" }
+      - equal: { path: "spec.validations[0].expression", value: "variables.unchecked || size(variables.hostnames) > 0" }
+      - matchRegex: { path: "spec.validations[1].expression", pattern: "^variables\\.unchecked \\|\\| variables\\.hostnames\\.all\\(" }
       - notMatchRegex: { path: "spec.validations[1].expression", pattern: "exempt" }
       - exists: { path: "spec.validations[1].messageExpression" }
+
+  - it: skips the routes in the namespaces listed (the ingress gateways' own)
+    template: templates/validating.yaml
+    set:
+      policies:
+        restrict-route-hostnames: { enabled: true, domains: [apps.example.mil], namespaces: [ingress-gateway] }
+    documentSelector: { path: "metadata.annotations['policy.posture.dev/description']", value: "Gateway API routes claim only hostnames under their own namespace in an allowed domain, and always name at least one, outside the namespaces listed." }
+    asserts:
+      - equal: { path: "spec.variables[1]", value: { name: setting_namespaces, expression: '["ingress-gateway"]' } }
+      - equal: { path: "spec.variables[3]", value: { name: unchecked, expression: "request.namespace in variables.setting_namespaces" } }
+      - matchRegex: { path: "spec.validations[0].message", pattern: "policies\\.restrict-route-hostnames\\.namespaces" }
+
+  - it: rejects a namespace that isn't a DNS label
+    template: templates/NOTES.txt
+    set:
+      policies:
+        restrict-route-hostnames: { enabled: true, domains: [apps.example.mil], namespaces: [Ingress_GW] }
+    asserts:
+      - failedTemplate:
+          errorPattern: "namespaces"
 
   - it: has one binding, without paramRef, auditing through 0.2
     template: templates/validating.yaml
